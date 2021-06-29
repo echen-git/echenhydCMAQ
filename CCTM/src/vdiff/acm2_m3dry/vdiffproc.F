@@ -90,10 +90,14 @@ C-----------------------------------------------------------------------
       USE UTILIO_DEFN
       USE BIDI_MOD
       USE HGSIM
+      USE HDMod
 !      USE LSM_MOD, Only: n_lufrac
       USE SEDIMENTATION
+      USE AERO_DATA
       USE VDIFF_DIAG
-      USE PA_DEFN, Only: LIPR ! Process Anaylsis control and data variables
+      
+
+!       USE PA_DEFN, Only: LIPR ! Process Anaylsis control and data variables
 
 #ifdef isam
       USE SA_DEFN, Only: ITAG, N_SPCTAG, VNAM_SPCTAG, SA_DDEP, SA_BIDI, ISAM, NTAG_SA, 
@@ -112,7 +116,7 @@ C-----------------------------------------------------------------------
 
 C Arguments:
 
-      REAL, POINTER :: CGRID( :,:,:,: )              !  concentrations
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )              !  concentrations
       INTEGER      JDATE        ! current model date, coded YYYYDDD
       INTEGER      JTIME        ! current model time, coded HHMMSS
       INTEGER      TSTEP( 3 )   ! time step vector (HHMMSS)
@@ -135,10 +139,10 @@ C Local Variables:
 
       REAL             FCMSF                         ! loop local RMSFX4( C,R )
 
-      REAL, ALLOCATABLE, SAVE :: CNGRD( :,:,:,: )    ! cgrid aero in mixing ratio
-      REAL, ALLOCATABLE, SAVE :: DDEP     ( :,:,: )   ! ddep accumulator
-      REAL, ALLOCATABLE, SAVE :: ICMP     ( :,:,: )   ! component flux accumlator 
-      REAL     :: WRDD( NCOLS,NROWS )                 ! ddep write buffer
+	  TYPE(hyperdual), ALLOCATABLE, SAVE :: CNGRD( :,:,:,: )     ! cgrid aero in mixing ratio
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: DDEP     ( :,:,: )   ! ddep accumulator
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: ICMP     ( :,:,: )   ! component flux accumlator 
+      TYPE(hyperdual)    :: WRDD( NCOLS,NROWS )                 ! ddep write buffer
 
       REAL, ALLOCATABLE, SAVE :: DDEP_PA  ( :,:,: )   ! ddep for process analysis
       REAL, ALLOCATABLE, SAVE :: EMIS_PA( :,:,:,: )   ! emis for process analysis
@@ -149,9 +153,9 @@ C Local Variables:
       REAL     :: SEDDY ( NLAYS,NCOLS,NROWS )   ! flipped EDDYV
       REAL        DTSEC                         ! model time step in seconds
 
-      REAL     :: NH3_FLUX( NCOLS,NROWS )
+      TYPE(hyperdual)     :: NH3_FLUX( NCOLS,NROWS )
 
-      REAL, ALLOCATABLE, SAVE :: VSED_AE( :,:,:,: )
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: VSED_AE( :,:,:,: )
       INTEGER, SAVE :: NH3_HIT
 
 C Local Variables
@@ -187,24 +191,27 @@ C Local Variables
             INTEGER,        INTENT( IN )  :: TSTEP( 3 )
          END SUBROUTINE PA_UPDATE_DDEP
          SUBROUTINE CONV_CGRID ( CGRID, JDATE, JTIME, CNGRD )
-            REAL, POINTER :: CGRID( :,:,:,: )
+            use HDMod
+            TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )
             INTEGER,        INTENT( IN )  :: JDATE, JTIME
-            REAL,           INTENT( INOUT ) :: CNGRD( :,:,:,: )
+            TYPE(hyperdual), INTENT( INOUT ) :: CNGRD( :,:,:,: )
          END SUBROUTINE CONV_CGRID
          SUBROUTINE REV_CGRID ( CNGRD, JDATE, JTIME, CGRID )
-            REAL,           INTENT( INOUT ) :: CNGRD( :,:,:,: )
+         	use HDMod
+            TYPE(hyperdual),  INTENT( INOUT ) :: CNGRD( :,:,:,: )
             INTEGER,        INTENT( IN )  :: JDATE, JTIME
-            REAL, POINTER :: CGRID( :,:,:,: )
+            TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )
          END SUBROUTINE REV_CGRID
          SUBROUTINE EDDYX ( EDDYV )
             REAL,           INTENT( OUT ) :: EDDYV( :,:,: )
          END SUBROUTINE EDDYX
          SUBROUTINE VDIFFACMX( dtsec, seddy, ddep, icmp, cngrd)
+            use HDMod
             REAL, INTENT( IN )    :: dtsec
             REAL, INTENT( INOUT ) :: seddy( :,:,: )
-            REAL, INTENT( INOUT ) :: ddep ( :,:,: )
-            REAL, INTENT( INOUT ) :: icmp ( :,:,: )
-            REAL, INTENT( INOUT ) :: cngrd( :,:,:,: )
+            TYPE(hyperdual), INTENT( INOUT ) :: ddep ( :,:,: )
+            TYPE(hyperdual), INTENT( INOUT ) :: icmp ( :,:,: )
+            TYPE(hyperdual), INTENT( INOUT ) :: cngrd( :,:,:,: )
          END SUBROUTINE VDIFFACMX
 #ifdef isam
          SUBROUTINE SA_OPWDDEP ( SADEPFILE, JDATE, JTIME, TSTEP )
@@ -267,14 +274,14 @@ C Allocate and initialize dry deposition array
             XMSG = 'Failure allocating DDEP'
             CALL M3EXIT( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
          END IF
-         DDEP = 0.0   ! array assignment
+         DDEP = 0.0d0   ! array assignment
  
          ALLOCATE ( ICMP( LCMP,NCOLS,NROWS ), STAT = ASTAT )
          IF ( ASTAT .NE. 0 ) THEN
             XMSG = 'Failure allocating ICMP'
             CALL M3EXIT( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
          END IF
-         ICMP = 0.0   ! array assignment
+         ICMP = 0.0d0   ! array assignment
 
          CALL LOG_HEADING( LOGDEV, "Initialize Emissions Module" )
 
@@ -294,20 +301,20 @@ C Allocate and initialize emissions
 #endif
 
 C Set up for process analysis
-         IF ( LIPR ) THEN
-            CALL LOG_HEADING( LOGDEV, "Initialize Surface Exchange for Process Analysis" )
-
-            ALLOCATE ( EMIS_PA( NCOLS,NROWS,EMLAYS,N_SPC_DIFF ), STAT = ASTAT )
-            IF ( ASTAT .NE. 0 ) THEN
-               XMSG = 'EMIS_PA memory allocation failed'
-               CALL M3EXIT ( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
-            END IF
-            ALLOCATE ( DDEP_PA( NCOLS,NROWS,N_SPC_DEPV ), STAT = ASTAT )
-            IF ( ASTAT .NE. 0 ) THEN
-               XMSG = 'DDEP_PA memory allocation failed'
-               CALL M3EXIT ( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
-            END IF
-         END IF
+C        IF ( LIPR ) THEN
+C           CALL LOG_HEADING( LOGDEV, "Initialize Surface Exchange for Process Analysis" )
+C
+C           ALLOCATE ( EMIS_PA( NCOLS,NROWS,EMLAYS,N_SPC_DIFF ), STAT = ASTAT )
+C           IF ( ASTAT .NE. 0 ) THEN
+C              XMSG = 'EMIS_PA memory allocation failed'
+C              CALL M3EXIT ( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
+C           END IF
+C           ALLOCATE ( DDEP_PA( NCOLS,NROWS,N_SPC_DEPV ), STAT = ASTAT )
+C           IF ( ASTAT .NE. 0 ) THEN
+C              XMSG = 'DDEP_PA memory allocation failed'
+C              CALL M3EXIT ( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
+C           END IF
+C        END IF
 
 C Set up for grav. settling
          IF ( GRAV_SETL ) THEN
@@ -320,14 +327,14 @@ C Set up for grav. settling
             END IF
          END IF
 
-         N_SPC_CGRID = SIZE ( CGRID,4 )
+         N_SPC_CGRID = SIZE ( CGRID%x,4 )
 
          ALLOCATE ( CNGRD( N_SPC_CGRID,NLAYS,NCOLS,NROWS ), STAT = ASTAT )
          IF ( ASTAT .NE. 0 ) THEN
             XMSG = 'Failure allocating CNGRD'
             CALL M3EXIT( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
          END IF
-         CNGRD = 0.0   ! array assignment
+         CNGRD = 0.0d0   ! array assignment
  
          NH3_HIT = 0
          DO V = 1, N_SPC_DDEP
@@ -377,7 +384,6 @@ C Set up for grav. settling
           END DO
         ENDIF
 #endif
-
       END IF   !  if Firstime
 
       MDATE = JDATE
@@ -388,7 +394,7 @@ C Set up for grav. settling
 
 C Convert non-molar mixing ratio species and re-order CGRID
       CALL CONV_CGRID ( CGRID, MDATE, MTIME, CNGRD )
-
+      
 #ifdef sens
       DO NP = 1, NPMAX
          DO L = 1, NLAYS
@@ -406,35 +412,55 @@ C Convert non-molar mixing ratio species and re-order CGRID
 
 C read & interpolate met data
       CALL GET_MET ( MDATE, MTIME, MSTEP )
-
+      
+C     write(*,*) 'AFTER GET_MET, CNGRD'
+C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 )
+C     write(*,*) 'AFTER GET_MET, CNGRD_DX1'
+C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )      
 C read & interpolate deposition velocities
-      CALL GET_DEPV ( MDATE, MTIME, TSTEP, CGRID )      
-
-      IF ( GRAV_SETL ) THEN
+ 	  
+      CALL GET_DEPV ( MDATE, MTIME, TSTEP, CGRID )  
+      
+C     write(*,*) 'AFTER GET_DEPV, CNGRD'
+C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 ) 
+C     write(*,*) 'AFTER GET_DEPV, CNGRD_DX1'
+C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )      	  
+       IF ( GRAV_SETL ) THEN
 C Get gravitational settling velocity for the vsed aero species:
 C AERO_SEDV assumes that every aero species is dry deposited and is diffused (trns)
 C Calculate the changes in the layer J-,K-mode aerosol concentrations
          CALL SEDI( MDATE, MTIME, DTSEC, VSED_AE, CGRID, CNGRD )
+C        write(*,*) 'AFTER SEDI, CNGRD'
+C        write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 ) 
+C     	 write(*,*) 'AFTER SEDI, CNGRD_DX1'
+C        write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )         
       END IF
-
+      
 C read & interpolate emissions data => VDEMIS_DIFF from EMIS_DEFN module
-      CALL GET_EMIS ( MDATE, MTIME, TSTEP, CGRID )
-
-      IF ( LIPR ) THEN
-         DO S = 1, N_SPC_DIFF
-            DO L = 1, EMLAYS
-               DO R = 1, NROWS
-                  DO C = 1, NCOLS
-                     EMIS_PA( C,R,L,S ) = VDEMIS_DIFF( S,L,C,R )
-                  END DO
-               END DO
-            END DO
-         END DO
-         CALL PA_UPDATE_EMIS ( 'VDIF', EMIS_PA, JDATE, JTIME, TSTEP )
-      END IF
-
-      CALL EDDYX ( EDDYV )
-
+       CALL GET_EMIS ( MDATE, MTIME, TSTEP, CGRID )       
+C      write(*,*) 'AFTER GET_EMIS, CNGRD'
+C      write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 ) 
+C      write(*,*) 'AFTER GET_EMIS, CNGRD_DX1'
+C      write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )   
+C     IF ( LIPR ) THEN
+C        DO S = 1, N_SPC_DIFF
+C           DO L = 1, EMLAYS
+C              DO R = 1, NROWS
+C                 DO C = 1, NCOLS
+C                    EMIS_PA( C,R,L,S ) = VDEMIS_DIFF( S,L,C,R )
+C                 END DO
+C              END DO
+C           END DO
+C        END DO
+C        CALL PA_UPDATE_EMIS ( 'VDIF', EMIS_PA, JDATE, JTIME, TSTEP )
+C     END IF
+	  
+ 	  CALL EDDYX ( EDDYV )
+      
+C     write(*,*) 'AFTER EDDYX, CNGRD'
+C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 ) 	  
+C     write(*,*) 'AFTER EDDYX, CNGRD_DX1'
+C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )         
 C EDDYV returned = Kz, where Kz is in m**2/sec
 
       DO R = 1, NROWS
@@ -447,8 +473,8 @@ C EDDYV returned = Kz, where Kz is in m**2/sec
       END DO
 
       IF ( WSTEP .EQ. 0 ) THEN
-         DDEP = 0.0                      ! array assignment
-         ICMP = 0.0                      ! array assignment
+         DDEP = 0.0d0                      ! array assignment
+         ICMP = 0.0d0                     ! array assignment
 #ifdef sens
          S_DDEP = 0.0
 #endif
@@ -458,7 +484,12 @@ C Calculate the change in concentration and dry dep from vertical diffusion and 
 C Note: cngrd is the argument keyword (from the INTERFACE); CNGRD is the actual argument
 
       CALL VDIFFACMX( DTSEC, SEDDY, DDEP, ICMP, CNGRD )
-
+      
+C     write(*,*) 'AFTER VDIFFACMX, CNGRD'
+C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 ) 
+C     write(*,*) 'AFTER VDIFFACMX, CNGRD_DX1'
+C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )      
+                
       IF ( VDIFFDIAG ) THEN
          NTICS = NTICS + 1
          NLPCR_SUM = NLPCR_SUM + NLPCR_MEAN    ! array assignment
@@ -481,7 +512,13 @@ C Note: cngrd is the argument keyword (from the INTERFACE); CNGRD is the actual 
 
 C Revert non-molar mixing ratio species and re-order CGRID
       CALL REV_CGRID ( CNGRD, MDATE, MTIME, CGRID )
-
+      
+C     write(*,*) 'AFTER REV_CGRID, CNGRD'
+C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 ) 
+C     write(*,*) 'AFTER REV_CGRID, CNGRD_DX1'
+C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )  
+      
+       
 #ifdef sens
       DO NP = 1, NPMAX
          CALL REV_CGRID ( SNGRD(:,:,:,:,NP), MDATE, MTIME, SENGRID_TEMP )
@@ -593,7 +630,7 @@ C Write extra arrays for NH3 emission and net flux for bidi
 ! the subdomain size for this PE. 
 !          WRITE( LOGDEV,*) ' NH3emis, drydep, flux=',NH3_EMIS(27,18),
 !    &                     DDEP_NH3(27,18),DDEP( DD2DV(NH3_HIT),27,18)
-         NH3_EMIS = 0.0
+         NH3_EMIS = 0.0D0
          END IF
 
          WRITE( LOGDEV, '( /5X, 3( A, :, 1X ), I8, ":", I6.6 )' )
@@ -699,16 +736,16 @@ C Write other diagnostics
             CALL WRASX_MEDIA( MDATE, MTIME )
          END IF 
 
-         IF ( LIPR ) THEN
-            DO V = 1, N_SPC_DEPV
-               DO R = 1, NROWS
-                  DO C = 1, NCOLS
-                     DDEP_PA( C,R,V ) = DDEP( V,C,R )
-                  END DO
-               END DO
-            END DO
-            CALL PA_UPDATE_DDEP ( 'VDIF', DDEP_PA, JDATE, JTIME, TSTEP )
-         END IF
+C        IF ( LIPR ) THEN
+C           DO V = 1, N_SPC_DEPV
+C              DO R = 1, NROWS
+C                 DO C = 1, NCOLS
+C                    DDEP_PA( C,R,V ) = DDEP( V,C,R )
+C                 END DO
+C              END DO
+C           END DO
+C           CALL PA_UPDATE_DDEP ( 'VDIF', DDEP_PA, JDATE, JTIME, TSTEP )
+C        END IF
 
 #ifdef isam
          WRDD = 0.0
@@ -730,8 +767,8 @@ C Write other diagnostics
 
 C re-set dry deposition array to zero
 
-         DDEP = 0.0
-         ICMP = 0.0
+         DDEP = 0.0d0
+         ICMP = 0.0d0
 
 #ifdef sens
 C WT - write out dry deposition sensitivities

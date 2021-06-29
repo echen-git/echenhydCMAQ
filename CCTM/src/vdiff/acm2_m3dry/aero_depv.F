@@ -91,7 +91,8 @@ C-----------------------------------------------------------------------
 !      USE Mosaic_Mod, Only: ADEPVJ  ! Shared mosaic variables
 !      Use LSM_Mod, Only: N_LUFRAC
       USE ASX_DATA_MOD, Only: Met_Data
-
+	  USE HDMod
+	  
       IMPLICIT NONE
 
 C Includes:
@@ -99,12 +100,12 @@ C Includes:
       INCLUDE SUBST_FILES_ID  ! file name parameters
 
 C Arguments
-      REAL,    POINTER       :: CGRID( :,:,:,: )
+      TYPE(hyperdual),    POINTER   :: CGRID( :,:,:,: )
       INTEGER, INTENT( IN )  :: JDATE               ! current model date , coded YYYYDDD
       INTEGER, INTENT( IN )  :: JTIME               ! current model time , coded HHMMSS
       INTEGER, INTENT( IN )  :: TSTEP               ! model time step, coded HHMMSS
 !      LOGICAL, INTENT( IN )  :: MOSAIC              ! use mosaic option
-      REAL,    INTENT( OUT ) :: VDEP_AE( :,:,: )    ! surrogate deposition velocities [ m s**-1 ]
+      TYPE(hyperdual),    INTENT( OUT ) :: VDEP_AE( :,:,: )    ! surrogate deposition velocities [ m s**-1 ]
 
 C Parameters
       REAL,    PARAMETER :: T0 = 288.15      ! [ K ] ! starting standard surface temp.
@@ -143,13 +144,13 @@ C Meteorological variables
 
       INTEGER, SAVE :: NCELLS              ! number of cells per layer
 
-      REAL, ALLOCATABLE, SAVE  :: XXLSG( :,:,: )  ! log of standard deviation
-      REAL, ALLOCATABLE, SAVE  :: DG( :,:,: )     ! geometric mean diameter
-      REAL, ALLOCATABLE, SAVE  :: PDENS( :,:,: )  ! particle density         
+      TYPE(hyperdual), ALLOCATABLE, SAVE  :: XXLSG( :,:,: )  ! log of standard deviation
+      TYPE(hyperdual), ALLOCATABLE, SAVE  :: DG( :,:,: )     ! geometric mean diameter
+      TYPE(hyperdual), ALLOCATABLE, SAVE  :: PDENS( :,:,: )  ! particle density         
       REAL, ALLOCATABLE, SAVE  :: XLM( :,: )      ! mean free path [ m ]
       REAL, ALLOCATABLE, SAVE  :: AMU( :,: )      ! dynamic viscosity [ kg m**-1 s**-1 ]
 
-      REAL, ALLOCATABLE, SAVE :: VDEP( :,:,: )    ! deposition  velocity [ m/s ]
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: VDEP( :,:,: )    ! deposition  velocity [ m/s ]
 !      REAL, ALLOCATABLE, SAVE :: VDEPJ( :,:,:,: ) ! deposition  velocity [ m/s ]
 
       REAL M3_WET, M3SUBT, M3_DRY
@@ -167,12 +168,13 @@ C Meteorological variables
       INTERFACE
         SUBROUTINE GETDEP_V ( XLM, AMU, DG, XXLSG, PDENS,
      &                        VDEP, N_AE_DEP_SPC ) !VDEPJ, MOSAIC )
+          use HDMod
           REAL, INTENT( IN ) :: XLM( :,: )        ! atmospheric mean free path [ m ]
           REAL, INTENT( IN ) :: AMU( :,: )        ! atmospheric dynamic viscosity [ kg/(m s) ]
-          REAL, INTENT( IN ) :: DG( :,:,: )       ! geometric mean diameter  [ m ]
-          REAL, INTENT( IN ) :: XXLSG( :,:,: )    ! Standard Deviation
-          REAL, INTENT( IN ) :: PDENS( :,:,: )    ! average particle density 
-          REAL, INTENT( OUT ) :: VDEP( :,:,: )    ! deposition  velocity [ m/s ]
+          TYPE(hyperdual), INTENT( IN ) :: DG( :,:,: )       ! geometric mean diameter  [ m ]
+          TYPE(hyperdual), INTENT( IN ) :: XXLSG( :,:,: )    ! Standard Deviation
+          TYPE(hyperdual), INTENT( IN ) :: PDENS( :,:,: )    ! average particle density 
+          TYPE(hyperdual), INTENT( OUT ) :: VDEP( :,:,: )    ! deposition  velocity [ m/s ]
           !REAL, INTENT( OUT ) :: VDEPJ( :,:,:,: ) ! deposition  velocity [ m/s ] for each land use category
           !LOGICAL, INTENT( IN ) :: MOSAIC
           INTEGER, INTENT( IN ) :: N_AE_DEP_SPC
@@ -228,6 +230,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 C  Put the grid cell physical data in the block arrays
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+      
       DO R = 1, NROWS
       DO C = 1, NCOLS
 
@@ -240,6 +243,8 @@ C ***    extract grid cell concentrations of aero species from CGRID
 C        into aerospc_conc in aero_data module
 C        Also determines second moment from surface area and adds wet
 C        species
+         
+
 #ifdef sens
          CALL EXTRACT_AERO( CGRID( C,R,1,: ), .TRUE., CGRID( C,R,:,: ), .FALSE. ) 
 #else
@@ -267,8 +272,9 @@ C           Save getpar values to arrays
 
       END DO ! Column LOOP
       END DO   ! Row LOOP
-
+	  
 C *** Get dry deposition velocities:
+
       CALL GETDEP_V ( XLM, AMU, DG, XXLSG, PDENS,
      &                VDEP, N_AE_DEP_SPC ) !VDEPJ, MOSAIC )
 
@@ -280,7 +286,7 @@ C Return dry deposition velocities for aerosols (first layer only).
                IF ( DEPV_SUR( V ) .GT. 0 ) THEN
                   VDEP_AE( V,C,R ) = VDEP( C,R,DEPV_SUR( V ) )
                ELSE
-                  VDEP_AE( V,C,R ) = 0.0
+                  VDEP_AE( V,C,R ) = 0.0d0
                END IF
             END DO
          END DO
@@ -330,7 +336,8 @@ C-----------------------------------------------------------------------
       USE AEROMET_DATA   ! Includes CONST.EXT
       USE ASX_DATA_MOD, Only: Met_Data, Grid_Data !, Mosaic_Data
       USE AERO_DATA, Only: N_MODE
-
+	  USE HDMod
+	  
       IMPLICIT NONE
 
 C *** input arguments
@@ -343,18 +350,18 @@ C     atmospheric properties
 C     aerosol properties:
 
 C     modal diameters: [ m ]
-      REAL, INTENT( IN ) :: DG( :,:,: ) 
+      TYPE(hyperdual), INTENT( IN ) :: DG( :,:,: ) 
 
 C     log of modal geometric standard deviations
-      REAL, INTENT( IN ) :: XXLSG( :,:,: )  
+      TYPE(hyperdual), INTENT( IN ) :: XXLSG( :,:,: )  
 
 C     average modal particle densities  [ kg m-3 ]
-      REAL, INTENT( IN ) :: PDENS( :,:,: )  
+      TYPE(hyperdual), INTENT( IN ) :: PDENS( :,:,: )  
 
 C *** output arguments
 
       ! deposition  velocity [ m/s ]
-      REAL, INTENT( OUT ) :: VDEP( :,:,: ) 
+      TYPE(hyperdual), INTENT( OUT ) :: VDEP( :,:,: ) 
       
 C *** array indices hardcoded to match SUBROUTINE AERO_DEPV
       INTEGER, PARAMETER, DIMENSION( 3 ) :: 
@@ -363,32 +370,33 @@ C *** array indices hardcoded to match SUBROUTINE AERO_DEPV
      &                      VDS = (/ 7,8,9 /)  
 
 C modal Knudsen number
-      REAL KN 
+      TYPE(hyperdual) KN 
 
 C modal particle diffusivities for number, 2nd, and 3rd moment, or mass:
-      REAL DCHAT0
-      REAL DCHAT2
-      REAL DCHAT3
+      TYPE(hyperdual) DCHAT0
+      TYPE(hyperdual) DCHAT2
+      TYPE(hyperdual) DCHAT3
 
 C modal sedimentation velocities for number, 2nd, and 3rd moment, or mass:
-      REAL VGHAT0
-      REAL VGHAT2
-      REAL VGHAT3
+      TYPE(hyperdual) VGHAT0
+      TYPE(hyperdual) VGHAT2
+      TYPE(hyperdual) VGHAT3
 
       INTEGER NCELL, J, C, R, IM
 
-      REAL DCONST,  DCONST1
-      REAL DCONST2, DCONST3
-      REAL SC0     ! Schmidt numbers for number
-      REAL SC2     ! Schmidt numbers for 2nd moment
-      REAL SC3     ! Schmidt numbers for 3rd moment
-      REAL STOKE2  ! Stokes numbers for each mode squared
-      REAL RD0     ! canopy resistance for number
-      REAL RD2     ! canopy resistance for 2nd moment
-      REAL RD3     ! canopy resisteance for 3rd moment
-      REAL UTSCALE              ! scratch function of USTAR and WSTAR
-      REAL NU                   ! kinematic viscosity [ m2 s-1 ]
-      REAL STOKEFAC             ! scratch function of USTAR, NU, and GRAV
+      TYPE(hyperdual) DCONST,  DCONST1
+      REAL            DCONST2
+      TYPE(hyperdual) DCONST3
+      TYPE(hyperdual) SC0     ! Schmidt numbers for number
+      TYPE(hyperdual) SC2     ! Schmidt numbers for 2nd moment
+      TYPE(hyperdual) SC3     ! Schmidt numbers for 3rd moment
+      TYPE(hyperdual) STOKE2  ! Stokes numbers for each mode squared
+      TYPE(hyperdual) RD0     ! canopy resistance for number
+      TYPE(hyperdual) RD2     ! canopy resistance for 2nd moment
+      TYPE(hyperdual) RD3     ! canopy resisteance for 3rd moment
+      REAL            UTSCALE              ! scratch function of USTAR and WSTAR
+      REAL            NU                   ! kinematic viscosity [ m2 s-1 ]
+      REAL            STOKEFAC             ! scratch function of USTAR, NU, and GRAV
 
       REAL, PARAMETER :: BHAT    = 1.246 ! Constant from Cunningham slip correction
       REAL, PARAMETER :: THREEPI = 3.0 * PI
@@ -397,32 +405,32 @@ C modal sedimentation velocities for number, 2nd, and 3rd moment, or mass:
 
 C Scalar variables for VARIABLE standard deviations.
 
-      REAL    L2SG
+      TYPE(hyperdual)    L2SG
 
-      REAL    E1             ! mode exp( log^2( sigmag )/8 )
-      REAL    ES04           !        " **4
-      REAL    ES08           !        " **8
-      REAL    ES12           !        " **12
-      REAL    ES16           !        " **16
-      REAL    ES20           !        " **20
-      REAL    ES28           !        " **28
-      REAL    ES32           !        " **32
-      REAL    ES36           !        " **36
-      REAL    ES48           !        " **48
-      REAL    ES64           !        " **64
-      REAL    ES128          !        " **128
-      REAL    ES160          !        " **160
-      REAL    ESM12          !        " **(-12)
-      REAL    ESM16          !        " **(-16)
-      REAL    ESM20          !        " **(-20)
-      REAL    ESM32          !        " **(-32)
-      REAL    EIM            ! Impaction efficiency
+      TYPE(hyperdual)    E1             ! mode exp( log^2( sigmag )/8 )
+      TYPE(hyperdual)    ES04           !        " **4
+      TYPE(hyperdual)    ES08           !        " **8
+      TYPE(hyperdual)    ES12           !        " **12
+      TYPE(hyperdual)    ES16           !        " **16
+      TYPE(hyperdual)    ES20           !        " **20
+      TYPE(hyperdual)    ES28           !        " **28
+      TYPE(hyperdual)    ES32           !        " **32
+      TYPE(hyperdual)    ES36           !        " **36
+      TYPE(hyperdual)    ES48           !        " **48
+      TYPE(hyperdual)    ES64           !        " **64
+      TYPE(hyperdual)    ES128          !        " **128
+      TYPE(hyperdual)    ES160          !        " **160
+      TYPE(hyperdual)    ESM12          !        " **(-12)
+      TYPE(hyperdual)    ESM16          !        " **(-16)
+      TYPE(hyperdual)    ESM20          !        " **(-20)
+      TYPE(hyperdual)    ESM32          !        " **(-32)
+      TYPE(hyperdual)    EIM            ! Impaction efficiency
 
       REAL    TWOXLM
 
 C-----------------------------------------------------------------------
 
-      VDEP  = 0.0   ! array assignment
+      VDEP  = 0.0D0   ! array assignment
 
       DO IM = 1,N_MODE
       DO R = 1,NROWS

@@ -63,6 +63,7 @@ C-----------------------------------------------------------------------
       USE CGRID_SPCS          ! CGRID mechanism species
       USE UTILIO_DEFN
       USE CENTRALIZED_IO_MODULE, only : interpolate_var
+      USE HDMod
 
       IMPLICIT NONE
 
@@ -71,7 +72,7 @@ C-----------------------------------------------------------------------
 C Arguments:
 
       INTEGER, INTENT( IN )  :: JDATE, JTIME ! internal simulation date&time, tstep
-      REAL,    INTENT( OUT ) :: DEPV( :,:,: )
+      TYPE(hyperdual),    INTENT( OUT ) :: DEPV( :,:,: )
 
 C Paramters:
 
@@ -115,7 +116,7 @@ C                                        vvvvvvv - dep vel surrogate name
 
          DO R = 1, NROWS
             DO C = 1, NCOLS
-               DEPV( V,C,R ) = GC_DEPV_FAC( N ) * DBUFF( C,R ) 
+               DEPV( V,C,R ) = REAL ( GC_DEPV_FAC( N ) * DBUFF( C,R ) , 8 ) 
             END DO
          END DO
 
@@ -132,7 +133,7 @@ C                                        vvvvvvv - dep vel surrogate name
 
          DO R = 1, NROWS
             DO C = 1, NCOLS
-               DEPV( V,C,R ) = NR_DEPV_FAC( N ) * DBUFF( C,R )
+               DEPV( V,C,R ) = REAL ( NR_DEPV_FAC( N ) * DBUFF( C,R ) , 8 )
             END DO
          END DO
 
@@ -149,7 +150,7 @@ C                                         vvvvvvv - dep vel surrogate name
 
          DO R = 1, NROWS
             DO C = 1, NCOLS
-               DEPV( V,C,R ) = TR_DEPV_FAC( N ) * DBUFF( C,R ) 
+               DEPV( V,C,R ) = REAL ( TR_DEPV_FAC( N ) * DBUFF( C,R ) , 8 )  
             END DO
          END DO
 

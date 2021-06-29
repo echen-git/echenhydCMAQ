@@ -64,6 +64,7 @@ C-----------------------------------------------------------------------
 
       USE VGRD_DEFN           ! vertical layer specifications
       USE CGRID_SPCS          ! CGRID mechanism species
+      USE HDMod
 
       IMPLICIT NONE
 
@@ -74,8 +75,8 @@ C Arguments:
       REAL, INTENT( IN )  :: L( : )        ! subdiagonal
       REAL, INTENT( IN )  :: D( : )        ! diagonal
       REAL, INTENT( IN )  :: U( : )        ! superdiagonal
-      REAL, INTENT( IN )  :: B( :,: )      ! R.H. side
-      REAL, INTENT( OUT ) :: X( :,: )      ! solution
+      TYPE(hyperdual), INTENT( IN )  :: B( :,: )      ! R.H. side
+      TYPE(hyperdual), INTENT( OUT ) :: X( :,: )      ! solution
 
 C Local Variables:
 
@@ -95,14 +96,14 @@ C-----------------------------------------------------------------------
 C Decomposition and forward substitution:
       BET = 1.0 / D( 1 )
       DO V = 1, N_SPC_DIFF
-         X( V,1 ) = BET * B( V,1 )
+         X( V,1 ) = real(BET, 8) * B( V,1 )
       END DO
 
       DO K = 2, NLAYS
          GAM( K ) = BET * U( K-1 )
          BET = 1.0 / ( D( K ) - L( K ) * GAM( K ) )
          DO V = 1, N_SPC_DIFF
-            X( V,K ) = BET * ( B( V,K ) - L( K ) * X( V,K-1 ) )
+            X( V,K ) = real(BET, 8) * ( B( V,K ) - L( K ) * X( V,K-1 ) )
          END DO
       END DO
 

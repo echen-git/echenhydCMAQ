@@ -57,6 +57,8 @@ C-----------------------------------------------------------------------
 !      USE LSM_MOD, ONLY: N_LUFRAC
       USE VDIFF_DIAG, NLPCR => NLPCR_MEAN
       USE HGRD_DEFN,only : COLSX_PE, ROWSX_PE
+      USE HDMod
+      
 #ifdef isam
       USE SA_DEFN, ONLY: N_SPCTAG, ISAM, VNAM_SPCTAG, TRANSPORT_SPC,
      &                   SA_VDEMIS_DIFF, ITAG, NTAG_SA, NSPC_SA,
@@ -81,9 +83,9 @@ C Arguments:
       REAL, INTENT( IN )    :: DTSEC                ! model time step in seconds
 C--- SEDDY is strictly an input, but it gets modified here
       REAL, INTENT( INOUT ) :: SEDDY    ( :,:,: )   ! flipped EDDYV
-      REAL, INTENT( INOUT ) :: DDEP     ( :,:,: )   ! ddep accumulator
-      REAL, INTENT( INOUT ) :: ICMP     ( :,:,: )   ! component flux accumlator 
-      REAL, INTENT( INOUT ) :: CNGRD    ( :,:,:,: ) ! cgrid replacement
+      TYPE(hyperdual), INTENT( INOUT ) :: DDEP     ( :,:,: )   ! ddep accumulator
+      TYPE(hyperdual), INTENT( INOUT ) :: ICMP     ( :,:,: )   ! component flux accumlator 
+      TYPE(hyperdual), INTENT( INOUT ) :: CNGRD    ( :,:,:,: ) ! cgrid replacement
 
 C Parameters:
 
@@ -101,11 +103,11 @@ C Local Variables:
 
       LOGICAL, SAVE :: FIRSTIME = .TRUE.
 
-      REAL, ALLOCATABLE, SAVE :: DD_FAC     ( : )   ! combined subexpression
-      REAL, ALLOCATABLE, SAVE :: DDBF       ( : )   ! secondary DDEP
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: DD_FAC     ( : )   ! combined subexpression
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: DDBF       ( : )   ! secondary DDEP
       REAl, ALLOCATABLE, SAVE :: CMPF       ( : )   ! intermediate CMP
-      REAL, ALLOCATABLE, SAVE :: CONC       ( :,: ) ! secondary CGRID expression
-      REAL, ALLOCATABLE, SAVE :: EMIS       ( :,: ) ! emissions subexpression
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: CONC       ( :,: ) ! secondary CGRID expression
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: EMIS       ( :,: ) ! emissions subexpression
       REAL        DTDENS1                       ! DT * layer 1 air density
 
 C ACM Local Variables
@@ -121,23 +123,24 @@ C ACM Local Variables
       REAL     :: CC    ( NLAYS )               ! subdiagonal
       REAL     :: EE1   ( NLAYS )               ! superdiagonal for MATRIX1
       REAL     :: EE2   ( NLAYS )               ! superdiagonal for TRI
-      REAL, ALLOCATABLE, SAVE :: DD ( :,: )     ! R.H.S
-      REAL, ALLOCATABLE, SAVE :: UU ( :,: )     ! returned solution
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: DD ( :,: )     ! R.H.S
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: UU ( :,: )     ! returned solution
       REAL        DFACP, DFACQ
       REAL     :: DFSP( NLAYS ), DFSQ( NLAYS )  ! intermediate loop factors
-      REAL        DELC, DELP, RP, RQ
+      TYPE(hyperdual) :: DELC
+      REAL        DELP, RP, RQ
       REAL     :: LFAC1( NLAYS )                ! intermediate factor for CONVT
       REAL     :: LFAC2( NLAYS )                ! intermediate factor for CONVT
       REAL     :: LFAC3( NLAYS )                ! intermediate factor for eddy
       REAL     :: LFAC4( NLAYS )                ! intermediate factor for eddy
-      REAL, ALLOCATABLE, SAVE :: DEPVCR     ( : )   ! dep vel in one cell
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: DEPVCR     ( : )   ! dep vel in one cell
                                                     ! one cell for each landuse category
-      REAL, ALLOCATABLE, SAVE :: EFAC1 ( : )
-      REAL, ALLOCATABLE, SAVE :: EFAC2 ( : )
-      REAL, ALLOCATABLE, SAVE :: POL   ( : )    ! prodn/lossrate = PLDV/DEPV
-      REAL        PLDV_HONO                     ! PLDV for HONO
-      REAL        DEPV_NO2                      ! dep vel of NO2
-      REAL        DEPV_HNO3                     ! dep vel of HNO3
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: EFAC1 ( : )
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: EFAC2 ( : )
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: POL   ( : )    ! prodn/lossrate = PLDV/DEPV
+      TYPE(hyperdual)        PLDV_HONO                     ! PLDV for HONO
+      TYPE(hyperdual)        DEPV_NO2                      ! dep vel of NO2
+      TYPE(hyperdual)        DEPV_HNO3                     ! dep vel of HNO3
       REAL        FNL                           ! ACM2 Variable
       INTEGER     NLP, NL, LCBL
       INTEGER, SAVE :: NO2_HIT = 0, HONO_HIT = 0, HNO3_HIT = 0, NO2_MAP= 0, HNO3_MAP = 0 
@@ -185,15 +188,17 @@ C ACM Local Variables
 
       INTERFACE
          SUBROUTINE MATRIX1 ( KL, A, B, E, D, X )
+         	USE HDMod
             INTEGER,        INTENT( IN )  :: KL
             REAL,           INTENT( IN )  :: A( : ), B( : ), E( : )
-            REAL,           INTENT( IN )  :: D( :,: )
-            REAL,           INTENT( OUT ) :: X( :,: )
+            TYPE(hyperdual),           INTENT( IN )  :: D( :,: )
+            TYPE(hyperdual),           INTENT( OUT ) :: X( :,: )
          END SUBROUTINE MATRIX1
          SUBROUTINE TRI ( L, D, U, B, X )
+         	use HDMod
             REAL,           INTENT( IN )  :: L( : ), D( : ), U( : )
-            REAL,           INTENT( IN )  :: B( :,: )
-            REAL,           INTENT( OUT ) :: X( :,: )
+            TYPE(hyperdual),           INTENT( IN )  :: B( :,: )
+            TYPE(hyperdual),           INTENT( OUT ) :: X( :,: )
          END SUBROUTINE TRI
 #ifdef isam
          SUBROUTINE SA_MATRIX1 ( KL, A, B, E, D, X )
@@ -244,7 +249,7 @@ C set auxiliary depv arrays
             XMSG = 'Failure allocating CONC or EMIS'
             CALL M3EXIT( PNAME, MDATE, MTIME, XMSG, XSTAT1 )
          END IF
-         CONC = 0.0; EMIS = 0.0   ! array assignment
+         CONC = 0.0d0; EMIS = 0.0d0   ! array assignment
 
          ALLOCATE ( DD( N_SPC_DIFF,NLAYS ),
      &              UU( N_SPC_DIFF,NLAYS ), STAT = ASTAT )
@@ -252,7 +257,7 @@ C set auxiliary depv arrays
             XMSG = 'Failure allocating DD or UU'
             CALL M3EXIT( PNAME, MDATE, MTIME, XMSG, XSTAT1 )
          END IF
-         DD = 0.0; UU = 0.0   ! array assignment
+         DD = 0.0D0; UU = 0.0d0   ! array assignment
 
          HONO_HIT = 0; HNO3_HIT = 0; NO2_HIT  = 0; NH3_HIT = 0
                        HNO3_MAP = 0; NO2_MAP  = 0
@@ -560,7 +565,7 @@ C-----------------------------------------------------------------------
          END IF                
 #endif
  
-         EMIS = 0.0      ! array assignment
+         EMIS = 0.0d0      ! array assignment
          EMIS( :,1:EMLAYS ) = DTS * VDEMIS_DIFF( :,:,C,R )
 
 #ifdef isam
@@ -725,8 +730,8 @@ C Add evasion as negative dep flux
     
             DO L = 1, NLAYS
                DO V = 1, N_SPC_DIFF
-                  DD( V,L ) = 0.0
-                  UU( V,L ) = 0.0
+                  DD( V,L ) = 0.0d0
+                  UU( V,L ) = 0.0d0
 #ifdef sens
                   DO NP = 1, NPMAX
                      S_DD( V,L,NP) = 0.0
@@ -812,6 +817,8 @@ C Set MATRIX1 elements A (col 1), B (diag.), E (superdiag.) and D (RHS)
      &                    -   MDWN( L ) * CONC( V,L )
      &                    +   MFAC( L ) * CONC( V,L+1 )
                      DD( V,L ) = CONC( V,L ) + DFACQ * DELC
+
+                  	
 #ifdef sens    
                      DO NP = 1, NPMAX
                         S_DELC = MBARKS( L ) * SENS( V,1,NP )
@@ -849,6 +856,8 @@ C update conc
                DO L = 1, LCBL
                   DO V = 1, N_SPC_DIFF
                      CONC( V,L ) = UU( V,L )
+               		                    
+                     
 #ifdef sens
                      DO NP = 1, NPMAX
                         SENS( V,L,NP ) = S_UU( V,L,NP )
@@ -865,8 +874,8 @@ C update conc
 C reinitialize for TRI solver
                DO L = 1, NLAYS
                   DO V = 1, N_SPC_DIFF
-                     DD( V,L ) = 0.0
-                     UU( V,L ) = 0.0
+                     DD( V,L ) = 0.0d0
+                     UU( V,L ) = 0.0d0
 #ifdef sens
                      DO NP = 1, NPMAX
                         S_DD( V,L,NP ) = 0.0
@@ -889,6 +898,7 @@ C reinitialize for TRI solver
                DD( V,L ) = CONC( V,L )
      &                   + LFAC3( L ) * ( CONC( V,L+1 ) - CONC( V,L ) )
      &                   + EMIS( V,L )
+  
 #ifdef sens
                DO NP = 1, NPMAX
                   S_DD( V,L,NP ) = SENS( V,L,NP )
@@ -912,6 +922,7 @@ C reinitialize for TRI solver
      &                      + LFAC3( L ) * ( CONC( V,L+1 ) - CONC( V,L ) )
      &                      - LFAC4( L ) * ( CONC( V,L ) - CONC( V,L-1 ) )
      &                      + EMIS( V,L )
+    
 #ifdef sens 
                   DO NP = 1, NPMAX
                      S_DD( V,L,NP ) = SENS( V,L,NP )
@@ -964,7 +975,7 @@ C reinitialize for TRI solver
 C Load into CGRID
             DO L = 1, NLAYS
                DO V = 1, N_SPC_DIFF
-                  CONC( V,L ) = UU( V,L )
+                  CONC( V,L ) = UU( V,L )    
 #ifdef sens
                   DO NP = 1, NPMAX
                      SENS( V,L,NP ) = S_UU( V,L,NP )

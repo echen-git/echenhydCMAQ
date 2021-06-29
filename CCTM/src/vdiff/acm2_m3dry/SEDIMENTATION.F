@@ -21,6 +21,8 @@ C:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 C Revision History:
 C 03 Jul 15 J.Young: inital
+      
+      use HDMod
 
       implicit none
 
@@ -30,8 +32,8 @@ C 03 Jul 15 J.Young: inital
       include SUBST_CONST     ! constants
       include SUBST_FILES_ID  ! file name parameters
 
-      real,    allocatable, save :: cgrd( :,: )   ! density units
-      real,    allocatable, save :: conc( :,: )   ! mixing ratio units
+      TYPE(hyperdual),    allocatable, save :: cgrd( :,: )   ! density units
+      TYPE(hyperdual),    allocatable, save :: conc( :,: )   ! mixing ratio units
 
       real,    allocatable, save :: ldens( : )    ! local density kg m-3
 
@@ -73,6 +75,7 @@ C-----------------------------------------------------------------------
       use vdiff_map
       use utilio_defn
       use vdiff_diag, dtccr => dtccr_mean
+      use HDMod
       implicit none
 
 C Arguments:
@@ -81,9 +84,9 @@ C Arguments:
 C grav settling velocity applies only to coarse mode aerosols (J-,K-mode), but the VGS
 C array is filled for *all* cgrd diffused species. VGS is set to zero for all the non-
 C coarse mode aerosols.
-      real,    intent( out )   :: sedvel( :,:,:,: )  ! grav settling vel. for diagnostic
-      real,    pointer         :: cgrid ( :,:,:,: )
-      real,    intent( inout ) :: cngrd ( :,:,:,: )  ! cgrid replacement
+      TYPE(hyperdual),    intent( out )   :: sedvel( :,:,:,: )  ! grav settling vel. for diagnostic
+      TYPE(hyperdual),    pointer         :: cgrid ( :,:,:,: )
+      TYPE(hyperdual),    intent( inout ) :: cngrd ( :,:,:,: )  ! cgrid replacement
 
 c Parameters:
       real, parameter :: alpha = 1.1
@@ -97,10 +100,10 @@ C Local Variables:
       character( 16 ), save :: pname = 'SEDI'
       logical, save :: firstime = .TRUE.
 
-      real,    allocatable, save :: vsed    ( :,: ) ! settling vel.
-      real,    allocatable, save :: vsed_ae ( :,: ) ! settling vel.
-      real,    allocatable, save :: dtsvsed ( :,: ) ! settling vel. factor
-      real,    allocatable, save :: sumvsed ( :,: ) ! for diagnostics
+      TYPE(hyperdual),    allocatable, save :: vsed    ( :,: ) ! settling vel.
+      TYPE(hyperdual),    allocatable, save :: vsed_ae ( :,: ) ! settling vel.
+      TYPE(hyperdual),    allocatable, save :: dtsvsed ( :,: ) ! settling vel. factor
+      TYPE(hyperdual),    allocatable, save :: sumvsed ( :,: ) ! for diagnostics
       real,    allocatable, save :: rdl     ( : )   ! subloop var
       real,    allocatable, save :: rrhodz  ( : )   ! reciprocal rho * deltaZ
       integer, allocatable, save :: sedi_map( : )
@@ -114,9 +117,10 @@ C Local Variables:
 
       interface   ! for external procedures
          subroutine aero_sedv ( col, row, cgrd, vsed_ae )
+            use HDMod
             integer, intent( in )  :: col, row
-            real,    intent( in )  :: cgrd( :,: )
-            real,    intent( out ) :: vsed_ae( :,: )
+            TYPE(hyperdual),    intent( in )  :: cgrd( :,: )
+            TYPE(hyperdual),    intent( out ) :: vsed_ae( :,: )
          end subroutine aero_sedv
       end interface
 
@@ -161,9 +165,9 @@ c conc_map - from cgrid to ae_trns species
             xmsg = 'Failure allocating VSED_AE'
             call m3exit( pname, mdate, mtime, xmsg, xstat1 )
          end if
-         vsed_ae = 0.0  ! array assignment
+         vsed_ae = 0.0d0  ! array assignment
 
-         allocate ( cgrd( nlays,size( cgrid,4 ) ), stat = astat )
+         allocate ( cgrd( nlays,size( cgrid%x,4 ) ), stat = astat )
          if ( astat .ne. 0 ) then
             xmsg = 'Failure allocating CGRD'
             call m3exit( pname, mdate, mtime, xmsg, xstat1 )
@@ -176,8 +180,8 @@ c conc_map - from cgrid to ae_trns species
             xmsg = 'Failure allocating CONC, VSED,  or DTSVSED'
             call m3exit( pname, mdate, mtime, xmsg, xstat1 )
          end if
-         conc = 0.0  ! array assignment
-         vsed = 0.0  ! array assignment
+         conc = 0.0d0  ! array assignment
+         vsed = 0.0d0  ! array assignment
 
          allocate ( rdl( nlays ),
      &              rrhodz( nlays ),
@@ -201,11 +205,11 @@ c conc_map - from cgrid to ae_trns species
       do 344 c = 1, ncols
 
 C subset all the layers and species in cgrid for this grid cell
-         do v = 1, size( cgrid,4 )
+         do v = 1, size( cgrid%x,4 )
             do l = 1, nlays
                cgrd( l,v ) = cgrid( c,r,l,v )
             end do
-         end do
+         end do         
 
          do l = 1, nlays
             rdl( l ) = alpha * Met_Data%rjacf( c,r,l ) * Grid_Data%rdx3f( l )
@@ -214,14 +218,29 @@ C subset all the layers and species in cgrid for this grid cell
          end do
 
          if ( vdiffdiag ) then
-            sumvsed = 0.0   ! array assignment
+            sumvsed = 0.0d0   ! array assignment
          end if
          adts = 0.0; dtc = 0; iter = 0
 
          do while ( adts .lt. dtsec .and. iter .le. 10 )
             iter = iter + 1
+            
+C           if (r .eq. 15) then
+C        	if (c .eq. 15) then
+C        	write(*,*) 'cgrd, aclk before aero_sedv'
+C        	write(*,*) cgrd(1, 185)%x
+C        	endif
+C        	endif
 
             call aero_sedv( c, r, cgrd, vsed_ae )
+            
+C           if (r .eq. 15) then
+C        	if (c .eq. 15) then
+C        	write(*,*) 'cgrd, aclk after aero_sedv'
+C        	write(*,*) cgrd(1, 185)%x
+C        	endif
+C        	endif
+         	
             if ( vdiffdiag ) sumvsed = sumvsed + vsed_ae
 
             ! cgrd -> conc: from density units to mixing ratio units
@@ -237,7 +256,7 @@ C subset all the layers and species in cgrid for this grid cell
             rdts = 1.0 / dtsec
             do l = 1, nlays
                do v = 1, n_sedi_map
-                  fs = rdl( l ) * vsed( v,l )
+                  fs = rdl( l ) * vsed( v,l )%x
                   if ( rdts .lt. fs ) rdts = fs
                end do
             end do

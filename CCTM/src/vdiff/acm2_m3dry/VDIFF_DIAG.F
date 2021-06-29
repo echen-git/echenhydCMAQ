@@ -24,6 +24,7 @@ C diagnostic output of acm2 parameters and sedimentation velocities
       use utilio_defn
       use grid_conf
       use cgrid_spcs
+      use HDMod
 
       implicit none
 
@@ -46,7 +47,7 @@ C sedi sub-timestep counter
       real, allocatable :: dtccr_min( :,: )    ! over the output time step TSTEP(1)
       real, allocatable :: dtccr_sum( :,: )    ! accumulator
       real, allocatable :: cnvct( :,: )
-      real, allocatable :: vsed_buf( :,:,:,: )
+      TYPE(hyperdual), allocatable :: vsed_buf( :,:,:,: )
 
       contains
 
@@ -232,9 +233,9 @@ C get CONC file header description
             call m3warn( pname, jdate, jtime, xmsg )
             success = .false.; return
          end if
-         nlpcr_max = 0.0      ! array assignment
-         nlpcr_min = 9.9E30   ! array assignment
-         nlpcr_sum = 0.0      ! array assignment
+         nlpcr_max = 0.0d0      ! array assignment
+         nlpcr_min = 9.9d30   ! array assignment
+         nlpcr_sum = 0.0d0      ! array assignment
 
          if ( grvsetl ) then
 
@@ -254,9 +255,9 @@ C get CONC file header description
                call m3warn( pname, jdate, jtime, xmsg )
                success = .false.; return
             end if
-            dtccr_max = 0.0      ! array assignment
-            dtccr_min = 9.9E30   ! array assignment
-            dtccr_sum = 0.0      ! array assignment
+            dtccr_max = 0.0d0      ! array assignment
+            dtccr_min = 9.9d30   ! array assignment
+            dtccr_sum = 0.0d0      ! array assignment
 
          end if
 

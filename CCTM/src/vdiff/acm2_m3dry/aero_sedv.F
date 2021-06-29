@@ -36,6 +36,7 @@ C-----------------------------------------------------------------------
       use asx_data_mod, Only: Met_Data
       use aero_data           ! aero variable data
       use aeromet_data        ! Includes CONST.EXT
+      use HDMod
 
       implicit none
 
@@ -43,8 +44,8 @@ C Includes:
 
 C Arguments
       integer, intent( in )  :: col, row
-      real,    intent( in )  :: cgrd( :,: )     ! cgrid subsection (layers,species)
-      real,    intent( out ) :: vsed_ae( :,: )  ! settling velocities [ m/s ]
+      TYPE(hyperdual),    intent( in )  :: cgrd( :,: )     ! cgrid subsection (layers,species)
+      TYPE(hyperdual),    intent( out ) :: vsed_ae( :,: )  ! settling velocities [ m/s ]
 
 C Parameters
       real,    parameter :: t0 = 288.15      ! [ K ] ! starting standard surface temp.
@@ -72,17 +73,17 @@ C follow the Namelist dep vel surrogate name table
 
       integer, allocatable, save :: sedi_sur( : )   ! pointer to surrogate
 
-      real, allocatable, save :: xxlsgac( : )   ! log of stnd dev
-      real, allocatable, save :: xxlsgco( : )
-      real, allocatable, save :: dgacc  ( : )   ! geometric mean diameter
-      real, allocatable, save :: dgcor  ( : )
-      real, allocatable, save :: pdensac( : )   ! particle density
-      real, allocatable, save :: pdensco( : )
+      TYPE(hyperdual), allocatable, save :: xxlsgac( : )   ! log of stnd dev
+      TYPE(hyperdual), allocatable, save :: xxlsgco( : )
+      TYPE(hyperdual), allocatable, save :: dgacc  ( : )   ! geometric mean diameter
+      TYPE(hyperdual), allocatable, save :: dgcor  ( : )
+      TYPE(hyperdual), allocatable, save :: pdensac( : )   ! particle density
+      TYPE(hyperdual), allocatable, save :: pdensco( : )
 
       real, allocatable, save :: xlm    ( : )   ! mean free path [ m ]
       real, allocatable, save :: amu    ( : )   ! dynamic viscosity [ kg/m/s ]
 
-      real, allocatable, save :: vsed   ( :,: ) ! grav settling velocity [ m/s ]
+      TYPE(hyperdual), allocatable, save :: vsed   ( :,: ) ! grav settling velocity [ m/s ]
 
       real m2_wet, m2_dry
       real m3_wet, m3subt, m3_dry
@@ -104,15 +105,16 @@ C follow the Namelist dep vel surrogate name table
      &                        xxlsgac, xxlsgco,
      &                        pdensac, pdensco,
      &                        vsed )
+     	  use HDMod
           real, intent( in ) :: xlm    ( : )  ! atmos mean free path [ m ]
           real, intent( in ) :: amu    ( : )  ! atmos dynamic viscosity [ kg/(m s) ]
-          real, intent( in ) :: dgacc  ( : )  ! accum mode geom mean diameter [ m ]
-          real, intent( in ) :: dgcor  ( : )  ! coarse mode geom mean diameter  [ m ]
-          real, intent( in ) :: xxlsgac( : )  ! accum mode log of stnd dev
-          real, intent( in ) :: xxlsgco( : )  ! coarse mode
-          real, intent( in ) :: pdensac( : )  ! avg particle density in accum mode
-          real, intent( in ) :: pdensco( : )  ! avg particle density in coarse mode
-          real, intent( out ) :: vsed  ( :,: ) ! settling velocity [ m/s ]
+          TYPE(hyperdual), intent( in ) :: dgacc  ( : )  ! accum mode geom mean diameter [ m ]
+          TYPE(hyperdual), intent( in ) :: dgcor  ( : )  ! coarse mode geom mean diameter  [ m ]
+          TYPE(hyperdual), intent( in ) :: xxlsgac( : )  ! accum mode log of stnd dev
+          TYPE(hyperdual), intent( in ) :: xxlsgco( : )  ! coarse mode
+          TYPE(hyperdual), intent( in ) :: pdensac( : )  ! avg particle density in accum mode
+          TYPE(hyperdual), intent( in ) :: pdensco( : )  ! avg particle density in coarse mode
+          TYPE(hyperdual), intent( out ) :: vsed  ( :,: ) ! settling velocity [ m/s ]
         end subroutine get_sedv
       end interface
 
@@ -189,12 +191,14 @@ C Also converts dry surface area to wet 2nd moment
 #else
          call extract_aero( cgrd( l,: ), .true. )  ! set minimum floor
 #endif
-
+		 		 
+		 
 C Get the geometric mean diameters and standard deviations of the
 C "wet" size distribution
          call getpar( .false. )     
 C                        | do not fix stnd dev`s to existing value
 
+		 
 C Save getpar values to arrays
          xxlsgac( l ) = aeromode_lnsg( 2 )
          xxlsgco( l ) = aeromode_lnsg( 3 )
@@ -212,7 +216,7 @@ C Calculate dynamic viscosity [ kg/m/s ]:
          amu( l ) = 1.458e-6 * airtemp * sqrt( airtemp ) / ( airtemp + 110.4 )
 
       end do ! layer loop
-
+	  
 C get settling velocities:
       call get_sedv ( xlm, amu,
      &                dgacc, dgcor,
@@ -231,7 +235,7 @@ C  loads."
             if ( sedi_sur( v ) .gt. 0 ) then
                vsed_ae( v,l ) = vsed( l,sedi_sur( v ) )
             else
-               vsed_ae( v,l ) = 0.0
+               vsed_ae( v,l ) = 0.0d0
             end if
          end do
       end do
@@ -251,20 +255,21 @@ C-----------------------------------------------------------------------
 
       use asx_data_mod, Only: Met_Data
       use aeromet_data   ! Includes CONST.EXT
-
+      use HDMod
+	  
       implicit none
 
 C *** arguments
 
       real, intent( in ) :: xlm    ( : )  ! atmospheric mean free path [m]
       real, intent( in ) :: amu    ( : )  ! atmospheric dynamic viscosity [kg/(m s)]
-      real, intent( in ) :: dgacc  ( : )  ! accum mode geom mean diameter [m]
-      real, intent( in ) :: dgcor  ( : )  ! coarse mode geom mean diameter [m]
-      real, intent( in ) :: xxlsgac( : )  ! accum mode log of modal geom stnd dev`s
-      real, intent( in ) :: xxlsgco( : )  ! coarse mode log of modal geom stnd dev`s
-      real, intent( in ) :: pdensac( : )  ! avg particle dens in accum mode [kg/m**3]
-      real, intent( in ) :: pdensco( : )  ! avg particle dens in coarse mode [kg/m**3]
-      real, intent( out ) :: vsed  ( :,: )  ! grav settling velocity [ m/s ]
+      TYPE(hyperdual), intent( in ) :: dgacc  ( : )  ! accum mode geom mean diameter [m]
+      TYPE(hyperdual), intent( in ) :: dgcor  ( : )  ! coarse mode geom mean diameter [m]
+      TYPE(hyperdual), intent( in ) :: xxlsgac( : )  ! accum mode log of modal geom stnd dev`s
+      TYPE(hyperdual), intent( in ) :: xxlsgco( : )  ! coarse mode log of modal geom stnd dev`s
+      TYPE(hyperdual), intent( in ) :: pdensac( : )  ! avg particle dens in accum mode [kg/m**3]
+      TYPE(hyperdual), intent( in ) :: pdensco( : )  ! avg particle dens in coarse mode [kg/m**3]
+      TYPE(hyperdual), intent( out ) :: vsed  ( :,: )  ! grav settling velocity [ m/s ]
 
 C *** array indices hardcoded to match SUBROUTINE aero_sedi
       integer, parameter :: vgnacc = 1,  ! accumulation mode number
@@ -275,17 +280,18 @@ C *** array indices hardcoded to match SUBROUTINE aero_sedi
      &                      vgmcor = 6   ! coarse mode mass
 
 C modal Knudsen numbers X bhat
-      real bknacc   ! accumulation mode 
-      real bkncor   ! coarse mode
+      TYPE(hyperdual) bknacc   ! accumulation mode 
+      TYPE(hyperdual) bkncor   ! coarse mode
 
 C modal sedimentation velocities for 0th (number), 2nd (srf area), and 3rd (mass) moments
-      real vghat0a, vghat0c
-      real vghat2a, vghat2c
-      real vghat3a, vghat3c
+      TYPE(hyperdual) vghat0a, vghat0c
+      TYPE(hyperdual) vghat2a, vghat2c
+      TYPE(hyperdual) vghat3a, vghat3c
 
       integer l
 
-      real    dconst2, dconst3a, dconst3c
+      TYPE(hyperdual)    dconst3a, dconst3c
+      real    dconst2
       real    bxlm
 
  !    real, parameter :: bhat    = 1.246 ! Constant from Cunningham slip correction
@@ -293,28 +299,28 @@ C modal sedimentation velocities for 0th (number), 2nd (srf area), and 3rd (mass
 
 C Scalar variables for VARIABLE standard deviations.
 
-      real    l2sgac, l2sgco   ! log^2( sigmag )
+      TYPE(hyperdual)    l2sgac, l2sgco   ! log^2( sigmag )
 
-      real    esac01           ! accumu mode " ** 4
-      real    esco01           ! coarse      "
+      TYPE(hyperdual)    esac01           ! accumu mode " ** 4
+      TYPE(hyperdual)    esco01           ! coarse      "
 
-      real    esac02           ! accumu mode " ** 8
-      real    esco02           ! coarse      "
+      TYPE(hyperdual)    esac02           ! accumu mode " ** 8
+      TYPE(hyperdual)    esco02           ! coarse      "
 
-      real    esac04           ! accumu mode " ** 16
-      real    esco04           ! coarse      "
+      TYPE(hyperdual)    esac04           ! accumu mode " ** 16
+      TYPE(hyperdual)    esco04           ! coarse      "
 
-      real    esac05           ! accumu mode " ** 20
-      real    esco05           ! coarse      "
+      TYPE(hyperdual)    esac05           ! accumu mode " ** 20
+      TYPE(hyperdual)    esco05           ! coarse      "
 
-      real    esac07           ! accumu mode " ** 28
-      real    esco07           ! coarse      "
+      TYPE(hyperdual)    esac07           ! accumu mode " ** 28
+      TYPE(hyperdual)    esco07           ! coarse      "
 
-      real    esac12           ! accumu mode " ** 48    
-      real    esco12           ! coarse      "     
+      TYPE(hyperdual)    esac12           ! accumu mode " ** 48    
+      TYPE(hyperdual)    esco12           ! coarse      "     
 
-      real    esac16           ! accumu mode " ** 64
-      real    esco16           ! coarse      "
+      TYPE(hyperdual)    esac16           ! accumu mode " ** 64
+      TYPE(hyperdual)    esco16           ! coarse      "
 
 C-----------------------------------------------------------------------
 
@@ -323,14 +329,16 @@ C-----------------------------------------------------------------------
 C Calculate Knudsen numbers * bhat
          bxlm = bhat * xlm( l )
          bknacc = bxlm / dgacc( l )
-         bkncor = bxlm / dgcor( l )
-
+         bkncor = bxlm / dgcor( l ) 
+       
 C Calculate functions of variable standard deviation.
          l2sgac = xxlsgac( l ) * xxlsgac( l )
          l2sgco = xxlsgco( l ) * xxlsgco( l )
-
+         
+         
          esac01  = exp( 0.5 * l2sgac )
          esco01  = exp( 0.5 * l2sgco )
+         
 
          esac02  = esac01 * esac01
          esco02  = esco01 * esco01
@@ -351,19 +359,18 @@ C Calculate functions of variable standard deviation.
          esco16  = esco12 * esco04
 
          dconst2  = grav / ( 18.0 * amu( l ) )
+         
          dconst3a = dconst2 * pdensac( l ) * dgacc( l ) * dgacc( l )
          dconst3c = dconst2 * pdensco( l ) * dgcor( l ) * dgcor( l )
 
 c acc mode
          vghat0a  = dconst3a * ( esac04  + bknacc * esac01 )
          vghat2a  = dconst3a * ( esac12  + bknacc * esac05 )
-         vghat3a  = dconst3a * ( esac16  + bknacc * esac07 )
-
+         vghat3a  = dconst3a * ( esac16  + bknacc * esac07 ) 
 c coarse mode
          vghat0c  = dconst3c * ( esco04  + bkncor * esco01 )
          vghat2c  = dconst3c * ( esco12  + bkncor * esco05 )
          vghat3c  = dconst3c * ( esco16  + bkncor * esco07 )
-
 C settling velocities
 
 C vsed of 0th moment for the number 

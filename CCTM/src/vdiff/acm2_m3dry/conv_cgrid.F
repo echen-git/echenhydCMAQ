@@ -39,6 +39,7 @@ C-----------------------------------------------------------------------
       USE UTILIO_DEFN
       USE VDIFF_MAP
       use CENTRALIZED_IO_MODULE, only : interpolate_var
+      USE HDMod
       
 #ifdef isam
       USE SA_DEFN
@@ -51,10 +52,10 @@ C-----------------------------------------------------------------------
 
 C Arguments:
 
-      REAL, POINTER :: CGRID( :,:,:,: )            ! concentrations
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: ) ! concentrations
       INTEGER, INTENT( IN )    :: JDATE            ! current model date, coded YYYYDDD
       INTEGER, INTENT( IN )    :: JTIME            ! current model time, coded HHMMSS
-      REAL,    INTENT( INOUT ) :: CNGRD( :,:,:,: ) ! cgrid replacement
+      TYPE(hyperdual),    INTENT( INOUT ) :: CNGRD( :,:,:,: ) ! cgrid replacement
 #ifdef isam
       INTEGER IBGN, JSPCTAG
 #endif

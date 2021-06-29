@@ -41,6 +41,7 @@ C   A6             B6
       USE VGRD_DEFN           ! vertical layer specifications
       USE CGRID_SPCS          ! CGRID mechanism species
       USE UTILIO_DEFN
+      USE HDMod
 
       IMPLICIT NONE
 
@@ -52,11 +53,11 @@ C Arguments:
       REAL,    INTENT( IN )  :: A( : )     ! matrix column one
       REAL,    INTENT( IN )  :: B( : )     ! diagonal
       REAL,    INTENT( IN )  :: E( : )     ! superdiagonal
-      REAL,    INTENT( IN )  :: D( :,: )   ! R.H.S
-      REAL,    INTENT( OUT ) :: X( :,: )   ! returned solution
+      TYPE(hyperdual),    INTENT( IN )  :: D( :,: )   ! R.H.S
+      TYPE(hyperdual),    INTENT( OUT ) :: X( :,: )   ! returned solution
 
 C Locals:
-      REAL, ALLOCATABLE, SAVE :: BETA( : )
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: BETA( : )
       REAL  ALPHA, GAMA 
 
       INTEGER L, V, IOS
