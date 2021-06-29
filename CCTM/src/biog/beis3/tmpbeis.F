@@ -16,9 +16,9 @@
 !  General Public License or the GNU Lesser General Public License is    !
 !  subject to their copyright restrictions.                              !
 !------------------------------------------------------------------------!
-
+    
 C::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-      SUBROUTINE TMPBEIS312( JDATE, JTIME, TSTEP, BEIS_MAP, EMISL )
+      SUBROUTINE TMPBEIS312_HD( JDATE, JTIME, TSTEP, BEIS_MAP, EMISL )
 
 C-----------------------------------------------------------------------
  
@@ -81,6 +81,7 @@ C-----------------------------------------------------------------------
       USE UTILIO_DEFN
       USE BIOG_EMIS             ! beis
       USE centralized_io_module, only : AVGEMIS, AVGLAI, interpolate_var
+      USE HDMod
 
 #ifdef parallel
       USE SE_MODULES            ! stenex (using SE_UTIL_MODULE)
@@ -97,7 +98,7 @@ C Arguments:
       INTEGER, INTENT(  IN ) :: JTIME   ! current simulation time (HHMMSS)
       INTEGER, INTENT(  IN ) :: TSTEP( 3 )      ! timestep vector
       INTEGER, INTENT(  IN ) :: BEIS_MAP( : )   ! mapping from beis3 to model species
-      REAL,    INTENT( OUT ) :: EMISL( :,:,: )  ! emissions in moles/sec
+      TYPE(hyperdual),    INTENT( OUT ) :: EMISL( :,:,: )  ! emissions in moles/sec
 
 C External Functions
       LOGICAL,         EXTERNAL :: CHKGRID
@@ -340,7 +341,7 @@ C Initialize normalized emissons to be used
 
 C Loop thru the number of time steps (hourly)
 
-      EMISL = 0.0   ! array
+      EMISL = 0.0d0   ! array
       EMPOL = 0.0   ! array
 #ifdef verbose_tmpbeis
       EMISX = 0.0   ! array
@@ -401,11 +402,11 @@ C Speciate emissions
             DO C = 1, NCOLS
                EMPL = EMPOL( C,R,K ) * HR2SEC
                IF ( EMPL .GT. 0.0 ) 
-     &            EMISL( :,C,R ) = EMISL( :,C,R ) + EMPL * MLFAC( :,K )
+     &            EMISL( :,C,R ) = EMISL( :,C,R ) + EMPL * MLFAC( :,K ) 
             END DO
          END DO
       END DO
-
+	  
 #ifdef verbose_tmpbeis
       WRITE( LOGDEV,* ) ' '
       WRITE( LOGDEV,* ) '       from TMPBEIS312'
@@ -477,5 +478,5 @@ C------------------  FORMAT  STATEMENTS   ------------------------------
 94030 FORMAT( 5X, 'Temporal BEIS at time ', A8 )
 94040 FORMAT( /5X, 3( A, :, 1X ), I8, ":", I6.6 )
 
-      END SUBROUTINE TMPBEIS312  
+      END SUBROUTINE TMPBEIS312_HD 
 

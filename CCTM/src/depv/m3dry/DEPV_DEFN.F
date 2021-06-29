@@ -54,7 +54,7 @@ C   12 Dec 19 S.L.Napelenok: ddm-3d implementation for version 5.3.1
 C   August 2020 J Pleim: Fixed timestep in call to m3dry. Corrects NH3 bidi emis, dep outputs
 C-------------------------------------------------------------------------------
       USE RUNTIME_VARS
-
+	  USE HDMod
 #ifdef sens
       USE DDM3D_DEFN, ONLY : NP, NPMAX, S_PVD, S_CGRIDL1, S_PLDV
 #endif
@@ -62,7 +62,7 @@ C-------------------------------------------------------------------------------
       IMPLICIT NONE
 
 C model depositon velocites array
-      REAL,    ALLOCATABLE, SAVE :: DEPV( :,:,: )
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: DEPV( :,:,: )
 
 C no. of deposition velocity model species
       INTEGER, SAVE :: N_SPC_DEPV
@@ -72,10 +72,10 @@ C ddep spc conversion factors
       REAL,    ALLOCATABLE, SAVE :: DD_CONV( : )
 
 C model-oriented bi-directional production [ppm-m/s]
-      REAL,    ALLOCATABLE, SAVE :: PLDV( :,:,: )
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: PLDV( :,:,: )
 
 C  Dry dep flux of NH3 for bidi [kg/ha hr]
-      REAL,    ALLOCATABLE, SAVE :: NH3_EMIS( :,: )
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: NH3_EMIS( :,: )
 
 !C flag for mosaic - luc specific deposition - within in-lining depv
 !      LOGICAL, SAVE :: MOSAIC = .FALSE.
@@ -93,13 +93,13 @@ C  Dry dep flux of NH3 for bidi [kg/ha hr]
       PRIVATE
 
 C gas species (gas-phase and gas non-reactive) deposition velocities
-      REAL,    ALLOCATABLE, SAVE :: DEPVEL_GAS( :,:,: )
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: DEPVEL_GAS( :,:,: )
 
 C m3dry-oriented bi-directional production [ppm-m/s]
-      REAL,    ALLOCATABLE, SAVE :: PVD( :,:,: )
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: PVD( :,:,: )
 
 C CGRID for m3dry bi-directional flux calculation
-      REAL,    ALLOCATABLE, SAVE :: CGRIDL1( :,:,: )
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: CGRIDL1( :,:,: )
 
 C flag for diagnostic DEPV file
       INTEGER, SAVE                      :: N_UNIQUE_GDEPV   ! gas depv
@@ -113,9 +113,9 @@ C flag for diagnostic DEPV file
 
       INTEGER, SAVE :: NR_OFFSET            ! Offset to NR start in CGRID
 
-      REAL,    ALLOCATABLE, SAVE :: ADEPV( :,:,: )    ! Aerosol dep vel from
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: ADEPV( :,:,: )    ! Aerosol dep vel from
                                                                ! subroutine AERO_DEPV
-      REAL,    ALLOCATABLE, SAVE :: DBUFF( :,: )      ! diagnostic output buffer
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: DBUFF( :,: )      ! diagnostic output buffer
       REAL,    ALLOCATABLE, SAVE :: DBUFF3( :,:,: )   ! diagnostic output buffer with 3 dimensions
 
       REAL,    ALLOCATABLE, SAVE :: UCROSS( :,:,:)
@@ -135,6 +135,7 @@ C-----------------------------------------------------------------------
 !         USE MOSAIC_MOD, Only: Init_Mosaic
          USE LSM_MOD, Only: Init_LSM !, n_lufrac
          USE BIDI_MOD, Only: Init_Bidi, HgBidi
+         USE HDMod
 
          IMPLICIT NONE
 
@@ -144,7 +145,7 @@ C Includes:
 
 C Arguments:
          INTEGER JDATE, JTIME, TSTEP( 3 )
-         REAL, POINTER :: CGRID( :,:,:,: )
+         TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )
          LOGICAL SUCCESS
 
 C External Functions:
@@ -230,8 +231,8 @@ C DEPVEL_GAS is used also for non-ILDEPV in the sgtot calculation
 C Initialize deposition velocities for nondeposited species to zero:
 C setting DEPV( N_SPC_DEPV+1,C,R ) = 0.0 accounts for dry dep. species names
 C as a subset of the vert. diffused species list
-         DEPV = 0.0   ! array assignment
-         PLDV = 0.0   ! array assignment
+         DEPV = 0.0d0   ! array assignment
+         PLDV = 0.0d0   ! array assignment
 
          ALLOCATE ( DD_CONV( N_SPC_DEPV+1 ), STAT = ALLOCSTAT )
          IF ( ALLOCSTAT .NE. 0 ) THEN
@@ -419,8 +420,8 @@ C Identify and remove multiple occurrences of aerosol deposition velocities
                CALL M3WARN( PNAME, JDATE, JTIME, XMSG )
                SUCCESS = .FALSE.; RETURN
             END IF
-            CGRIDL1 = 0.0   ! array assignment (PVD initalized in m3dry)
-            NH3_EMIS = 0.0
+            CGRIDL1 = 0.0d0   ! array assignment (PVD initalized in m3dry)
+            NH3_EMIS = 0.0d0
 
 #ifdef sens
                ALLOCATE ( S_CGRIDL1( NPMAX,N_GAS_DEPV,NCOLS,NROWS ),
@@ -466,6 +467,7 @@ C-----------------------------------------------------------------------
          USE DEPVVARS
          USE UTILIO_DEFN
          USE ASX_DATA_MOD, Only: GRID_DATA !, MOSAIC_DATA
+         USE HDMod
 
          IMPLICIT NONE
 
@@ -477,7 +479,7 @@ C Arguments:
                                                    ! TSTEP(3) = twoway model time step w.r.t. wrf time
                                                    !            step and wrf/cmaq call frequency
 
-         REAL, POINTER         :: CGRID( :,:,:,: ) ! concentrations
+         TYPE(hyperdual), POINTER         :: CGRID( :,:,:,: ) ! concentrations
 
          INCLUDE SUBST_CONST     ! constants
          INCLUDE SUBST_FILES_ID  ! file name parameters
@@ -510,31 +512,35 @@ C Local variables:
 
          INTERFACE
             SUBROUTINE RDDEPV ( JDATE, JTIME, DEPV )
+               use HDMod
                INTEGER, INTENT( IN )            :: JDATE, JTIME
-               REAL, INTENT( OUT )              :: DEPV( :,:,: )
+               TYPE(hyperdual), INTENT( OUT )   :: DEPV( :,:,: )
             END SUBROUTINE RDDEPV            
             SUBROUTINE CGRID_DEPV( GAS_DEPV_FOUND, GAS_DEPV_SUR, CGRID, CGRIDL1 )
+               use HDMod
                LOGICAL, INTENT( IN )  :: GAS_DEPV_FOUND( : )
                INTEGER, INTENT( IN )  :: GAS_DEPV_SUR( : )
-               REAL,    POINTER       :: CGRID( :,:,:,: )
-               REAL,    INTENT( OUT ) :: CGRIDL1( :,:,: )
+               TYPE(hyperdual),    POINTER       :: CGRID( :,:,:,: )
+               TYPE(hyperdual),    INTENT( OUT ) :: CGRIDL1( :,:,: )
             END SUBROUTINE CGRID_DEPV
             SUBROUTINE M3DRY ( JDATE, JTIME, DTSEC, 
      &                         CGRIDL1, DEPVEL_GAS, PVD, NH3_EMIS)
+     	       use HDMod 
                INTEGER, INTENT( IN )  :: JDATE, JTIME
                REAL,    INTENT( IN )  :: dtsec
-               REAL,    INTENT( IN )  :: CGRIDL1( :,:,: )
-               REAL,    INTENT( OUT ) :: DEPVEL_GAS( :,:,: ), PVD( :,:,: ),NH3_EMIS(:,:)
+               TYPE(hyperdual),    INTENT( IN )  :: CGRIDL1( :,:,: )
+               TYPE(hyperdual),    INTENT( OUT ) :: DEPVEL_GAS( :,:,: ), PVD( :,:,: ),NH3_EMIS(:,:)
             END SUBROUTINE M3DRY
             SUBROUTINE AERO_DEPV ( CGRID, JDATE, JTIME, TSTEP, ADEPV )
-               REAL, POINTER          :: CGRID( :,:,:,: )
+               USE HDMod
+               TYPE(hyperdual), POINTER          :: CGRID( :,:,:,: )
                INTEGER, INTENT( IN )  :: JDATE, JTIME, TSTEP
-               REAL,    INTENT( OUT ) :: ADEPV( :,:,: )
+               TYPE(hyperdual),    INTENT( OUT ) :: ADEPV( :,:,: )
             END SUBROUTINE AERO_DEPV
          END INTERFACE
 
 C-----------------------------------------------------------------------
-         DEPV = 0.0         
+         DEPV = 0.0d0         
 
 ! Made default for Hg bidi JOB 9/12/11
          CALL CGRID_DEPV( GAS_DEPV_FOUND, GAS_DEPV_SUR, CGRID, CGRIDL1 )

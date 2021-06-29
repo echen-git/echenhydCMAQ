@@ -61,7 +61,7 @@ C                   J. Bash:   Nov   7 14:  Modified for the restructuring of vi
 !                                           (model_data_module.F) to hold some of information
 !                                           originally stored here to avoid cyclic dependence
 C-------------------------------------------------------------------------------
-
+	  USE HDMod
       Implicit None
 ! shared variables
 
@@ -69,8 +69,8 @@ C-------------------------------------------------------------------------------
       Real, Save, Allocatable :: fcec2  ( :,: ) ! Volatility function of CEC from EPIC (Williams 1995) in L2
       
       Real, Save,              Private :: C_gam           ! Canadian fertilizer facter      
-      Real, Parameter,         Private :: maxgam   = 1.0e6 ! removed 200000 limit since I can't find any justification
-      Real, Parameter,         Private :: natgam   = 20.0  ! Background soil gamma
+      Real( 8 ), Parameter,         Private :: maxgam   = 1.0d6 ! removed 200000 limit since I can't find any justification
+      Real( 8 ), Parameter,         Private :: natgam   = 20.0d0  ! Background soil gamma
      
       Contains 
          Subroutine Init_ABFlux( jdate, jtime)
@@ -139,19 +139,19 @@ C-------------------------------------------------------------------------------
          If ( .Not. Allocated ( gamma1 ) ) Then
             Allocate ( gamma1 ( ncols,nrows ) )
          End If
-         gamma1 = 0.0
+         gamma1 = 0.0d0
          If ( .Not. Allocated ( gamma2 ) ) Then
             Allocate ( gamma2 ( ncols,nrows ) )
          End If
-         gamma2 = 0.0
+         gamma2 = 0.0d0
          If ( .Not. Allocated ( MHp1 ) ) Then
             Allocate ( MHp1 ( ncols,nrows ) )
          End If         
-         MHp1 = 0.0
+         MHp1 = 0.0d0
          If ( .Not. Allocated ( MHp2 ) ) Then
             Allocate ( MHp2 ( ncols,nrows ) )
          End If
-         MHp2 = 0.0
+         MHp2 = 0.0d0
          If ( .Not. Allocated ( fcec1 ) ) Then
             Allocate ( fcec1 ( ncols,nrows ) )
          End If
@@ -234,16 +234,16 @@ C-------------------------------------------------------------------------------
 !                            Write(Logdev,*) gamma1(c,r),gamma2(c,r),fcec1(c,r),tcec1
 !                        Endif
                      Else
-                        MHp1( c,r ) = 0.0
-                        MHp2( c,r ) = 0.0
-                        gamma1( c,r ) = 0.0
-                        gamma2( c,r ) = 0.0
+                        MHp1( c,r ) = 0.0d0
+                        MHp2( c,r ) = 0.0d0
+                        gamma1( c,r ) = 0.0d0
+                        gamma2( c,r ) = 0.0d0
                      Endif
                   Else
-                     MHp1( c,r ) = 0.0
-                     MHp2( c,r ) = 0.0
-                     gamma1( c,r ) = 0.0
-                     gamma2( c,r ) = 0.0
+                     MHp1( c,r ) = 0.0d0
+                     MHp2( c,r ) = 0.0d0
+                     gamma1( c,r ) = 0.0d0
+                     gamma2( c,r ) = 0.0d0
                   End If
                End Do ! c
             End Do ! r
@@ -276,12 +276,13 @@ C-------------------------------------------------------------------------------
          Use Bidi_Mod, Only: gamma1, gamma2, MHp1, MHp2
          Use ASX_DATA_MOD
          Use LSM_MOD
+         Use HDMod
          
          Implicit None
          
          Include SUBST_FILES_ID  ! file name parameters
 
-         Real,    Intent( IN )  :: cNH3
+         TYPE(hyperdual),    Intent( IN )  :: cNH3
          Real,    Intent( IN )  :: rwetsfc        
          Real,    Intent( IN )  :: rgw
          Real,    Intent( IN )  :: rb
@@ -294,17 +295,17 @@ C-------------------------------------------------------------------------------
          Integer, Intent( IN )  :: c
          Integer, Intent( IN )  :: l ! species index
          
-         Real,    Intent( OUT ) :: pvd
-         Real,    Intent( OUT ) :: lnh3
-         Real,    Intent( OUT ) :: femis
-         
+         TYPE(hyperdual),    Intent( OUT ) :: pvd
+         TYPE(hyperdual),    Intent( OUT ) :: lnh3
+         TYPE(hyperdual),    Intent( OUT ) :: femis
          Real( 8 )              :: aq           ! Quadradic equation variable
-         Real( 8 )              :: bq           ! Quadradic equation variable
-         Real                   :: cnh3c        ! In canopy NH3 concentration [ppm]
-         Real                   :: cnh3g1, cnh3g2, cnh3g   ! NH3 compensation concentration for ground [ppm]
+         TYPE(hyperdual)        :: bq           ! Quadradic equation variable
+         TYPE(hyperdual)        :: cnh3c        ! In canopy NH3 concentration [ppm]
+         TYPE(hyperdual)        :: cnh3g1, cnh3g2, cnh3g   ! NH3 compensation concentration for ground [ppm]
          Real                   :: cnh3s        ! NH3 compensation concentration for stomatal [ppm]
-         Real                   :: cnh3g1j, cnh3g2j, cnh3sj
-         Real( 8 )              :: cq           ! Quadradic equation variable
+         TYPE(hyperdual)        :: cnh3g1j, cnh3g2j
+         REAL                   :: cnh3sj
+         TYPE(hyperdual)        :: cq           ! Quadradic equation variable
          Real                   :: del0         ! for Rbg
          Real( 8 )              :: ga           ! Ga = 1/Ra [m/s]
          Real                   :: gammas       ! [NH4+]/[H+]
@@ -312,7 +313,7 @@ C-------------------------------------------------------------------------------
          Real( 8 )              :: gg1 !( n_lufrac ) ! Gg = 1/(Rgnd(nh3)+Rinc) [m/s]  
          Real( 8 )              :: gsb          ! Gsb = 1/(Rstom(nh3)+Rb(nh3)) [m/s]
          Real( 8 )              :: gt
-         Real( 8 )              :: qq           ! intermediate variable
+         TYPE(hyperdual)              :: qq           ! intermediate variable
          Real                   :: rbg  !j( n_lufrac )
 !        Real,        Parameter :: rwm = 35.0   ! Minimum NH3 cuticle resistance [s/m]
          Real,        Parameter :: rwm = 20.0   ! Minimum NH3 cuticle resistance [s/m]
@@ -340,7 +341,7 @@ C-------------------------------------------------------------------------------
          Real                   :: frac_sol1    ! Fraction of NHx in solution layer 1
          Real                   :: frac_sol2    ! Fraction of NHx in solution layer 2
          Real                   :: cnh3cdep
-         Real                   :: cnh3cemis, rcut, gwd
+         TYPE(hyperdual)        :: rcut, gwd, cnh3cemis
 
          canfrac = 0.5    !exp(-1.)   
 
@@ -368,13 +369,13 @@ C-------------------------------------------------------------------------------
 
          agfrac  = 0.0
          watfrac = 0.0
-         pvd     = 0.0
-         lnh3    = 0.0
+         pvd     = 0.0d0
+         lnh3    = 0.0d0
 
 !> If the soil is frozen assume not evasive flux and skip calculation of comp. points         
          If ( MET_DATA%Tempg( c,r ) .Le. 273.15 ) Then
-            cnh3s  = 0.0
-            cnh3g = 0.0
+            cnh3s  = 0.0d0
+            cnh3g = 0.0d0
             Go To 101
          End If
 
@@ -389,23 +390,23 @@ C-------------------------------------------------------------------------------
 !> model any [NH4] in excess of this ratio is assumed to partition into the solid
 !> phase. Canada soil gamma taken from Zhang et al 2010 JGR Table 5
 
-         cnh3g1 = 0.0
-         cnh3g2 = 0.0
-         cnh3s = 0.0
+         cnh3g1 = 0.0d0
+         cnh3g2 = 0.0d0
+         cnh3s = 0.0d0
 !---- removed division of gamma by soil moisture -- jep 12/16
          Do j = 1, n_lufrac
             If ( GRID_DATA%LUFRAC( c,r,j ) .Gt. 0.0 ) Then
                cnh3sj = a1 * luf_fac( j )
                Select Case( cat_lu( j ) )
                   Case( 'WATER' ) ! water
-                     cnh3g1j = 0.0
-                     cnh3g2j = 0.0
-                     cnh3sj  =0.0
+                     cnh3g1j = 0.0d0
+                     cnh3g2j = 0.0d0
+                     cnh3sj  =0.0d0
                      watfrac = watfrac + GRID_DATA%LUFRAC( c,r,j )
                   Case( 'SNOWICE' ) ! ice or snow
-                     cnh3g1j = 0.0
-                     cnh3g2j = 0.0
-                     cnh3sj  =0.0
+                     cnh3g1j = 0.0d0
+                     cnh3g2j = 0.0d0
+                     cnh3sj  =0.0d0
 !---- Gamma soil 
                   Case( 'AG','AGMOS' ) ! Ag
                       if (fcec1(c,r).gt. 0.299 ) Then                
@@ -476,8 +477,8 @@ C-------------------------------------------------------------------------------
             gwd = ( 1.0 - delta )* MET_DATA%LAI( c,r )/rcut
             cnh3cemis = (gsb * cnh3s + gg1 * cnh3g)/( gt + gwd)
          else
-            cnh3c = 0.0
-            cnh3cemis = 0.0
+            cnh3c = 0.0d0
+            cnh3cemis = 0.0d0
 
          End If  ! lai > 0.0
 

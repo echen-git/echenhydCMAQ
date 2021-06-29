@@ -335,6 +335,247 @@ C create header
          END SUBROUTINE OPVEXT
 #ifdef parallel
 C:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+         LOGICAL FUNCTION PWRVEC_HD( FILNAME, VARNAME, DATE, TIME,
+     &                            BUFFER, NLAYS,
+     &                            NCOLS, NROWS, NP, 
+     &                            NVERTEXT, VERTEXTII, VERTEXTJI)
+C.....................................................................
+  
+C  PURPOSE:   Perform Models-3 file-write operation in a parallel
+C             environment for a vector. Values of variable VARNAME on each processor
+C             subdomain region are collected, via MPI calls, by the
+C             primary I/O processor and the full grid of values are
+C             written to file.
+
+C  RETURN VALUE:  The function fails if M3IO routine WRITE3 fails. If
+C       an MPI error occurs, the program is aborted with a call to
+C       PM3EXIT. 
+  
+C  REVISION  HISTORY:
+C       Copied 11/29/2017 by Barron Henderson
+C          -- Copied from PWRGRDD
+C   09 Jan 18 D.Wong: put in parallel implementation
+  
+C  ARGUMENT LIST DESCRIPTION:
+C  M1 in PIOMAPS_MODULE
+C  M2 in ALLOC_DATA_MODULE
+C  E3 in PIOVARS.EXT
+C  IN:
+C    CHARACTER*(*)  FILNAME        ! Name of file containing variable VARNAME
+C    CHARACTER*(*)  VARNAME        ! Name of file variable to write
+C    INTEGER        DATE           ! Date, formatted YYYYDDD
+C    INTEGER        TIME           ! Time, formatted HHMMSS
+C    REAL           BUFFER(NCOLS, NROWS, NLAYS)
+C                                  ! Buffer holding (local) array to be written
+C    INTEGER  NLAYS                ! Layer dimension of file variables
+C    INTEGER  NCOLS                ! Column dimension of local-processor arrays
+C    INTEGER  NROWS                ! Row dimension of local-processor arrays
+C    INTEGER  NP                   ! Number of processors
+C    INTEGER  NVERTEXT             ! Number of Lat/Lon pairs
+C    INTEGER  VERTEXTII            ! Vertice location
+C    INTEGER  VERTEXTJI            ! Vertice location
+ 
+C  OUT: none
+ 
+C  LOCAL VARIABLE DESCRIPTION:  see below
+ 
+C  CALLS: WRITE3, PM3WARN, PM3EXIT, MPI_SEND, MPI_RECV, MPI_BCAST
+ 
+C  NOTES: (1) Only the primary I/O processor does the file writing. Input
+C             arguments FILNAME, VARNAME, DATE, and TIME are meaningful
+C             only to the I/O processor.
+ 
+C         (2) This routine handles only gridded variables. The BUFFER is
+C             assumed to be declared as BUFFER( NCOLS, NROWS, NLAYS ),
+C             where NCOLS and NROWS are the local PE grid subdomain
+C             dimensions and NLAYS is the file variable layer dimension.
+C             BUFFER is assumed to be filled as BUFFER(1:C,1:R,1:NLAYS),
+C             where C = WR_COLSX_PE(2,MY_PE+1), R = WR_ROWSX_PE(2,MY_PE+1).
+C-----------------------------------------------------------------------
+
+         USE PIOMAPS_MODULE
+         USE M3UTILIO, ONLY : WRITE3              ! i/o api
+		 USE HDMod
+		 
+         IMPLICIT NONE
+
+C Include Files
+
+         INCLUDE 'mpif.h'            ! MPI definitions and parameters
+         INCLUDE 'PIOVARS.EXT'
+
+C Arguments
+
+         CHARACTER( * ), INTENT(IN) :: FILNAME   ! Name of file containing variable VARNAME
+         CHARACTER( * ), INTENT(IN) :: VARNAME   ! Name of file variable to write
+         INTEGER, INTENT(IN)        :: DATE      ! Date, formatted YYYYDDD
+         INTEGER, INTENT(IN)        :: TIME      ! Time, formatted HHMMSS 
+         INTEGER, INTENT(IN)        :: NLAYS     ! Layer dimension of file variables
+         INTEGER, INTENT(IN)        :: NCOLS     ! Column dimension of local-processor arrays
+         INTEGER, INTENT(IN)        :: NROWS     ! Row dimension of local-processor arrays
+         INTEGER, INTENT(IN)        :: NP        ! Number of processors
+         INTEGER, INTENT(IN)        :: NVERTEXT  ! Number of vertices
+         INTEGER, INTENT(IN)        :: VERTEXTII(:),VERTEXTJI(:) ! vertex locations
+         TYPE(hyperdual), INTENT(IN)           :: BUFFER( :,:,: )           ! Buffer holding (local) array 
+
+         REAL, ALLOCATABLE, SAVE :: WRITVBUF( :,:,: )
+         REAL, ALLOCATABLE       :: RECVVBUF( :,: )
+         REAL, ALLOCATABLE       :: SENDVBUF(:,:)     ! to be written
+
+C External Functions:
+
+         EXTERNAL PM3WARN                    ! Parallel M3IO library
+
+C Local Variables:
+
+         INTEGER         :: MSGSIZE   ! Message size of subgrid to receive
+         INTEGER         :: IPE       ! For loop over processors
+         INTEGER         :: IERROR    ! MPI error code
+         LOGICAL         :: LERROR    ! LOCAL ERROR
+         LOGICAL         :: RERROR    ! LOCAL MPI ALLREDUCE ERROR
+         INTEGER         :: TC,TR     ! This cell position
+         INTEGER         :: IG        ! Loop counter over grid layers
+         CHARACTER( 16 ) :: FIL16     ! Scratch area for file-name
+         CHARACTER( 16 ) :: VAR16     ! Scratch area for vble-name
+         CHARACTER( 80 ) :: MSG       ! Message issued from PM3WARN routine
+         INTEGER         :: STATUS( MPI_STATUS_SIZE )   ! MPI status code
+         INTEGER         :: N, POS
+
+         INTEGER, PARAMETER :: TAG1 = 901 ! MPI message tag for processor ID
+
+C........................................................................
+
+C Initialize return value and error code
+         PWRVEC_HD = .TRUE.
+         LERROR = .FALSE.
+         IERROR = 0
+         
+         IF ( MY_PE .EQ. IO_PE ) THEN    ! I/O processor collects and writes data
+
+            IF (.NOT. ALLOCATED(WRITVBUF)) THEN
+               ALLOCATE ( WRITVBUF  ( 1, NVERTEXT, NLAYS ), STAT = IERROR )
+               IF ( IERROR .NE. 0 ) THEN
+                  MSG = 'Failure allocating WRITVBUF '
+                  CALL M3EXIT( 'PWRVEC', DATE, TIME, MSG, 1 )
+               END IF
+            END IF
+
+C Gather the array and write it to file.
+
+C I/O PE copies its own local array into output buffer
+
+            DO N = 1, MY_NVERTEXT
+               POS = PE_NVERTEXT(N, MY_PE)
+               TC  = MY_VERTEXTI(N)
+               TR  = MY_VERTEXTJ(N)
+
+               WRITVBUF( 1, POS, : ) = REAL ( BUFFER(TC, TR, :)%x , 4 )
+            END DO
+ 
+C I/O PE receives array from all other processors and copies it to the output
+C buffer. Arrays are received in a first-come-first-serve order.  
+
+            DO IPE = 1, NP - 1
+
+               IF (PE_NVERTEXT(0, IPE) .GT. 0) THEN
+                  ALLOCATE ( RECVVBUF  ( PE_NVERTEXT(0, IPE), NLAYS ), STAT = IERROR )
+                  IF ( IERROR .NE. 0 ) THEN
+                     MSG = 'Failure allocating RECVVBUF '
+                     CALL M3EXIT( 'PWRVEC', DATE, TIME, MSG, 1 )
+                  END IF
+
+                  MSGSIZE = PE_NVERTEXT(0, IPE) * NLAYS  
+
+                  CALL MPI_RECV( RECVVBUF, MSGSIZE, MPI_REAL, IPE,
+     &                           TAG1, MPI_COMM_WORLD, STATUS, IERROR )
+                  IF ( IERROR .NE. 0 ) THEN
+                     MSG = 'MPI error receiving data array RECVVBUF.'
+                     CALL PM3WARN( 'PWRVEC', DATE, TIME, MSG )
+                     LERROR = .TRUE.
+                  END IF
+
+                  DO N = 1, PE_NVERTEXT(0, IPE)
+                     POS = PE_NVERTEXT(N, IPE)
+                     TC  = MY_VERTEXTI(N)
+                     TR  = MY_VERTEXTJ(N)
+
+                     WRITVBUF( 1, POS, : ) = RECVVBUF(N,:)
+                  END DO
+                  DEALLOCATE (RECVVBUF)
+               END IF
+            END DO
+
+C Write the accumulated array to file
+
+            FIL16 = FILNAME
+            VAR16 = VARNAME
+            IF ( .NOT. WRITE3( FIL16, VAR16, DATE, TIME, WRITVBUF ) ) THEN
+               MSG = 'Could not write '
+     &               // TRIM( VARNAME ) //
+     &               ' to file '// TRIM( FIL16 )
+
+               CALL PM3WARN( 'PWRVEC', DATE, TIME, MSG )
+               LERROR = .TRUE.
+            END IF
+
+         ELSE      ! Non-I/O processors send data
+
+C Each processor, except for the I/O processor, sends its local array to
+C the I/O processor.
+
+            IF (MY_NVERTEXT .GT. 0) THEN
+               IF (.NOT. ALLOCATED(SENDVBUF)) THEN
+                  ALLOCATE ( SENDVBUF  ( MY_NVERTEXT, NLAYS   ), STAT = IERROR )
+                  IF ( IERROR .NE. 0 ) THEN
+                     MSG = 'Failure allocating SENDVBUF '
+                     CALL M3EXIT( 'PWRVEC', DATE, TIME, MSG, 1 )
+                  END IF
+               END IF
+
+               DO IG = 1, MY_NVERTEXT
+                  TC = MY_VERTEXTI(IG)
+                  TR = MY_VERTEXTJ(IG)
+
+                  SENDVBUF( IG, : ) = REAL( BUFFER(TC, TR, :)%x , 4 ) 
+               END DO
+
+               MSGSIZE = MY_NVERTEXT * NLAYS  
+
+               CALL MPI_SEND( SENDVBUF, MSGSIZE, MPI_REAL, IO_PE, TAG1,
+     &                        MPI_COMM_WORLD, IERROR )
+
+               IF ( IERROR .NE. 0 ) THEN
+                  MSG = 'MPI error sending data array WRITVBUF.'
+                  CALL PM3WARN( 'PWRVEC', DATE, TIME, MSG )
+                  LERROR = .TRUE.
+               END IF
+            END IF
+
+         END IF     ! if( my_pe .eq. io_pe )
+
+C Notify non-I/O processors of failure
+
+         CALL MPI_ALLREDUCE( LERROR, RERROR, 1, MPI_LOGICAL, MPI_LAND, 
+     &                       MPI_COMM_WORLD, IERROR )
+
+         IF ( IERROR .NE. 0 ) THEN
+            MSG = 'MPI Allreduce error.'
+            CALL PM3WARN( 'PWRVEC', DATE, TIME, MSG )
+            LERROR = .TRUE.
+         END IF
+
+         IF ( RERROR ) THEN
+            MSG = 'Failed to write '
+     &           // TRIM( VARNAME ) //
+     &           ' from file '// TRIM( FILNAME )
+            CALL PM3WARN( 'PWRVEC', DATE, TIME, MSG )
+            PWRVEC_HD = .FALSE.
+         END IF
+
+         END FUNCTION PWRVEC_HD
+
+
+C:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
          LOGICAL FUNCTION PWRVEC( FILNAME, VARNAME, DATE, TIME,
      &                            BUFFER, NLAYS,
      &                            NCOLS, NROWS, NP, 
@@ -395,7 +636,8 @@ C-----------------------------------------------------------------------
 
          USE PIOMAPS_MODULE
          USE M3UTILIO, ONLY : WRITE3              ! i/o api
-
+		 USE HDMod
+		 
          IMPLICIT NONE
 
 C Include Files
@@ -573,6 +815,8 @@ C Notify non-I/O processors of failure
 
          END FUNCTION PWRVEC
 
+
+
 C:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
          SUBROUTINE WR_VEXT( CGRID, JDATE, JTIME, TSTEP )
 
@@ -590,6 +834,7 @@ C-----------------------------------------------------------------------
          USE UTILIO_DEFN
          USE ASX_DATA_MOD, Only: Met_Data
          USE WVEL_DEFN, Only : WVEL
+         USE HDMod
 
          IMPLICIT NONE
 
@@ -597,7 +842,7 @@ C Include Files:
 
          INCLUDE SUBST_FILES_ID    ! I/O definitions and declarations
 
-         REAL,    POINTER    :: CGRID( :,:,:,: )  ! Species concentrations
+         TYPE(hyperdual),    POINTER    :: CGRID( :,:,:,: )  ! Species concentrations
          INTEGER, INTENT(IN) :: JDATE             ! current model date, coded YYYYDDD
          INTEGER, INTENT(IN) :: JTIME             ! current model time, coded HHMMSS
          INTEGER, INTENT(IN) :: TSTEP             ! output timestep (HHMMSS)
@@ -657,7 +902,7 @@ C open vext file for update
 
          DO V = 1, N_CSPCS
             INDX = CONC_MAP( V )
-            IF ( .NOT. PWRVEC(CTM_VEXT_1, CONC_FILE_SPCS( V ), JDATE, JTIME,
+            IF ( .NOT. PWRVEC_HD(CTM_VEXT_1, CONC_FILE_SPCS( V ), JDATE, JTIME,
      &                        CGRID(:, :, :, INDX), NLAYS,
      &                        NCOLS, NROWS, NUMPROCS, 
      &                        NVERTEXT, VERTEXTI, VERTEXTJ     ) ) THEN

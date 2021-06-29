@@ -154,6 +154,7 @@ C-------------------------------------------------------------------------------
       USE DEPVVARS
       USE VGRD_DEFN      ! to get VGTYP_GD
       USE UTILIO_DEFN
+      USE HDMod
 #ifdef parallel
       USE SE_MODULES     ! stenex (using SE_COMM_MODULE)
 #else
@@ -183,10 +184,10 @@ C Arguments:
       INTEGER,     INTENT( IN )  :: jdate
       INTEGER,     INTENT( IN )  :: jtime
       REAL,        INTENT( IN )  :: dtsec      ! model time step (sec)
-      REAL,        INTENT( IN )  :: cgridl1( :,:,: )    ! layer 1 concentrations
-      REAL,        INTENT( OUT ) :: depvel_gas( :,:,: )
-      REAL,        INTENT( OUT ) :: pvd( :,:,: )
-      REAL,        INTENT( OUT ) :: nh3_emis(:,:)
+      TYPE(hyperdual),        INTENT( IN )  :: cgridl1( :,:,: )    ! layer 1 concentrations
+      TYPE(hyperdual),        INTENT( OUT ) :: depvel_gas( :,:,: )
+      TYPE(hyperdual),        INTENT( OUT ) :: pvd( :,:,: )
+      TYPE(hyperdual),        INTENT( OUT ) :: nh3_emis(:,:)
 
 C Local Variables:
 
@@ -235,7 +236,7 @@ C Local Variables:
       REAL                       :: rh_func              ! Simple RH function for the development of a water film on leaf cuticles 
       Real,            Parameter :: MolNH3   = 17.01     ! g/mol NH3  for NH3 bidi to convert to microg/m3
       Real,            Parameter :: MolAir   = 29.97     ! g/mol dry air
-      Real                       :: cnh3,tpvd,lnh3,femis
+      TYPE(hyperdual)            :: cnh3, tpvd, lnh3, femis
 
       REAL,    SAVE, ALLOCATABLE :: delta     ( :,: )
 
@@ -273,7 +274,7 @@ C For ozone exchange over the ocean
 
 C-------------------------------------------------------------------------------
 C For heterogenous hono on surfaces
-      REAL                       :: conc_no2                  ! concentration of NO2
+      TYPE(hyperdual)            :: conc_no2                  ! concentration of NO2
       REAL                       :: kno2                      ! first order rate constant for the heterogenous reaction [1/s]
       REAL                       :: surf_bldg                 ! Surface area of bldgs to volume of air [-]
       REAL                       :: surf_leaf                 ! Surface area of leaves to volume of air [-]
@@ -283,13 +284,13 @@ C For heterogenous hono on surfaces
 
 C-------------------------------------------------------------------------------
 C For Mercury bidirectional flux
-      REAL                       :: chg            ! gem layer one concentration
+      TYPE(hyperdual)            :: chg            ! gem layer one concentration
       REAL                       :: awhg           ! GEM Oswald solubility coeff
-      REAL                       :: chgIIgas       ! rgm layer one concentration
-      REAL                       :: vdHgII         ! divalent mercury deposition velocity
-      REAL                       :: vdHg           ! elemental mercury deposition velocity
-      REAL                       :: dpvd           ! dummy pvd variable passed to the hgasx subroutine
-      REAL                       :: dvel           ! dummy depvel_gas returned from ATX
+      TYPE(hyperdual)            :: chgIIgas       ! rgm layer one concentration
+      TYPE(hyperdual)            :: vdHgII         ! divalent mercury deposition velocity
+      TYPE(hyperdual)            :: vdHg           ! elemental mercury deposition velocity
+      TYPE(hyperdual)            :: dpvd           ! dummy pvd variable passed to the hgasx subroutine
+      TYPE(hyperdual)            :: dvel           ! dummy depvel_gas returned from ATX
 
 C-------------------------------------------------------------------------------
 
@@ -385,8 +386,8 @@ C-------------------------------------------------------------------------------
 
       effective = .TRUE.
       idt = nint(dtsec)
-      depvel_gas( :,:,: ) = 0.0  ! initialize for this time period
-      pvd       ( :,:,: ) = 0.0  !     "       "    "    "    "
+      depvel_gas( :,:,: ) = 0.0d0  ! initialize for this time period
+      pvd       ( :,:,: ) = 0.0d0  !     "       "    "    "    "
 
 #ifdef sens
       s_pvd     ( :,:,:,: ) = 0.0
@@ -669,7 +670,7 @@ c        Iodide in sea-water based on SST  (mol /dm-3)
             rbc = 5.0 / ustarcr * scc_pr_23( l )
             rac = MET_DATA%RA( c,r ) + rbc
 
-            depvel_gas( n,c,r ) = 1.0 / ( rsurf + rac )
+            depvel_gas( n,c,r ) = REAL ( 1.0 / ( rsurf + rac ) , 8 ) 
 
 C--------------------------------------------------------------------------
             IF ( abflux .And. l .Eq. l_NH3 ) THEN   ! Ammonia Bidirectional Flux
@@ -684,7 +685,7 @@ C--------------------------------------------------------------------------
                    depvel_gas( n,c,r ) = lnh3
                ELSE   ! water or snow covered
 !                   ddep_nh3(c,r) = ddep_nh3(c,r) + depvel_gas( n,c,r ) * cnh3 * dt(2) * 1.0e-5
-                   nh3_emis(c,r) = 0.0
+                   nh3_emis(c,r) = 0.0d0
                END IF
             END IF   ! 'abflux'
 
@@ -772,9 +773,9 @@ C--------------------------------------------------------------------------
 
                IF ( NINT( GRID_DATA%LWMASK( c,r ) ) .EQ. 0  .AND. ( vegcr .EQ. 0.0 )) THEN ! water
 
-                  depvel_gas( n_Hg,c,r ) = 1.0 / ( rsurf + rac )
+                  depvel_gas( n_Hg,c,r ) = REAL ( 1.0 / ( rsurf + rac ) , 8 ) 
                   vdhg = depvel_gas( n_Hg,c,r )
-                  pvd( n_Hg,c,r )  = 0.0 ! in the nether regions of LU/LC
+                  pvd( n_Hg,c,r )  = 0.0d0 ! in the nether regions of LU/LC
 
                ELSE ! terrestrial
 

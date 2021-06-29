@@ -70,6 +70,8 @@ C  Whalin, L., E.-H. Kim, R. Mason, 2007, Factors influencing the oxidation,
 C     reduciton, methylation and demethylation of mercury species in costal
 C     water, Marine Chem. 107, 278-294
 C-----------------------------------------------------------------------
+      
+      USE HDMod
       IMPLICIT NONE
 
 !    Shared variables
@@ -85,34 +87,34 @@ C-----------------------------------------------------------------------
       CHARACTER( 80 ), SAVE, Private   :: LAND_SCHEME
 
 ! variable needed for analytical solutions of exchange equations
-      REAL(8), ALLOCATABLE, PRIVATE :: KO(:,:)
-      REAL(8), ALLOCATABLE, PRIVATE :: EIVAL(:)
-      REAL(8), ALLOCATABLE, PRIVATE :: VR(:,:)
-      REAL(8), PRIVATE :: ax     ! coefficients used of the  
-      REAL(8), PRIVATE :: bx     ! quadratic and cubic equations
-      REAL(8), PRIVATE :: cx     ! ATX and ASWX
-      REAL(8), PRIVATE :: Qx     ! coefficients used to solve for 
-      REAL(8), PRIVATE :: Rx     ! the roots of the cubic equation
-      REAL(8), PRIVATE :: ThetaX ! in ATX
-      REAL(8), PRIVATE :: ev1    ! Temporary variables used to 
-      REAL(8), PRIVATE :: ev2    ! calculate the eigen vectors 
-      REAL(8), PRIVATE :: ev3    ! in ATX and ASWX
-      REAL(8), PRIVATE :: evmax  !
-      REAL(8), PRIVATE :: DetKO  ! Variables used to solve for the 
-      REAL(8), PRIVATE :: DetK1  ! non-homogeneous part of the solution
-      REAL(8), PRIVATE :: DetK2  ! a system of equations in ATX and
-      REAL(8), PRIVATE :: DetK3  ! ASWX using Cramer's Rule
-      REAL(8), PRIVATE :: DetEV  ! Variables used to solve for the 
-      REAL(8), PRIVATE :: DetE1  ! integration constants in the 
-      REAL(8), PRIVATE :: DetE2  ! system of equations in ATX and
-      REAL(8), PRIVATE :: DetE3  ! ASWX using Cramer's Rule
+      TYPE(hyperdual), ALLOCATABLE, PRIVATE :: KO(:,:)
+      TYPE(hyperdual), ALLOCATABLE, PRIVATE :: EIVAL(:)
+      TYPE(hyperdual), ALLOCATABLE, PRIVATE :: VR(:,:)
+      TYPE(hyperdual), PRIVATE :: ax     ! coefficients used of the  
+      TYPE(hyperdual), PRIVATE :: bx     ! quadratic and cubic equations
+      TYPE(hyperdual), PRIVATE :: cx     ! ATX and ASWX
+      TYPE(hyperdual), PRIVATE :: Qx     ! coefficients used to solve for 
+      TYPE(hyperdual), PRIVATE :: Rx     ! the roots of the cubic equation
+      TYPE(hyperdual), PRIVATE :: ThetaX ! in ATX
+      TYPE(hyperdual), PRIVATE :: ev1    ! Temporary variables used to 
+      TYPE(hyperdual), PRIVATE :: ev2    ! calculate the eigen vectors 
+      TYPE(hyperdual), PRIVATE :: ev3    ! in ATX and ASWX
+      TYPE(hyperdual), PRIVATE :: evmax  !
+      TYPE(hyperdual), PRIVATE :: DetKO  ! Variables used to solve for the 
+      TYPE(hyperdual), PRIVATE :: DetK1  ! non-homogeneous part of the solution
+      TYPE(hyperdual), PRIVATE :: DetK2  ! a system of equations in ATX and
+      TYPE(hyperdual), PRIVATE :: DetK3  ! ASWX using Cramer's Rule
+      TYPE(hyperdual), PRIVATE :: DetEV  ! Variables used to solve for the 
+      TYPE(hyperdual), PRIVATE :: DetE1  ! integration constants in the 
+      TYPE(hyperdual), PRIVATE :: DetE2  ! system of equations in ATX and
+      TYPE(hyperdual), PRIVATE :: DetE3  ! ASWX using Cramer's Rule
       
       INTEGER, PRIVATE :: NC
       INTEGER, PRIVATE :: i
       INTEGER, PRIVATE :: j
       
-      REAL(8), ALLOCATABLE, PRIVATE :: B( : )   ! Surface media concentration vector
-      REAL(8), ALLOCATABLE, PRIVATE :: NHS( : ) ! non-homogenious solution
+      TYPE(hyperdual), ALLOCATABLE, PRIVATE :: B( : )   ! Surface media concentration vector
+      TYPE(hyperdual), ALLOCATABLE, PRIVATE :: NHS( : ) ! non-homogenious solution
 
       INTEGER, SAVE, PRIVATE :: dt  ! internal model time step
 
@@ -255,6 +257,7 @@ C-------------------------------------------------------------------------------
          USE UTILIO_DEFN
          USE BIDI_MOD
          USE ASX_DATA_MOD
+         USE HDMod
 
 C Includes:
 
@@ -270,12 +273,12 @@ C Arguments passed to and from m3dry
          REAL, INTENT( IN )   :: rsnow
          REAL, INTENT( IN )   :: rgw     ! wet soil resistance
          REAL, INTENT( IN )   :: xm
-         REAL, INTENT( IN )   :: HG
+         TYPE(hyperdual), INTENT( IN )   :: HG
          REAL, INTENT( IN )   :: H
          REAL, INTENT( IN )   :: del
 
-         REAL, INTENT( OUT )  :: dpvd     ! evasion
-         REAL, INTENT( OUT )  :: dvel     ! deposition velocity
+         TYPE(hyperdual), INTENT( OUT )  :: dpvd     ! evasion
+         TYPE(hyperdual), INTENT( OUT )  :: dvel     ! deposition velocity
 
          INTEGER, INTENT( IN ) :: c
          INTEGER, INTENT( IN ) :: r
@@ -300,12 +303,12 @@ C Arguments passed to and from m3dry
 
 !Model concentrations
 
-         REAL(8), SAVE :: Cc         ! cuticular Hg(0) concentrations
-         REAL(8), SAVE :: Cm         ! mesophyll Hg(0) concentrations
-         REAL(8), SAVE :: CgHg       ! Soil Hg(0) concentrations
-         REAL(8), SAVE :: CHgzo      ! Hg(0) concentrations at z = zo
-         REAL(8), SAVE :: CgHgII0    ! Soil Hg(II) concentrations
-         REAL(8) :: vdHgt   ! sum of Hg deposition velocities
+         TYPE(hyperdual), SAVE :: Cc         ! cuticular Hg(0) concentrations
+         TYPE(hyperdual), SAVE :: Cm         ! mesophyll Hg(0) concentrations
+         TYPE(hyperdual), SAVE :: CgHg       ! Soil Hg(0) concentrations
+         TYPE(hyperdual), SAVE :: CHgzo      ! Hg(0) concentrations at z = zo
+         TYPE(hyperdual), SAVE :: CgHgII0    ! Soil Hg(II) concentrations
+         TYPE(hyperdual) :: vdHgt   ! sum of Hg deposition velocities
 !********* reduction and partioning terms *******************************
          REAL(8) :: kr      ! soil divalent mercury reduction term
          REAL(8) :: Kam     ! air mesophyll partitioning coefficient for Hg(II)
@@ -320,9 +323,9 @@ C Arguments passed to and from m3dry
          REAL(8) :: bc   ! Emprical coefficeint to describe differences in plant lipids
          REAL(8) :: flai ! Factor in mercury accumulation due to biodilution or scenescence
 !********* Intermediate concentration variables *********************
-         REAL, SAVE :: Hgm
-         REAL, SAVE :: Hgc
-         REAL, SAVE :: Hgs
+         TYPE(hyperdual), SAVE :: Hgm
+         TYPE(hyperdual), SAVE :: Hgc
+         TYPE(hyperdual), SAVE :: Hgs
 !******** soil properties ***********************************************
          REAL(8), PARAMETER :: kvis_d = REAL(kvis,8) ! [cm^2 / s] at 273.15K
          REAL(8)            :: wg_min         ! minimum soil moisture content
@@ -469,9 +472,9 @@ C diffusion through soil from Scholtz et al. 2003
 
 !        Load the initial conditions
 
-         B(1) = real( Cm,   8 )
-         B(2) = real( Cc,   8 )
-         B(3) = real( CgHg, 8 )
+         B(1) = Cm 
+         B(2) = Cc
+         B(3) = CgHg
 
 !*****************************************************************************
 ! Get eigen values and vectors where the cubic equation is:
@@ -498,16 +501,16 @@ C diffusion through soil from Scholtz et al. 2003
 ! There will always be three real roots in this system
 ! so we can use the simple geometric solution for a 
 ! cubic equation.
-         IF( Rx/DSQRT(Qx**3) .LT. 1.0D0 ) THEN
-            ThetaX   =  DACOS(Rx/DSQRT(Qx**3))
-            EIVAL(1) = -2.0D0*sqrt(Qx)*DCOS(ThetaX/3.0D0)-ax/3.0D0
-            EIVAL(2) = -2.0D0*sqrt(Qx)*DCOS((ThetaX+2.0D0*Pi)/3.0D0)-ax/3.0D0
-            EIVAL(3) = -2.0D0*sqrt(Qx)*DCOS((ThetaX-2.0D0*Pi)/3.0D0)-ax/3.0D0
+         IF( Rx/SQRT(Qx**3) .LT. 1.0D0 ) THEN
+            ThetaX   =  ACOS(Rx/SQRT(Qx**3))
+            EIVAL(1) = -2.0D0*sqrt(Qx)*COS(ThetaX/3.0D0)-ax/3.0D0
+            EIVAL(2) = -2.0D0*sqrt(Qx)*COS((ThetaX+2.0D0*Pi)/3.0D0)-ax/3.0D0
+            EIVAL(3) = -2.0D0*sqrt(Qx)*COS((ThetaX-2.0D0*Pi)/3.0D0)-ax/3.0D0
 ! Solve for the eigenvectors by setting the first element to 1 and using
 ! Cramer's rule to solve the second and third elements using the first
 ! two equations          
             DO i = 1, NC
-               ev1 =   1.0D0
+               ev1 = 1.0D0
                ev2 = (KO(2,1)*KO(1,3)-(KO(1,1)-EIVAL(i))*KO(2,3))/
      &               (KO(1,2)*KO(2,3)-(KO(2,2)-EIVAL(i))*KO(1,3))  
                ev3 = ((KO(1,1)-EIVAL(i))*(KO(2,2)-EIVAL(i))-KO(2,1)*KO(1,2))/
@@ -522,9 +525,9 @@ C diffusion through soil from Scholtz et al. 2003
 ! equivalent Rx**2 = Qx**3 or there are complex roots in which the model will crash
          ELSE
             ThetaX   =  0.0D0
-            EIVAL(1) = -2.0D0*sqrt(Qx)*DCOS(ThetaX/3.0D0)-ax/3.0D0
-            EIVAL(2) = -2.0D0*sqrt(Qx)*DCOS((ThetaX+2.0D0*Pi)/3.0D0)-ax/3.0D0
-            EIVAL(3) = -2.0D0*sqrt(Qx)*DCOS((ThetaX-2.0D0*Pi)/3.0D0)-ax/3.0D0
+            EIVAL(1) = -2.0D0*sqrt(Qx)*COS(ThetaX/3.0D0)-ax/3.0D0
+            EIVAL(2) = -2.0D0*sqrt(Qx)*COS((ThetaX+2.0D0*Pi)/3.0D0)-ax/3.0D0
+            EIVAL(3) = -2.0D0*sqrt(Qx)*COS((ThetaX-2.0D0*Pi)/3.0D0)-ax/3.0D0
             DO i = 1, NC
                ev1 =   1.0D0
                ev2 = (KO(2,1)*KO(1,3)-(KO(1,1)-EIVAL(i))*KO(2,3))/
@@ -608,14 +611,14 @@ C******************************************************************************
          B(3) = DetE3/DetEV   
 
 ! update the surface array
-         Hgm = 0.0
-         Hgc = 0.0
-         Hgs = 0.0
+         Hgm = 0.0d0
+         Hgc = 0.0d0
+         Hgs = 0.0d0
 
          DO i = 1, NC
-            Hgm = Hgm + B(i) * VR(1,i) * DEXP( EIVAL(i) * dt )
-            Hgc = Hgc + B(i) * VR(2,i) * DEXP( EIVAL(i) * dt )
-            Hgs = Hgs + B(i) * VR(3,i) * DEXP( EIVAL(i) * dt )
+            Hgm = Hgm + B(i) * VR(1,i) * EXP( EIVAL(i) * dt )
+            Hgc = Hgc + B(i) * VR(2,i) * EXP( EIVAL(i) * dt )
+            Hgs = Hgs + B(i) * VR(3,i) * EXP( EIVAL(i) * dt )
          END DO
 
          Hgm   = Hgm + NHS(1)
@@ -660,8 +663,8 @@ C******************************************************************************
             CALL M3EXIT( PNAME, JDATE, JTIME, XMSG, XSTAT1)
          END IF
 
-         CMEDIA( c,r,1 ) = 0.0 ! water
-         CMEDIA( c,r,2 ) = 0.0 ! water
+         CMEDIA( c,r,1 ) = 0.0D0 ! water
+         CMEDIA( c,r,2 ) = 0.0D0 ! water
          CMEDIA( c,r,3 ) = Hgs
          CMEDIA( c,r,4 ) = CHgzo
          CMEDIA( c,r,5 ) = Hgm
@@ -687,6 +690,7 @@ C:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
          USE UTILIO_DEFN
          USE BIDI_MOD
          USE ASX_DATA_MOD
+         USE HDMod 
 
 C Includes:
 
@@ -696,12 +700,12 @@ C Includes:
          INTEGER, INTENT( IN )   :: JDATE
          INTEGER, INTENT( IN )   :: JTIME
          INTEGER, INTENT( IN )   :: TSTEP
-         REAL,    INTENT( IN )   :: Hg
-         REAL,    INTENT( IN )   :: HgIIgas
-         REAL,    INTENT( IN )   :: vdHg
-         REAL,    INTENT( IN )   :: vdHgII
+         TYPE(hyperdual),    INTENT( IN )   :: Hg
+         TYPE(hyperdual),    INTENT( IN )   :: HgIIgas
+         TYPE(hyperdual),    INTENT( IN )   :: vdHg
+         TYPE(hyperdual),    INTENT( IN )   :: vdHgII
          REAL,    INTENT( IN )   :: awhg
-         REAL,    INTENT( OUT )  :: dpvd
+         TYPE(hyperdual),    INTENT( OUT )  :: dpvd
          INTEGER, INTENT( IN )   :: c
          INTEGER, INTENT( IN )   :: r
 
@@ -710,21 +714,21 @@ C Includes:
 C*************************** Ocean box parameters ***********************
          REAL(8), PARAMETER :: satten = 7.58d-1
 C*************************** Model concentrations ***********************
-         REAL(8), SAVE :: cDGM
-         REAL(8), SAVE :: cHgIIaq
+         TYPE(hyperdual), SAVE :: cDGM
+         TYPE(hyperdual), SAVE :: cHgIIaq
 C***** reduction and partioning terms from Whalin et al 2007 ************
          REAL(8), PARAMETER :: rref  = 240d+0    ! referance incoming radiation
                                            ! for redox measurements (w/m2)
          REAL(8), PARAMETER :: kphot = 6.5d-4 ! drm photoreduction rate 1/s
          REAL(8), PARAMETER :: kox   = 7.2d-4 ! dgm photo-oxidation rate 1/s
 C********* Intermediate concentration variables *********************
-         REAL(8), SAVE :: DGM
-         REAL(8), SAVE :: DRM
+         TYPE(hyperdual), SAVE :: DGM
+         TYPE(hyperdual), SAVE :: DRM
 
 
          IF (INIT_ASX ) THEN
             cDGM    = Hg*awhg*3 ! assume 3x eq con.
-            cHgIIaq = 3.57e-6   ! from Whalin et al 2007
+            cHgIIaq = 3.57d-6   ! from Whalin et al 2007
          ELSE
             cDGM    = CMEDIA( c,r,1 )
             cHgIIaq = CMEDIA( c,r,2 )
@@ -740,7 +744,7 @@ C matrices become singular warrenting an alternative solution
 
 C Find a simple one box solution for elemental Hg
 
-            DGM = Hg*awhg + (cDGM - Hg*awhg)*DEXP(-vdHg/(ZSURF*awhg)*dt)
+            DGM = Hg*awhg + (cDGM - Hg*awhg)*EXP(-vdHg/(ZSURF*awhg)*dt)
 
 C in the absence of photo-redox reactions divalent Hg accumulates
             DRM = cHgIIaq + vdHgII/ZSURF*HgIIgas*dt
@@ -765,17 +769,17 @@ C attenuation at 1 m = 1/K (1-exp(-K Z)) = 0.758 using a K of 0.58
 
             ALLOCATE( NHS(NC))
 
-            NHS = 0.0
+            NHS = 0.0d0
 
             NHS(1) = -vdHg/ZSURF*HG
             NHS(2) = -vdHgII/ZSURF*HgIIgas
 
             ALLOCATE( B(NC))
 
-            B = 0.0
+            B = 0.0d0
 
-            B( 1 ) = REAL( cDGM,    8)   
-            B( 2 ) = REAL( cHgIIaq, 8)
+            B( 1 ) = cDGM   
+            B( 2 ) = cHgIIaq
 
 
 C*****************************************************************************
@@ -788,7 +792,7 @@ C*****************************************************************************
             bx = -(KO(1,1)+KO(2,2))
             cx = KO(1,1)*KO(2,2)-KO(1,2)*KO(2,1)
     
-            Qx = -5.0D-1*(bx+SIGN(1.0D0,bx)*DSQRT(bx**2-4.0D0*ax*cx))
+            Qx = -5.0D-1*(bx+SIGN(1.0D0,bx)*SQRT(bx**2-4.0D0*ax*cx))
     
             EIVAL(1) = Qx/ax
             EIVAL(2) = cx/Qx
@@ -840,8 +844,8 @@ C******************************************************************************
             DRM = 0.0D0
 
             DO i = 1, NC
-               DGM = DGM + B(i) * VR(1,i) * DEXP( EIVAL(i) * dt )
-               DRM = DRM + B(i) * VR(2,i) * DEXP( EIVAL(i) * dt )
+               DGM = DGM + B(i) * VR(1,i) * EXP( EIVAL(i) * dt )
+               DRM = DRM + B(i) * VR(2,i) * EXP( EIVAL(i) * dt )
             END DO
 
             DGM     = DGM   + NHS(1)
@@ -864,10 +868,10 @@ C******************************************************************************
 
          CMEDIA( c,r,1 ) = DGM
          CMEDIA( c,r,2 ) = DRM
-         CMEDIA( c,r,3 ) = 0.0 ! land
-         CMEDIA( c,r,4 ) = 0.0 ! land
-         CMEDIA( c,r,5 ) = 0.0 ! land
-         CMEDIA( c,r,6 ) = 0.0 ! land
+         CMEDIA( c,r,3 ) = 0.0d0 ! land
+         CMEDIA( c,r,4 ) = 0.0d0 ! land
+         CMEDIA( c,r,5 ) = 0.0d0 ! land
+         CMEDIA( c,r,6 ) = 0.0d0 ! land
 
          RETURN
 

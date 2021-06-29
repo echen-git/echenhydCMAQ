@@ -57,6 +57,7 @@ C-----------------------------------------------------------------------
       USE M3UTILIO              ! i/o api
       USE RUNTIME_VARS, ONLY : PWRTFLAG
       USE PIOMAPS_MODULE
+      USE HDMod
 
       IMPLICIT NONE
 
@@ -76,7 +77,7 @@ C Arguments:
       CHARACTER( * ) :: VNAME       ! logical file name
       INTEGER           JDATE       ! date, formatted YYYYDDD
       INTEGER           JTIME       ! time, formatted HHMMSS
-      REAL, POINTER ::  BUFFER( :,:,:,: ) ! output buffer array
+      TYPE(hyperdual), POINTER  ::  BUFFER( :,:,:,: ) ! output buffer array
 
 C Local Variables:
 
@@ -200,7 +201,7 @@ C Operation valid only for gridded files.
      &        UPNAM3D .EQ. 'FAKE_GRIDDED' ) THEN
 
             IF ( MY_PE .EQ. IO_PE ) THEN
-               IF ( .NOT. WRITE3 ( FNAME, VNAME, JDATE, JTIME, BUFFER ) ) THEN
+               IF ( .NOT. WRITE3 ( FNAME, VNAME, JDATE, JTIME, BUFFER%x ) ) THEN
                   MSG = 'WRITE3 failed writing variable '
      &                // TRIM( VNAME )
      &                // ' to file '// TRIM( FNAME )
@@ -248,7 +249,7 @@ C Loop over file variables.
                END IF
 
                IF ( .NOT. PWRGRDD( FIL16, VNAM16, JDATE, JTIME,
-     &                             BUFFER( :,:,:,IV ),
+     &                             BUFFER( :,:,:,IV )%x,
      &                             NCOLS3D, NROWS3D, NLAYS3D,
      &                             NUMCOLS, NUMROWS, NUMPROCS ) ) THEN
                   MSG = 'PWRGRDD failed writing variable '

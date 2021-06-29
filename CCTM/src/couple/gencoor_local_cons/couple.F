@@ -51,6 +51,7 @@ C-----------------------------------------------------------------------
       USE CGRID_SPCS            ! CGRID mechanism species
       USE UTILIO_DEFN
       USE CENTRALIZED_IO_MODULE, only : interpolate_var
+      USE HDMod
 #ifdef isam
       USE SA_DEFN, ONLY: ISAM, NSPC_SA, NTAG_SA, SPC_INDEX,
      &    TRANSPORT_SPC, ITAG
@@ -69,7 +70,7 @@ C Include files:
 C Arguments:
 
 !     REAL      :: CGRID( :,:,:,: )  ! concentrations
-      REAL, POINTER :: CGRID( :,:,:,: )   ! concentrations
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )   ! concentrations
       INTEGER, INTENT( IN ) :: JDATE      ! current model date, coded YYYYDDD
       INTEGER, INTENT( IN ) :: JTIME      ! current model time, coded HHMMSS
       INTEGER, INTENT( IN ) :: TSTEP( 3 ) ! time step vector (HHMMSS)

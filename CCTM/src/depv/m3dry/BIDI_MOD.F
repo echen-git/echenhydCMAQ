@@ -29,6 +29,7 @@ C Revision History: J. Bash Mar 15 11: Created
 C                   J. Bash May 11 11: Updated for CMAQ 5.0
 C                   D. Wong 1 Feb 19: removed MY_N clauses
       USE RUNTIME_VARS
+      USE HDMod
 
 
       Implicit None
@@ -50,11 +51,11 @@ C                   D. Wong 1 Feb 19: removed MY_N clauses
 
       Integer, Parameter      :: HG_TOT = HG_AQ_CONC + HG_GAS_CONC + HG_SOL_CONC       
       Integer, Save           :: N_TOT
-      Real, Save, Allocatable :: gamma1 ( :,: ) ! soil NH4/H
-      Real, Save, Allocatable :: gamma2 ( :,: ) ! soil NH4/H
-      Real, Save, Allocatable :: MHp1   ( :,: ) ! molar H+
-      Real, Save, Allocatable :: MHp2   ( :,: ) ! molar H+  
-      Real, Save, Allocatable :: CMEDIA ( :,:,: ) ! surface layer concs 
+      TYPE(hyperdual), Save, Allocatable :: gamma1 ( :,: ) ! soil NH4/H
+      TYPE(hyperdual), Save, Allocatable :: gamma2 ( :,: ) ! soil NH4/H
+      TYPE(hyperdual), Save, Allocatable :: MHp1   ( :,: ) ! molar H+
+      TYPE(hyperdual), Save, Allocatable :: MHp2   ( :,: ) ! molar H+  
+      TYPE(hyperdual), Save, Allocatable :: CMEDIA ( :,:,: ) ! surface layer concs 
       Logical, Save     :: INIT_LAI   
       Logical, Save     :: INIT_ATX 
       Logical, Save     :: INIT_ASX              
@@ -164,7 +165,7 @@ C--------------------------------------------------------------------------
          ! allocate the media array variable
          If ( .Not. Allocated ( CMEDIA ) ) Then
             Allocate ( CMEDIA( NCOLS,NROWS,N_TOT ) )
-            CMEDIA = 0.0
+            CMEDIA = 0.0d0
          End If         
          
          Return
@@ -468,7 +469,7 @@ C--------------------------------------------------------------------------
 
          Logical, Save :: FIRSTIME = .TRUE.
 
-         Real          WRMC( NCols,NRows )         ! media write buffer
+         TYPE(hyperdual)          WRMC( NCols,NRows )         ! media write buffer
          Integer V, R, C
 
          Character( 16 ) :: PNAME = 'WRASX_MEDIA     '
@@ -511,7 +512,7 @@ C--------------------------------------------------------------------------
             End Do
 
             If ( .Not. WRITE3( MEDIA_CONC, MEDIA_NAMES( V ), MDATE, MTIME,
-     &                WRMC ) ) Then
+     &                WRMC%x ) ) Then
                XMSG = 'Could not write ' // MEDIA_CONC // ' file'
                Call M3EXIT( PNAME, MDATE, MTIME, XMSG, XSTAT1 )
             End If

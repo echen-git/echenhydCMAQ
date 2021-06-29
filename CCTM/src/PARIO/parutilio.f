@@ -171,11 +171,12 @@ C Note: more than one optional argument requires that the caller calls by name
             END FUNCTION PSHUT3
 
             LOGICAL FUNCTION PTRWRITE3( FNAME, VNAME, JDATE, JTIME, BUFFER )
+               use HDMod
                CHARACTER(*)  :: FNAME
                CHARACTER(*)  :: VNAME
                INTEGER       :: JDATE
                INTEGER       :: JTIME
-               REAL, POINTER :: BUFFER( :,:,:,: )
+               TYPE(hyperdual), POINTER :: BUFFER( :,:,:,: )
             END FUNCTION PTRWRITE3
 
             LOGICAL FUNCTION PWRGRDD( FILNAME, VARNAME, DATE, TIME, BUFFER,

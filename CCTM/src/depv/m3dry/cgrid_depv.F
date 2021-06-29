@@ -34,13 +34,14 @@ C-----------------------------------------------------------------------
       USE CGRID_SPCS            ! CGRID mechanism species
       USE HGRD_DEFN             ! horizontal domain specifications
       USE UTILIO_DEFN
+      USE HDMod
 
 C Arguments:
 
       LOGICAL, INTENT( IN )  :: GAS_DEPV_FOUND( : )
       INTEGER, INTENT( IN )  :: GAS_DEPV_SUR( : )
-      REAL,    POINTER       :: CGRID( :,:,:,: )
-      REAL,    INTENT( OUT ) :: CGRIDL1( :,:,: )
+      TYPE(hyperdual),    POINTER       :: CGRID( :,:,:,: )
+      TYPE(hyperdual),    INTENT( OUT ) :: CGRIDL1( :,:,: )
 
 C Local Variables:
 
