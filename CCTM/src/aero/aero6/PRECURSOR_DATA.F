@@ -47,6 +47,7 @@ C H. Pye 09/2014: added alkane and PAH SOA precursor
 C D.Wong  02/01/19 added one more variable in the USE clause
 C-----------------------------------------------------------------------
 
+      use HDMod
       Implicit None
 
       Integer, Parameter :: n_precursor = 24   ! # of precursors
@@ -113,10 +114,10 @@ C Indices of required species
 
       Real( 8 ) :: precursor_mw( n_precursor )   ! mol wt from cgrid_spcs [g/mol]
 
-      Real( 8 ) :: precursor_conc( n_precursor ) ! precursor concentration [ug/m^3]
+      TYPE(hyperdual) :: precursor_conc( n_precursor ) ! precursor concentration [ug/m^3]
 
-      Real    :: so4rate                       ! sulfate gas-phase production rate [ug/m^3*s]
-      Real    :: phg_rate                      ! particulate mercury gas-phase production rate [ug/m^3*s]
+      TYPE(hyperdual) :: so4rate                       ! sulfate gas-phase production rate [ug/m^3*s]
+      TYPE(hyperdual) :: phg_rate                      ! particulate mercury gas-phase production rate [ug/m^3*s]
 
 C Private variables for loading and unloading to CGRID array
       Integer          :: precursor_map( n_precursor )  ! pointers to CGRID
@@ -263,7 +264,7 @@ C-----------------------------------------------------------------------
       Implicit None
 
 C Arguments:
-      Real, Intent( In ) :: conc( : )
+      TYPE(hyperdual), Intent( In ) :: conc( : )
 
 C Local Variables:
       Real( 8 )       :: gasconv       ! converts from [ppm] to [ug/m^3]
@@ -283,7 +284,7 @@ C Copy grid cell concentrations of precursor species
          n = precursor_map( spc )
          If ( n .Ne. 0 ) Then
             vtmp = gasconv * precursor_mw( spc )
-            precursor_conc( spc ) = Max( Real( conc( n ), 8) * vtmp, Real( min_gasconc, 8) )
+            precursor_conc( spc ) = Max( conc( n ) * vtmp,  min_gasconc)
          End If
       End Do
 
@@ -308,11 +309,11 @@ C-----------------------------------------------------------------------
       Use aeromet_data, only: airdens, inv_mwair, min_gasconc
       Use utilio_defn, only: xstat3
       Use aero_data, only : COND_BUDGET, COAG_BUDGET, NPF_BUDGET, GROWTH_BUDGET
-
+      Use HDMod
       Implicit None
 
 C arguments:
-      Real, Intent( Out ) :: conc( : )
+      TYPE(hyperdual), Intent( Out ) :: conc( : )
 
 C local variables:
       Character( 80 ) :: xmsg
@@ -335,10 +336,10 @@ C copy precursor_conc back to grid cell concentrations
          If ( n .Ne. 0 ) Then
             If ( precursor( spc )%update ) Then
                If ( precursor( spc )%rxncounter ) Then
-                  conc( n ) = 0.0
+                  conc( n ) = 0.0d0
                Else
-                  vtmp = precursor_mw( spc ) * gasconv
-                  conc( n ) = Max( real( precursor_conc( spc ) / vtmp, 4 ), min_gasconc  )
+                  vtmp = precursor_mw( spc ) * gasconv   ! Real here
+                  conc( n ) = Max( precursor_conc( spc ) / vtmp , min_gasconc  )
           
                   ! Convert Budget Process Numbers from ug m-3 to ppmv
                   ! for application to process analysis and ISAM

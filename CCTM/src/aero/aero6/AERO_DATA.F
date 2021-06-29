@@ -121,6 +121,7 @@ C----------------------------------------------------------------------
 #endif 
 
 
+	  use HDMod 
       Implicit None
 
 C Number of aerosol species and modes
@@ -469,9 +470,9 @@ C                                                             fine    coarse
       ! Make sure to ignore any tracer species when performing this calculation.
       Real, Parameter :: dust_dens( n_mode ) = (/ 2200.0, 2156.55, 2536.92 /)
 
-      Real, ALLOCATABLE, SAVE    :: DUSTOUTM( :,:,: ) ! Wind-Blown Dust Mass Emiss Rate [ug/m3/s]
-      Real, ALLOCATABLE, SAVE    :: DUSTOUTN( :,:,: )   ! Wind-Blown Dust Number Emiss Rate [1/m3/s]
-      Real, ALLOCATABLE, SAVE    :: DUSTOUTS( :,:,: )   ! Wind-Blown Dust Surface Area Emiss Rate [m2/m3/s]
+      TYPE(hyperdual), ALLOCATABLE, SAVE    :: DUSTOUTM( :,:,: )   ! Wind-Blown Dust Mass Emiss Rate [ug/m3/s]
+      TYPE(hyperdual), ALLOCATABLE, SAVE    :: DUSTOUTN( :,:,: )   ! Wind-Blown Dust Number Emiss Rate [1/m3/s]
+      TYPE(hyperdual), ALLOCATABLE, SAVE    :: DUSTOUTS( :,:,: )   ! Wind-Blown Dust Surface Area Emiss Rate [m2/m3/s]
 
 C Sea-Spray Aerosol Speciation factors based on seawater composition:
 ! For toxic metal species, Use Table 1 in K.W. Bruland and M.C. Lohan, 6.02 - Controls of Trace Metals in Seawater, 
@@ -659,7 +660,7 @@ C Indices of Optional sulfur tracking species
 C Common Arrays for Aerosol Data
       Real, Allocatable :: aerospc_mw( : )     ! molecular weights (from AE_SPC Namelist) [ g/mol ]
       Real, Allocatable :: aerospc_mwinv( : )  ! reciprocal MWs (from AE_SPC Namelist) [ mol/g ]
-      Real, Allocatable :: aerospc_conc( :,: ) ! aero species concentration [ ug/m^3 ]
+      TYPE(hyperdual), Allocatable :: aerospc_conc( :,: ) ! aero species concentration [ ug/m^3 ]
 
 C Common factors
       Real( 8 ) :: h2ofac                      ! converts mass concentrations [ug/m3] to 3rd moment concentrations [m3/m3]
@@ -686,22 +687,22 @@ C                  ----------  -------  -------- -------  ------
      &   mode_type('NUMCOR ', 'SRFCOR ', conmin,  conmin, conmin)/)
 
 
-      Real          :: moment0_conc( n_mode )     ! 0th moment concentration
-      Real          :: moment2_conc( n_mode )     ! 2nd moment concentration
-      Real          :: moment3_conc( n_mode )     ! 3rd moment concentration
+      TYPE(hyperdual)          :: moment0_conc( n_mode )     ! 0th moment concentration
+      TYPE(hyperdual)          :: moment2_conc( n_mode )     ! 2nd moment concentration
+      TYPE(hyperdual)          :: moment3_conc( n_mode )     ! 3rd moment concentration
       Logical, save :: wet_moments_flag           ! T if M2 and M3 are wet, F otherwise
 
 C Mass concentration (calculated by GETPAR)
-      Real :: aeromode_mass( n_mode )   ! [ ug/m^3 ]
+      TYPE(hyperdual) :: aeromode_mass( n_mode )   ! [ ug/m^3 ]
 
 C Particle density (calculated by GETPAR)
-      Real :: aeromode_dens( n_mode )   ! [ kg/m^3 ]
+      TYPE(hyperdual) :: aeromode_dens( n_mode )   ! [ kg/m^3 ]
 
 C Geometric mean diameter (calculated by GETPAR)
-      Real :: aeromode_diam( n_mode )   ! [ m ]
+      TYPE(hyperdual) :: aeromode_diam( n_mode )   ! [ m ]
 
 C Log of geometric standard deviation (calculated by GETPAR )
-      Real :: aeromode_lnsg( n_mode )
+      TYPE(hyperdual) :: aeromode_lnsg( n_mode )
 
 C Minimum number (calculated in map_aero routine)
       Real :: aeromode_minNum( n_mode )
@@ -741,14 +742,14 @@ C Private variables for loading from and unloading to CGRID array
 ! be mapped to CGRID species order. Units for each are total
 ! concentration or mixing ratio gained or lost. These are not normalized
 ! by the time step. Ex (ppmv, ug m-3, N m-3, or m2 m-3)
-      REAL, ALLOCATABLE :: COND_BUDGET( : )
-      REAL, ALLOCATABLE :: COAG_BUDGET( :,: )
-      REAL, ALLOCATABLE :: NPF_BUDGET( : )
-      REAL, ALLOCATABLE :: GROWTH_BUDGET( : )
+      TYPE(hyperdual), ALLOCATABLE :: COND_BUDGET( : )
+      TYPE(hyperdual), ALLOCATABLE :: COAG_BUDGET( :,: )
+      TYPE(hyperdual), ALLOCATABLE :: NPF_BUDGET( : )
+      TYPE(hyperdual), ALLOCATABLE :: GROWTH_BUDGET( : )
 
 ! Initial Reference Values for M2 and M3 used for Heterogenous Chemistry
 ! Module.
-      REAL( 8 ), ALLOCATABLE, SAVE :: CHEM_M2DRY_INIT( :,:,:,: ),
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: CHEM_M2DRY_INIT( :,:,:,: ),
      &                                CHEM_M3DRY_INIT( :,:,:,: )
 
       Contains
@@ -774,6 +775,7 @@ C-----------------------------------------------------------------------
       Use aeromet_data
       Use utilio_defn
       Use vdiff_data, only : n_spc_diff, diff_spc
+	  use HDMod 
       Implicit None
 
 C Local Variables:
@@ -1112,10 +1114,11 @@ C-----------------------------------------------------------------------
 
       Use aeromet_data, only : pi, f6pi  ! fundamental constants, data type definitions, etc.
 
+	  use HDMod 
       Implicit None
 
 C Arguments:
-      Real,    Intent( In ) :: conc( : )
+      TYPE(hyperdual),    Intent( In ) :: conc( : )
       Logical, Intent( In ) :: minchk
 #ifdef sens
       Real,    Intent( In ) :: s_conc( :,: )
@@ -1138,7 +1141,7 @@ C Local Variables:
 #endif
 
 C Copy grid cell concentrations of aero species to aerospc_conc
-      aerospc_conc = 0.0
+      aerospc_conc = 0.0D0
 #ifdef sens
       If ( schk ) Then
          s_aerospc_conc = 0.0D0
@@ -1184,9 +1187,22 @@ C Copy grid cell concentrations of aero species to aerospc_conc
 
       ! Calculate Dry Third Moment [ m3 / m3 ]
       Do m = 1, n_mode
-         moment3_conc( m ) = sum( aerospc_conc(:,m) / aerospc(:)%density,
+         moment3_conc( m )%x = sum( aerospc_conc(:,m)%x / aerospc(:)%density,
      &      MASK= ( ( .NOT. aerospc%no_M2wet ) .AND.
      &              ( .NOT. aerospc%Tracer ) ) )
+         
+         moment3_conc( m )%dx1 = sum( aerospc_conc(:,m)%dx1 / aerospc(:)%density,
+     &      MASK= ( ( .NOT. aerospc%no_M2wet ) .AND.
+     &              ( .NOT. aerospc%Tracer ) ) )
+     
+         moment3_conc( m )%dx2 = sum( aerospc_conc(:,m)%dx2 / aerospc(:)%density,
+     &      MASK= ( ( .NOT. aerospc%no_M2wet ) .AND.
+     &              ( .NOT. aerospc%Tracer ) ) )    
+         
+         moment3_conc( m )%dx1x2 = sum( aerospc_conc(:,m)%dx1x2 / aerospc(:)%density,
+     &      MASK= ( ( .NOT. aerospc%no_M2wet ) .AND.
+     &              ( .NOT. aerospc%Tracer ) ) )         
+          
          moment3_conc( m ) = max( moment3_conc( m ) * 1.0E-9 * f6pi,
      &                            aeromode( m )%min_m3conc )
       End Do
@@ -1194,9 +1210,9 @@ C Copy grid cell concentrations of aero species to aerospc_conc
 C Copy grid cell concentrations of aero # and surf area
 C Convert surface area to M2 and set wet_moments_flag
 
-      moment0_conc = 0.0
-      moment2_conc = 0.0
-
+      moment0_conc = 0.0D0
+      moment2_conc = 0.0D0
+ 
       If ( minchk ) Then
          Do m = 1, n_mode
             n = aeronum_map( m )
@@ -1213,11 +1229,10 @@ C Convert surface area to M2 and set wet_moments_flag
          End Do
       End If
       wet_moments_flag = .false.
-
 C Convert dry 2,3 moment to wet 2,3 moment
 C flag will be set to .true.
       Call calcmoments( .true. )
-
+	  
       Return
       End Subroutine extract_aero
 
@@ -1242,10 +1257,11 @@ C-----------------------------------------------------------------------
       Use aeromet_data, only : pi     ! fundamental constants, data type definitions, etc.
       Use utilio_defn
 
+	  use HDMod 
       Implicit None
 
 C Arguments:
-      Real, Intent( Out ) :: conc( : )
+      TYPE(hyperdual), Intent( Out ) :: conc( : )
       Logical, Intent( In ) :: minchk
 #ifdef sens 
       Real,    Intent( Out ) :: s_conc( :,: )
@@ -1335,6 +1351,7 @@ C-----------------------------------------------------------------------
 
       Use utilio_defn
 
+	  use HDMod 
       Implicit None
 
 C Arguments:
@@ -1401,6 +1418,7 @@ C-----------------------------------------------------------------------
 
       Use aeromet_data, only: f6dpi, f6pi
 
+	  use HDMod 
       Implicit None
 
 C Arguments:
@@ -1411,13 +1429,13 @@ C Parameters:
 
 C Local variables:
       Integer :: spc, n ! loop variable
-      Real( 4 ) :: m3( n_mode )       ! wet or dry M3
-      Real( 4 ) :: m2( n_mode )       ! wet or dry M2
-      Real( 8 ) :: drysumM3  ! dry M3 [ m**3 / m**3 ]
-      Real( 8 ) :: wetsumM3  ! wet M3 [ m**3 / m**3 ]
-      Real( 8 ) :: factor
-      Real( 4 ) :: initialM3 ! initial M3 from moment3_conc [ m**3 /m**3 ]
-      Real( 4 ) :: initialM2 ! initial M2 from moment2_conc [ m**2 /m**3 ]
+      TYPE(hyperdual) :: m3( n_mode )       ! wet or dry M3
+      TYPE(hyperdual) :: m2( n_mode )       ! wet or dry M2
+      TYPE(hyperdual) :: drysumM3  ! dry M3 [ m**3 / m**3 ]
+      TYPE(hyperdual) :: wetsumM3  ! wet M3 [ m**3 / m**3 ]
+      Real( 8 )       :: factor
+      TYPE(hyperdual) :: initialM3 ! initial M3 from moment3_conc [ m**3 /m**3 ]
+      TYPE(hyperdual) :: initialM2 ! initial M2 from moment2_conc [ m**2 /m**3 ]
 
       Character( 16 )  :: pname_loc = 'CalcMoments'
       Character( 100 ) :: xmsg
@@ -1426,7 +1444,7 @@ C *** Calculate aerosol 3rd moment concentrations [ m**3 / m**3 ], 2nd
 C     moment [ m**2/m**3 ]
 
       If( addwet ) then
-
+      
          Do n = 1, n_mode
             initialM2 = moment2_conc( n )
             If ( initialM2 .Eq. 0.0 ) Then
@@ -1446,13 +1464,13 @@ C     moment [ m**2/m**3 ]
             Do spc = 1, n_aerospc
                If ( aerospc( spc )%tracer .Or. aero_missing(spc,n) ) Cycle
                factor = Real( 1.0E-9 * f6pi / aerospc( spc )%density, 8 )
-               wetsumM3  = wetsumM3 + factor * Real( aerospc_conc( spc,n ), 8 )
+               wetsumM3  = wetsumM3 + factor * aerospc_conc( spc,n )
             End Do
-            m3( n ) = Max ( Real( wetsumM3, 4 ), aeromode( n )%min_m3conc )
+            m3( n ) = Max ( wetsumM3 , aeromode( n )%min_m3conc )
             If ( wet_moments_flag ) Then
                m2( n ) = initialM2
             Else
-               m2( n ) = initialM2 * ( Real( wetsumM3, 4 ) / initialM3 ) ** Real( two3rds, 4 )
+               m2( n ) = initialM2 * ( wetsumM3 / initialM3 ) ** Real( two3rds, 8 )
             End if
          End Do
 
@@ -1482,12 +1500,12 @@ C     moment [ m**2/m**3 ]
             Do spc = 1, n_aerospc
                If ( aerospc( spc )%tracer .Or. aero_missing(spc,n) .Or.
      &              aerospc( spc )%no_M2Wet  ) Cycle
-               factor = Real( 1.0E-9 * f6pi /  aerospc( spc )%density, 8 )
-               drysumM3  = drysumM3 + factor * Real( aerospc_conc( spc,n ), 8 )
+               factor = Real( 1.0E-9 * f6pi /  aerospc( spc )%density, 8 )  
+               drysumM3  = drysumM3 + factor * aerospc_conc( spc,n ) 
             End Do
-            m3( n ) = Max ( Real( drysumM3, 4 ), aeromode( n )%min_m3conc )
+            m3( n ) = Max ( drysumM3 , aeromode( n )%min_m3conc )
             If ( wet_moments_flag) Then
-               m2( n ) = initialM2 * ( Real( drysumM3, 4 ) / initialM3 ) ** Real( two3rds, 4 )
+               m2( n ) = initialM2 * ( drysumM3 / initialM3 ) **  Real( two3rds, 8 )  
             Else ! already dry
                m2( n ) = initialM2
             End If
@@ -1503,9 +1521,180 @@ C     moment [ m**2/m**3 ]
       Return
       End Subroutine calcmoments
 
-C
+C DO NOT USE!!!!!!!! THIS IS STILL PROBLEMATIC !!!!!!
 C-----------------------------------------------------------------------
       Subroutine CHECK_AERO_ICBC( IBCON, AE_MASS_UNIT, STAT, AER_PAR, LMODE )
+
+C Subroutine corrects the scale factors for number, surface area when a 
+C change has happened to the mass of any boundary condition species.
+C Eventually this code should perform a similar operation for the
+C initial conditions, but this is somewhat complicated and needs to be
+C thought through more.
+C
+C Inputs:  IBCON - the actual initial or boundary conditions from the
+C                  calling routine
+C          ICBC_FAC - The scale factor used to modify IBCON right before
+C                     this routine is called
+C
+C 11 May 16  B.Murphy  Program Written
+C
+C-----------------------------------------------------------------------
+      Use AEROMET_DATA, only : pi, f6pi
+	  Use HDMod
+	  
+      Implicit None
+
+      TYPE(hyperdual), INTENT(INOUT)        :: IBCON( : )
+      LOGICAL, INTENT( IN ) :: AE_MASS_UNIT  ! FALSE for KGM3 input
+                                             ! TRUE  for UGM3 input
+      INTEGER, INTENT(OUT)       :: STAT     ! 0 - Distribution is ok
+                                             ! 1 - Distribution is problematic
+      TYPE(hyperdual), INTENT(OUT) :: AER_PAR( 2, N_MODE, 5 ) !Track the modal parameters   (N, M2, M3, dg, sg) -Before
+                                                   !before and after the BC      (N, M2, M3, dg, sg) -After
+                                                   !check routine               
+      INTEGER, INTENT(OUT) :: LMODE  !Identifies the problematic mode
+
+      INTEGER          :: LSTAT
+
+      REAL, PARAMETER  :: F1PI = 1.0 / pi
+      REAL, PARAMETER  :: ONE_THIRD  = 1.0 / 3.0
+      REAL, PARAMETER  :: TWO_THIRDS = 2.0 / 3.0
+
+
+C Local variables:
+
+      INTEGER   :: IMODE
+      TYPE(hyperdual) :: NUM, M2, M3, l2sg, dg, sg
+      REAL, Parameter :: KGPMG = 1.0E-9 !Kilogram per microgram m-3
+
+      LMODE   = 0
+      STAT    = 0
+      AER_PAR = 0.0D0
+      dg      = 0.0D0
+      sg      = 0.0D0
+       
+      CALL MAP_AERO()
+
+      !Loop Through Each Aerosol Mode. Sum up the third moment, then
+      !calculate the Dg and Sg of the mode and check to make sure they
+      !are valid
+      DO IMODE = 1,N_MODE
+         LSTAT = 0
+
+         NUM%x = SUM( IBCON( : )%x, MASK = ( LBCMODE( IMODE,: ) .AND. LBCNUM ) )
+         M2%x  = SUM( IBCON( : )%x, MASK = ( LBCMODE( IMODE,: ) .AND. LBCSRF ) ) * F1PI
+         
+         NUM%dx1 = SUM( IBCON( : )%dx1, MASK = ( LBCMODE( IMODE,: ) .AND. LBCNUM ) )
+         M2%dx1  = SUM( IBCON( : )%dx1, MASK = ( LBCMODE( IMODE,: ) .AND. LBCSRF ) ) * F1PI
+         
+         NUM%dx1 = SUM( IBCON( : )%dx2, MASK = ( LBCMODE( IMODE,: ) .AND. LBCNUM ) )
+         M2%dx1  = SUM( IBCON( : )%dx2, MASK = ( LBCMODE( IMODE,: ) .AND. LBCSRF ) ) * F1PI
+         
+         NUM%dx1x2 = SUM( IBCON( : )%dx1x2, MASK = ( LBCMODE( IMODE,: ) .AND. LBCNUM ) )
+         M2%dx1x2  = SUM( IBCON( : )%dx1x2, MASK = ( LBCMODE( IMODE,: ) .AND. LBCSRF ) ) * F1PI
+                           
+         M3%x = SUM( IBCON( : )%x * AEROCGRID_RHOINV * F6PI, 
+     &             MASK = ( LBCMASS .AND. LBCMODE( IMODE,: ) .AND. LBCDRY( : ) )  )
+         M3%dx1 = SUM( IBCON( : )%dx1 * AEROCGRID_RHOINV * F6PI, 
+     &             MASK = ( LBCMASS .AND. LBCMODE( IMODE,: ) .AND. LBCDRY( : ) )  )
+         M3%dx2 = SUM( IBCON( : )%dx2 * AEROCGRID_RHOINV * F6PI, 
+     &             MASK = ( LBCMASS .AND. LBCMODE( IMODE,: ) .AND. LBCDRY( : ) )  )
+         M3%dx1x2 = SUM( IBCON( : )%dx1x2 * AEROCGRID_RHOINV * F6PI, 
+     &             MASK = ( LBCMASS .AND. LBCMODE( IMODE,: ) .AND. LBCDRY( : ) )  )               
+
+         IF ( AE_MASS_UNIT ) M3 = M3 * KGPMG
+
+         AER_PAR ( 1, IMODE, 1 ) = NUM
+         AER_PAR ( 1, IMODE, 2 ) = M2
+         AER_PAR ( 1, IMODE, 3 ) = M3
+         AER_PAR ( 1, IMODE, 4 ) = 0.0d0    
+         AER_PAR ( 1, IMODE, 5 ) = 0.0d0    
+
+         IF ( M3 .LT. 1.0e-30 ) THEN
+             LSTAT = 4
+             LMODE = IMODE
+         ELSE IF ( NUM .LT. 1.0e-30 .OR. M2 .LT. 1.0e-30 ) THEN
+             LSTAT = 3
+             LMODE = IMODE
+         ELSE                  
+             l2sg = ( ONE_THIRD * LOG( NUM ) + TWO_THIRDS * LOG( M3 ) - LOG( M2 ))
+
+             IF ( l2sg .LT. MIN_L2SG .OR. l2sg .GT. MAX_L2SG ) THEN 
+                  LSTAT = 2
+                  LMODE = IMODE
+             ELSE
+
+                  dg   = ( M3 / NUM * EXP( -4.5 * l2sg ) )  ** ( ONE_THIRD )
+                  sg   = EXP( SQRT( l2sg ) )
+                  AER_PAR( 1, IMODE, 4 ) = dg
+                  AER_PAR( 1, IMODE, 5 ) = sg
+
+                  IF ( dg .LT. MIN_DIAM_G( IMODE )  .OR. dg .GT. MAX_DIAM_G( IMODE ) ) THEN
+                      LSTAT = 1
+                      LMODE = IMODE
+                  ENDIF
+              ENDIF     
+         ENDIF
+
+         !Save Modal Properties After the Check
+         AER_PAR( 2, IMODE, 1 ) = NUM
+         AER_PAR( 2, IMODE, 2 ) = M2
+         AER_PAR( 2, IMODE, 3 ) = M3
+         AER_PAR( 2, IMODE, 4 ) = dg
+         AER_PAR( 2, IMODE, 5 ) = sg
+
+         IF ( LSTAT .GT. 0 .AND. LSTAT .LT. 4 ) THEN
+           STAT = LSTAT
+
+           !Rewrite Boundary Condition Number and Surface Area to Satisfy
+           !Default Size Parameters
+           l2sg = REAL ( DEF_L2SG( IMODE ) , 8 )
+           NUM = M3 * ( EXP( -4.5 * l2sg ) ) / ( DEF_DIAM( IMODE ) ) ** 3
+           dg   = ( M3 / NUM * EXP( -4.5 * l2sg ) ) ** ( ONE_THIRD )
+           sg   = EXP( SQRT( l2sg ) )
+           
+           !First Number Concentration
+           WHERE( LBCMODE( IMODE,: ) .AND. LBCNUM ) IBCON%x = NUM%x
+           WHERE( LBCMODE( IMODE,: ) .AND. LBCNUM ) IBCON%dx1 = NUM%dx1
+           WHERE( LBCMODE( IMODE,: ) .AND. LBCNUM ) IBCON%dx2 = NUM%dx2
+           WHERE( LBCMODE( IMODE,: ) .AND. LBCNUM ) IBCON%dx1x2 = NUM%dx1x2
+           
+           !Then Surface Area Concentration
+           M2 = EXP( ONE_THIRD * LOG( NUM ) + TWO_THIRDS * LOG( M3 ) - l2sg )
+           WHERE( LBCMODE( IMODE,: ) .AND. LBCSRF ) IBCON%x = M2%x * F1PI
+           WHERE( LBCMODE( IMODE,: ) .AND. LBCSRF ) IBCON%dx1 = M2%dx1 * F1PI
+           WHERE( LBCMODE( IMODE,: ) .AND. LBCSRF ) IBCON%dx2 = M2%dx2 * F1PI
+           WHERE( LBCMODE( IMODE,: ) .AND. LBCSRF ) IBCON%dx1x2 = M2%dx1x2 * F1PI
+         
+           !Save Modal Properties After the Check
+           AER_PAR( 2, IMODE, 1 ) = NUM
+           AER_PAR( 2, IMODE, 2 ) = M2
+           AER_PAR( 2, IMODE, 3 ) = M3
+           AER_PAR( 2, IMODE, 4 ) = dg
+           AER_PAR( 2, IMODE, 5 ) = sg
+
+         ELSEIF ( LSTAT .EQ. 4 ) THEN
+           STAT = LSTAT           
+           WHERE( LBCMODE( IMODE,: ) .AND. LBCNUM ) IBCON%x =
+     &                             REAL ( aeromode_minnum( IMODE ) , 8 )   !Number
+           WHERE( LBCMODE( IMODE,: ) .AND. LBCSRF ) IBCON%x = 
+     &                             REAL ( aeromode_minM2 ( IMODE ) , 8 )  !Second Moment
+           WHERE( LBCMODE( IMODE,: ) .AND. LBCMASS) IBCON%x = REAL ( conmin , 8 )   !Third Moment
+           !Save Modal Properties After the Check
+           AER_PAR( 2, IMODE, 1 ) = REAL ( aeromode_minnum( IMODE ) , 8 )  !Number
+           AER_PAR( 2, IMODE, 2 ) = REAL ( aeromode_minM2 ( IMODE ) , 8 )   !Second Moment
+           AER_PAR( 2, IMODE, 3 ) = REAL ( conmin , 8 )
+           AER_PAR( 2, IMODE, 4 ) = 0.0D0
+           AER_PAR( 2, IMODE, 5 ) = 0.0D0
+         ENDIF
+
+      ENDDO
+
+      End Subroutine CHECK_AERO_ICBC
+      
+      
+C-----------------------------------------------------------------------
+      Subroutine CHECK_AERO_ICBC_REAL( IBCON, AE_MASS_UNIT, STAT, AER_PAR, LMODE )
 
 C Subroutine corrects the scale factors for number, surface area when a 
 C change has happened to the mass of any boundary condition species.
@@ -1651,6 +1840,9 @@ C Local variables:
 
       ENDDO
 
-      End Subroutine CHECK_AERO_ICBC
+      End Subroutine CHECK_AERO_ICBC_REAL
+      
+      
+      
 
       End Module aero_data

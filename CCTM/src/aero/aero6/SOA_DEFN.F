@@ -69,6 +69,7 @@ C                   must be done in gas chemistry (mech.def). Added anthropogeni
 C                   SOA condensation for aero7.
 C   29 Aug 18 G. Sarwar: updated for CB6R3M
 C-----------------------------------------------------------------------
+	  use HDMod 
       Implicit None
 
       ! Define Logical values as T and F for the OA table
@@ -189,8 +190,8 @@ C-----------------------------------------------------------------------
           Real, Allocatable    :: rog_mw   ( : )   ! Precursor Species
                                                    ! that are linked to yields
       !   Concentrations
-          Real, Allocatable    :: og_conc  ( : )   ! Vapors
-          Real, Allocatable    :: rog_dconc( : )   ! Reaction counters
+          TYPE(hyperdual), Allocatable    :: og_conc  ( : )   ! Vapors ! This should be hyperdual 
+          TYPE(hyperdual), Allocatable    :: rog_dconc( : )   ! Reaction counters
 
       ! Variables for mapping OA to aerosol and CGRID arrays
       Integer, Allocatable :: map_OAtoAERO( : )    ! organic aerosol pointers to aerospc
@@ -235,10 +236,11 @@ C-----------------------------------------------------------------------
       Use runtime_vars, only: logdev
       Use utilio_defn, only: index1, xstat3
 
+	  use HDMod 
       Implicit None
 
       ! Arguments:
-      Real, Intent( In ) :: conc( : )
+      TYPE(hyperdual), Intent( In ) :: conc( : )
 
       ! Local Variables:
       Character( 300 ):: xmsg
@@ -294,7 +296,7 @@ C-----------------------------------------------------------------------
           ! GC Namelist. When a match is found, populate the properties
           ! of that counter species.
           map_ROGtoCGRID = 0
-          ROG_mw = 200.0
+          ROG_mw = 200.0d0
           Do spc = 1, n_oa
             If( oaspc( spc )%ctr_name == '' ) Cycle
             g = index1( oaspc( spc )%ctr_name, n_gc_spc, gc_spc )
@@ -357,8 +359,8 @@ C-----------------------------------------------------------------------
 
 
       ! Copy grid cell concentrations of vapor species
-      og_conc   = 0.0
-      rog_dconc = 0.0
+      og_conc   = 0.0d0
+      rog_dconc = 0.0d0
       gasconv = airdens * inv_mwair ! Compute gas conversion constant
 
       Do spc = 1, n_oa
@@ -402,10 +404,11 @@ C-----------------------------------------------------------------------
       Use aeromet_data, only: airdens, inv_mwair, min_gasconc
       Use utilio_defn, only: xstat3
 
+	  use HDMod 
       Implicit None
 
       ! Arguments:
-      Real, Intent( Out ) :: conc( : )
+      TYPE(hyperdual), Intent( Out ) :: conc( : )
 
       ! Local Variables:
       Character( 80 ) :: xmsg
@@ -763,6 +766,7 @@ C Key Subroutines/Functions called:  newt, soabisection
       Use utilio_defn
       Use rxns_data, only : MECHNAME
 
+	  use HDMod 
       Implicit None
 
       ! Arguments:
@@ -792,80 +796,80 @@ C Key Subroutines/Functions called:  newt, soabisection
       Real, Parameter :: ctolmin = 1.0E-06
       Real, Parameter :: convfac_298 = 101325.0 * rgas1 * trefm1  ! P/RT at 1 atm and 298 K [ mole/m**3 ]
       Real, Parameter :: difforg = 9.36e-6  ! Diffusivity of organics [m2 s-1]
-      Real, Parameter :: alphorg = 1.0      ! accomodation coefficient
+      Real( 8 ), Parameter :: alphorg = 1.0D0      ! accomodation coefficient
 
       Real convfac
       Real tt1, tt2      ! temperature-related factors
       Real tempcorr      ! temperature correction factor for cstar
 
       ! Variables used in oligomerization calculations
-      Real expdt         ! non-dimensional loss coefficient
-      Real nsvpa         ! particle-phase anthropogenic SVOC [ umolC/m3 ]
-      Real nsvpb         ! particle-phase biogenic SVOC [ umolC/m3 ]
+      TYPE(hyperdual) expdt         ! non-dimensional loss coefficient
+      TYPE(hyperdual) nsvpa         ! particle-phase anthropogenic SVOC [ umolC/m3 ]
+      TYPE(hyperdual) nsvpb         ! particle-phase biogenic SVOC [ umolC/m3 ]
 
       ! Variables used in acid-enhanced isoprene SOA calculations
-      Real hplus         ! accumulation-mode H+ conc [ nmol/m3 ]
-      Real aiso12        ! particle-phase isoprene SVOC [ ug/m3 ]
-      Real vviso         ! vapor-phase isoprene SVOC [ ug/m3 ]
-      Real xiso3         ! newly produced AISO3J [ ug/m3 ]
-      Real isofrac       ! ratio for depletion of vapor-phase products
+      TYPE(hyperdual) hplus         ! accumulation-mode H+ conc [ nmol/m3 ]
+      TYPE(hyperdual) aiso12        ! particle-phase isoprene SVOC [ ug/m3 ]
+      TYPE(hyperdual) vviso         ! vapor-phase isoprene SVOC [ ug/m3 ]
+      TYPE(hyperdual) xiso3         ! newly produced AISO3J [ ug/m3 ]
+      TYPE(hyperdual) isofrac       ! ratio for depletion of vapor-phase products
 
       ! Variables used in equilibrium partitioning calculations
-      Real totrog( n_oa ) ! drog conc mapped to each SVOC [ ug/m3 ]
-      Real(8) GRtmp( n_mode )   ! Dummy variable for accurate treatment of growth to specific moment
-      Real GR3( n_oa,n_mode ) ! 3rd Moment Growth for each mode and compound
-      Real GR3FRAC( n_oa,n_mode ) ! Fraction of each mode growing/shrinking
-      Real dcaer          ! Change in SVOC conc after partitioning happens[ ug/m3 ]
-      Real cbar_org(n_oa) ! On-line molecular speed of each organic
-      Real dv_org            ! On-line gas-phase diffusivity of each organic
-      Real totorgnv          ! Non-volatile OA [ umole/m3 ]
-      Real totorg            ! SOA + POA before time step [ umole/m3 ]
-      Real threshold         ! criterion for establishing gas/part equil.
-      Real faer              ! fraction of total in aerosol, intermediate value
+      TYPE(hyperdual) totrog( n_oa ) ! drog conc mapped to each SVOC [ ug/m3 ]   ! should be hyperdual
+      TYPE(hyperdual)  GRtmp( n_mode )   ! Dummy variable for accurate treatment of growth to specific moment
+      TYPE(hyperdual)  GR3( n_oa,n_mode ) ! 3rd Moment Growth for each mode and compound
+      TYPE(hyperdual)  GR3FRAC( n_oa,n_mode ) ! Fraction of each mode growing/shrinking
+      TYPE(hyperdual) dcaer          ! Change in SVOC conc after partitioning happens[ ug/m3 ]
+      REAL cbar_org(n_oa) ! On-line molecular speed of each organic
+      REAL dv_org            ! On-line gas-phase diffusivity of each organic
+      TYPE(hyperdual) totorgnv          ! Non-volatile OA [ umole/m3 ]
+      TYPE(hyperdual) totorg            ! SOA + POA before time step [ umole/m3 ]
+      TYPE(hyperdual) threshold         ! criterion for establishing gas/part equil.
+      TYPE(hyperdual) faer              ! fraction of total in aerosol, intermediate value
       Logical check          ! flag to indicate if NEWT subroutine
                              ! converged to a spurious root
-      Real totaer            ! total aerosol-phase mass of each semivolaitle component
-      Real Phi               ! mass fraction of a semivolatile component
+      TYPE(hyperdual) totaer            ! total aerosol-phase mass of each semivolaitle component
+      TYPE(hyperdual) Phi               ! mass fraction of a semivolatile component
                              ! in each mode
       Character(16), Allocatable, Save :: svname( : )
       Real, Allocatable, Save          :: svmw( : ), svmw_inv( : )
       Real, Allocatable, Save          :: c0    ( : ) ! cstar at AIRTEMP [ ug/m3 ]
-      Real, Allocatable, Save          :: caer0 ( : ) ! Particle conc before current time step [ ug/m3 ]
-      Real, Allocatable, Save          :: ctoti ( : ) ! Total (g+p) conc before current time step [ ug/m3 ]
-      Real, Allocatable, Save          :: prod  ( : ) ! Total G+P produced during current step [ ug/m3 ]
-      Real, Allocatable, Save          :: ctotf ( : ) ! Total conc after current time step [ ug/m3 ]
-      Real, Allocatable, Save          :: caer  ( : ) ! Particle conc in aerosol phase after current 
+      TYPE(hyperdual), Allocatable, Save          :: caer0 ( : ) ! Particle conc before current time step [ ug/m3 ]
+      TYPE(hyperdual), Allocatable, Save          :: ctoti ( : ) ! Total (g+p) conc before current time step [ ug/m3 ] should be hyperdual
+      TYPE(hyperdual), Allocatable, Save          :: prod  ( : ) ! Total G+P produced during current step [ ug/m3 ]
+      TYPE(hyperdual), Allocatable, Save          :: ctotf ( : ) ! Total conc after current time step [ ug/m3 ]
+      TYPE(hyperdual), Allocatable, Save          :: caer  ( : ) ! Particle conc in aerosol phase after current 
                                                       !  step [ ug/m3 ]
 
       ! Variables for computing the budget
-      REAL :: CBUDGET0_NUM ( N_MODE )
-      REAL :: CBUDGET0_SRF ( N_MODE )
-      REAL :: CBUDGET0_MASS( N_AEROSPC,N_MODE )
+      TYPE(hyperdual) :: CBUDGET0_NUM ( N_MODE )
+      TYPE(hyperdual) :: CBUDGET0_SRF ( N_MODE )
+      TYPE(hyperdual) :: CBUDGET0_MASS( N_AEROSPC,N_MODE )
 
 
       ! Variables for water uptake onto organics
-      Real kappaVorg        ! sum_i(kappa_i*Vorganic_i) [m3 species/m3 air]
-      Real overallkappa     ! sum_i(kappa_i*Vorganic_i)/vtot [NA units]
-      Real totvol           ! total aerosol volume [m3 species/m3 air]
-      Real poa              ! nonvolatile poa concentration [ug/m3]
-      Real numparticles     ! number of acc mode particles [#/m3]
-      Real diam             ! volume equivalent particle diameter [m]
-      Real aw               ! activity of water [fraction]
-      Real relhumid         ! relative humidity capped at 95% [fraction]
+      TYPE(hyperdual) kappaVorg        ! sum_i(kappa_i*Vorganic_i) [m3 species/m3 air]
+      TYPE(hyperdual) overallkappa     ! sum_i(kappa_i*Vorganic_i)/vtot [NA units]
+      TYPE(hyperdual) totvol           ! total aerosol volume [m3 species/m3 air]
+      TYPE(hyperdual) poa              ! nonvolatile poa concentration [ug/m3]
+      TYPE(hyperdual) numparticles     ! number of acc mode particles [#/m3]
+      TYPE(hyperdual) diam             ! volume equivalent particle diameter [m]
+      TYPE(hyperdual) aw               ! activity of water [fraction]
+      TYPE(hyperdual) relhumid         ! relative humidity capped at 95% [fraction]
                             ! Cap represents conservative est of water uptake
                             ! and is consistent with IMPROVE visibility methods
 
       ! Variables for updating 2nd and 3rd moments
-      Real(8) m0_init( 2 )  ! initial 0 moment, wet [ mom/m3 ]
-      Real(8) m1wet_init( 2 )  ! initial 1st moment, wet [ mom/m3 ]
-      Real(8) m2wet_initD( 2 )  ! initial 2nd moment, wet [ mom/m3 ]
-      Real m3wet_init( 2 )  ! initial 3rd moment, wet [ mom/m3 ]
-      Real m2wet_init( 2 )  ! initial 2nd moment, wet [ mom/m3 ]
-      Real m3wet_final( 2 )  ! final 3rd moment with updated SOA [ mom/m3 ]
-      Real m2wet_final( 2 )  ! final 2nd moment with updated SOA [ mom/m3 ]
+      TYPE(hyperdual) m0_init( 2 )  ! initial 0 moment, wet [ mom/m3 ]
+      TYPE(hyperdual) m1wet_init( 2 )  ! initial 1st moment, wet [ mom/m3 ]
+      TYPE(hyperdual) m2wet_initD( 2 )  ! initial 2nd moment, wet [ mom/m3 ]
+      TYPE(hyperdual) m3wet_init( 2 )  ! initial 3rd moment, wet [ mom/m3 ]
+      TYPE(hyperdual) m2wet_init( 2 )  ! initial 2nd moment, wet [ mom/m3 ]
+      TYPE(hyperdual) m3wet_final( 2 )  ! final 3rd moment with updated SOA [ mom/m3 ]
+      TYPE(hyperdual) m2wet_final( 2 )  ! final 2nd moment with updated SOA [ mom/m3 ]
 
       ! Added for new SOA bisection (hotp 7/6/11)
-      Real               :: lowb, upb, orgmoles      ! lower bound, upper bound, total aerosol moles
+      TYPE(hyperdual)    :: lowb, upb, orgmoles      ! lower bound, upper bound, total aerosol moles
       Logical, Parameter :: newtpartition = .False.   ! true to use original method, false to use new bisection
 
 C-----------------------------------------------------------------------
@@ -914,9 +918,9 @@ C-----------------------------------------------------------------------
         
       ! Calculate total flux associated with each indivual mode 
       ! for the third moment.
-      GR3( :,: ) = 0.0
-      m0_init( : )    = Real( moment0_conc( 1:2 ), 8 )
-      m2wet_initD( : ) = Real( m2wet_init( 1:2 ), 8 )
+      GR3( :,: ) = 0.0d0
+      m0_init( : )    =  moment0_conc( 1:2 )
+      m2wet_initD( : ) = m2wet_init( 1:2 )
 
       Do im = 1,2
         m1wet_init( im ) = m0_init( im ) * aeromode_diam( im ) * 
@@ -929,17 +933,48 @@ C-----------------------------------------------------------------------
           Call HCOND3( m0_init( im ), m1wet_init( im ),
      &                 m2wet_initD( im ), Dv_org, alphorg, 
      &                 cbar_org(i), GRtmp )
-          GR3( i,im ) = Real( GRtmp( 2 ), 4 )
+          GR3( i,im ) = GRtmp( 2 )
         End Do
       End Do
       
       ! Calculate fraction of mass transfer to/from each mode
-      GR3FRAC( :,: ) = 0.0
-      Where ( GR3( :,1 ) .gt. 0. ) 
-     &    GR3FRAC( :,1 ) = GR3( :,1 ) / ( GR3(:,1) + GR3(:,2) ) ! Aitken Growth
-      Where ( GR3( :,2 ) .gt. 0. )
-     &    GR3FRAC( :,2 ) = GR3( :,2 ) / ( GR3(:,1) + GR3(:,2) ) ! Accumulation Growth
-
+      GR3FRAC( :,: ) = 0.0d0
+      
+      do i = 1, n_oa
+      	if ( GR3( i , 1 )%x .gt. 0.0d0 ) then
+      		GR3FRAC( i,1 ) = GR3( i,1 ) / ( GR3( i,1 ) + GR3( i,2 ) ) 
+        endif	
+      	
+      	if ( GR3( i , 2 )%x .gt. 0.0d0 ) then 
+      		GR3FRAC( :,2 ) = GR3( :,2 ) / ( GR3(:,1) + GR3(:,2) )    
+        endif
+      enddo
+      		
+      		
+C     Where ( GR3( :,1 )%x .gt. 0.0d0 ) 
+C    &    GR3FRAC( :,1 )%x = GR3( :,1 )%x / ( GR3(:,1)%x + GR3(:,2)%x ) ! Aitken Growth
+C
+C     Where ( GR3( :,1 )%x .gt. 0.0d0 ) 
+C    &    GR3FRAC( :,1 )%dx1 = GR3( :,1 )%dx1 / ( GR3(:,1)%dx1 + GR3(:,2)%dx1 ) ! Aitken Growth     
+C
+C     Where ( GR3( :,1 )%x .gt. 0.0d0 ) 
+C    &    GR3FRAC( :,1 )%dx2 = GR3( :,1 )%dx2 / ( GR3(:,1)%dx2 + GR3(:,2)%dx2 ) ! Aitken Growth 
+C
+C     Where ( GR3( :,1 )%x .gt. 0.0d0 ) 
+C    &    GR3FRAC( :,1 )%dx1x2 = GR3( :,1 )%dx1x2 / ( GR3(:,1)%dx1x2 + GR3(:,2)%dx1x2 ) ! Aitken Growth 
+                    
+C     Where ( GR3( :,2 )%x .gt. 0.0d0 )
+C    &    GR3FRAC( :,2 )%x = GR3( :,2 )%x / ( GR3(:,1)%x + GR3(:,2)%x ) ! Accumulation Growth
+C
+C     Where ( GR3( :,2 )%x .gt. 0.0d0 )
+C    &    GR3FRAC( :,2 )%dx1 = GR3( :,2 )%dx1 / ( GR3(:,1)%dx1 + GR3(:,2)%dx1 ) ! Accumulation Growth     
+C
+C     Where ( GR3( :,2 )%x .gt. 0.0d0 )
+C    &    GR3FRAC( :,2 )%dx2 = GR3( :,2 )%dx2 / ( GR3(:,1)%dx2 + GR3(:,2)%dx2 ) ! Accumulation Growth
+C
+C     Where ( GR3( :,2 )%x .gt. 0.0d0 )
+C    &    GR3FRAC( :,2 )%dx1x2 = GR3( :,2 )%dx1x2 / ( GR3(:,1)%dx1x2 + GR3(:,2)%dx1x2 ) ! Accumulation Growth
+  
       ! Initialize drog from ORGPROD and change units to [ ug / m**3 ]
       ! Assignment of drog to totrog. This moving mass from the reactive
       ! gas tracer species to the array that will be multiplied by alpha
@@ -964,19 +999,34 @@ C-----------------------------------------------------------------------
       !    caer * (1 + c0/MW / totorg) = ctotf
       !    caer = ctotf / ( 1 + c0/MW / totorg )
 
-      threshold = 0.0  ! This threshold will be compared to the
+      threshold = 0.0d0  ! This threshold will be compared to the
                        ! saturation concentration to determine whether
                        ! or not OA partitioning is even likely.
-      upb = 0.0  ! Upper bound for bisection method
+      upb = 0.0d0  ! Upper bound for bisection method
 
       ! Compute the number of nonvolatile and total organic compound
       ! moles in the system
       nsvol    = 0
-      totorgnv = sum( sum( aerospc_conc( :,1:2 ),2 ) / aerospc_mw( : ), 
+      
+      ! Separate 
+      totorgnv%x = sum( sum( aerospc_conc( :,1:2 )%x,2 ) / aerospc_mw( : ), 
      &                     mask=lnonvol_oa( : ) )  
-      totorg   = sum( sum( aerospc_conc( :,1:2 ),2 ) * aerospc_mwinv( : ), 
-     &                     mask=aerospc(:)%om )  
-
+      totorgnv%dx1 = sum( sum( aerospc_conc( :,1:2 )%dx1,2 ) / aerospc_mw( : ), 
+     &                     mask=lnonvol_oa( : ) ) 
+      totorgnv%dx2 = sum( sum( aerospc_conc( :,1:2 )%dx2,2 ) / aerospc_mw( : ), 
+     &                     mask=lnonvol_oa( : ) ) 
+      totorgnv%dx1x2 = sum( sum( aerospc_conc( :,1:2 )%dx1x2,2 ) / aerospc_mw( : ), 
+     &                     mask=lnonvol_oa( : ) ) 
+                     
+      totorg%x   = sum( sum( aerospc_conc( :,1:2 )%x,2 ) * aerospc_mwinv( : ), 
+     &                     mask=aerospc(:)%om ) 
+      totorg%dx1   = sum( sum( aerospc_conc( :,1:2 )%dx1,2 ) * aerospc_mwinv( : ), 
+     &                     mask=aerospc(:)%om )       
+      totorg%dx2   = sum( sum( aerospc_conc( :,1:2 )%dx2,2 ) * aerospc_mwinv( : ), 
+     &                     mask=aerospc(:)%om ) 
+      totorg%dx1x2   = sum( sum( aerospc_conc( :,1:2 )%dx1x2,2 ) * aerospc_mwinv( : ), 
+     &                     mask=aerospc(:)%om ) 
+          	  
       ! Calculate the Initial Partitioning of Each Semivolatile
       ! Compound
       Do i = 1, n_oa
@@ -1079,7 +1129,7 @@ C-----------------------------------------------------------------------
      &                              oaspc( i )%name, ' ', caer( nsvol ),
      &                              ' reset to evapmin.'
               ctotf( nsvol ) = ctotf( nsvol ) - caer( nsvol ) + evapmin
-              caer( nsvol ) = evapmin
+              caer( nsvol ) = evapminD
            End If
 
            ! Check that the mass of aerosol condensed does not exceed
@@ -1098,9 +1148,14 @@ C-----------------------------------------------------------------------
            ! Sum the total aerosol mass of this compound across all
            ! aerosol modes
            indx = map_OAtoAERO( i )
-           totaer = max( sum( aerospc_conc( indx,: ) , mask = 
-     &                 .NOT.aero_missing( indx,: ) ), conmin )
-    
+           totaer%x = max( sum( aerospc_conc( indx,: )%x , mask = 
+     &                 .NOT. aero_missing( indx,: ) ), conmin )
+           totaer%dx1 = sum( aerospc_conc( indx,: )%dx1 , mask = 
+     &                 .NOT. aero_missing( indx,: ) )
+           totaer%dx2 = sum( aerospc_conc( indx,: )%dx2 , mask = 
+     &                 .NOT. aero_missing( indx,: ) )
+           totaer%dx1x2 = sum( aerospc_conc( indx,: )%dx1x2 , mask = 
+     &                 .NOT. aero_missing( indx,: ) )              
            ! Transfer the semivolatile mass
            Do im = 1,2
               If ( aero_missing( indx,im ) ) Cycle
@@ -1129,11 +1184,20 @@ C-----------------------------------------------------------------------
             indx = map_OAtoAERO( i )
 
             ! Set all semivolatile aerosols to minimum concentration
-            aerospc_conc( indx, 1:n_mode ) = conmin
+            aerospc_conc( indx, 1:n_mode ) = conminD
             ! Sum up particle-phase mass to subtract it from available
             ! vapor
-            og_conc( i ) = ctotf( nsvol ) -
-     &                       sum( aerospc_conc( indx,: ), 
+            og_conc( i )%x = ctotf( nsvol )%x -
+     &                       sum( aerospc_conc( indx,: )%x, 
+     &                            mask=.not.aero_missing( indx,: ) )
+            og_conc( i )%dx1 = ctotf( nsvol )%dx1 -
+     &                       sum( aerospc_conc( indx,: )%dx1, 
+     &                            mask=.not.aero_missing( indx,: ) )
+            og_conc( i )%dx2 = ctotf( nsvol )%dx2 -
+     &                       sum( aerospc_conc( indx,: )%dx2, 
+     &                            mask=.not.aero_missing( indx,: ) )
+            og_conc( i )%dx1x2 = ctotf( nsvol )%dx1x2 -
+     &                       sum( aerospc_conc( indx,: )%dx1x2, 
      &                            mask=.not.aero_missing( indx,: ) )
         End Do
 
@@ -1146,8 +1210,8 @@ C-----------------------------------------------------------------------
       ! using ISORROPIA.
       If ( aorgh2o_idx > 0 ) Then
 
-         kappaVorg = 0.0e0 ! units: m3.spec/m3.air
-         totvol    = 0.0e0 ! units: m3.particle/m3.air
+         kappaVorg = 0.0d0 ! units: m3.spec/m3.air
+         totvol    = 0.0d0 ! units: m3.particle/m3.air
 
          im = 2 ! only compute water for accumulation mode OM
 
@@ -1178,13 +1242,13 @@ C-----------------------------------------------------------------------
          diam         = (6.0*totvol/numparticles/ pi ) ** (1.0/3.0)
 
          ! Compute aerosol water (Eq 3 of Petters and Kreidenweis)
-         relhumid = min( airRH, 0.95 ) ! Cap RH at 95% to be conservative regarding uptake
+         relhumid = min( airRH, 0.95d0 ) ! Cap RH at 95% to be conservative regarding uptake
          aw = activityw( relhumid, airtemp, diam ) ! activity of water
          If( overallkappa .gt. 1e-6 ) then ! prevents situation of little uptake
             aerospc_conc( aorgh2o_idx, im ) = aerospc( aorgh2o_idx )%density
      &       * aw/(1.0-aw) * kappaVorg * 1.0e9
          Else
-            aerospc_conc( aorgh2o_idx, im ) =  conmin ! no significant orgwater
+            aerospc_conc( aorgh2o_idx, im ) =  conminD ! no significant orgwater
          End If
 
       End If ! End organic water uptake
@@ -1266,23 +1330,24 @@ C      A. Abel, Modeling the formation of secondary organic aerosol
 C      within a comprehensive air quality modeling system, J. Geophys.
 C      Res., Vol 106, No D22, 28275-28293, 2001.
 
+	  use HDMod 
       IMPLICIT NONE
 
 C  Arguments
 
       INTEGER LAYER      ! model layer
       INTEGER N          ! dimension of problem
-      REAL X( N )        ! initial guess of CAER
+      TYPE(hyperdual) X( N )        ! initial guess of CAER
       LOGICAL CHECK
-      REAL CTOT( N )     ! total concentration GAS + AER + PROD
-      REAL CSAT( N )     ! saturation conc. of cond. vapor [ug/m^3]
-      REAL IMWCV( N )    ! inverse molecular weights
-      REAL MINITW        ! weighted initial mass
+      TYPE(hyperdual) CTOT( N )     ! total concentration GAS + AER + PROD
+      Real CSAT( N )     ! saturation conc. of cond. vapor [ug/m^3]
+      Real IMWCV( N )    ! inverse molecular weights
+      TYPE(hyperdual) MINITW        ! weighted initial mass
 
 C  Following Numerical recipes
 
       Integer NN
-      REAL :: FVEC( N )               ! vector of functions to be zeroed
+      TYPE(hyperdual) :: FVEC( N )               ! vector of functions to be zeroed
       ! COMMON /NEWTV/ FVEC(n_oa), NN
       ! SAVE /NEWTV/
 
@@ -1295,7 +1360,7 @@ C  Parameters
       REAL, PARAMETER :: STPMX = 100.0    ! scaled maximum step length allowed
 
 C  Local variables
-      REAL :: CT( N ), CS( N ), IMW( N ), M
+      TYPE(hyperdual) :: CT( N ), CS( N ), IMW( N ), M
       ! REAL CS
       ! REAL IMW
       ! REAL M
@@ -1303,9 +1368,9 @@ C  Local variables
       ! SAVE /NEWTINP/
 
       INTEGER I, ITS, J, INDX( N_OA )
-      REAL D, DEN, F, FOLD, STPMAX, SUM, TEMP, TEST
-      REAL FJAC( N_OA,N_OA )
-      REAL G( N_OA), P( N_OA ), XOLD( N_OA )
+      TYPE(hyperdual) D, DEN, F, FOLD, STPMAX, SUM, TEMP, TEST
+      TYPE(hyperdual) FJAC( N_OA,N_OA )
+      TYPE(hyperdual) G( N_OA), P( N_OA ), XOLD( N_OA )
 !     EXTERNAL FDJAC
 
 C-----------------------------------------------------------------------
@@ -1314,28 +1379,28 @@ C-----------------------------------------------------------------------
       M = MINITW
       DO I = 1, N
          CT( I ) = CTOT( I )
-         CS( I ) = CSAT( I )
-         IMW( I ) = IMWCV( I )
+         CS( I ) = REAL ( CSAT( I ) , 8 ) 
+         IMW( I ) = REAL ( IMWCV( I ) , 8 )
       END DO
 
       NN = N
       CALL FMINV( X,F,NN,FVEC,CT,CS,IMW,M )  ! The vector FVEC is also computed by this call
-      TEST = 0.0              ! Test for initial guess being a root. Use more
+      TEST = 0.0d0              ! Test for initial guess being a root. Use more
                               ! stringent test than simply TOLF.
       DO I = 1, N
          IF ( ABS( FVEC( I ) ) .GT. TEST ) TEST = ABS( FVEC( I ))
       END DO
 
-      IF ( TEST .LT. 0.01 * TOLF ) RETURN  ! initial guess is a root
-      SUM = 0.0                    ! Calculate STPMAX for line searches
+      IF ( TEST .LT. 0.01d0 * TOLF ) RETURN  ! initial guess is a root
+      SUM = 0.0d0                    ! Calculate STPMAX for line searches
       DO I = 1, N
          SUM = SUM + X( I ) ** 2
       END DO
-      STPMAX = STPMX * MAX( SQRT( SUM ), FLOAT( N ) )
+      STPMAX = STPMX * MAX( SQRT( SUM ), REAL ( N , 8 ) ) 
       DO ITS = 1, MAXITS           ! start of iteration loop
          CALL FDJAC( N, X, FJAC, CT, CS, IMW, M )  ! get Jacobian
          DO I = 1, N               ! compute Delta f for line search
-            SUM = 0.0
+            SUM = 0.0d0
             DO J = 1, N
                SUM = SUM + FJAC( J,I ) * FVEC( J )
             END DO
@@ -1355,7 +1420,7 @@ C-----------------------------------------------------------------------
      &                P, X, F, STPMAX,   ! calculates FVEC at the new X when it
      &                TOLX, CHECK, FVEC,
      &                CT, CS, IMW, M)      ! calls FMINV
-         TEST = 0.0
+         TEST = 0.0d0
          DO I = 1, N
             IF ( ABS( FVEC( I ) ) .GT. TEST ) TEST = ABS( FVEC( I ) )
          END DO
@@ -1364,10 +1429,10 @@ C-----------------------------------------------------------------------
             RETURN
          END IF
          IF ( CHECK ) THEN        ! Check for gradient of F zero,
-            TEST = 0.0            ! i.e., spurious convergence.
-            DEN = MAX( F, 0.5 * N )
+            TEST = 0.0d0            ! i.e., spurious convergence.
+            DEN = MAX( F, 0.5d0 * N )
             DO I = 1, N
-               TEMP = ABS( G( I ) ) * MAX( ABS( X( I ) ), 1.0 ) / DEN
+               TEMP = ABS( G( I ) ) * MAX( ABS( X( I ) ), 1.0d0 ) / DEN
                IF ( TEMP .GT. TEST ) TEST = TEMP
             END DO
             IF ( TEST .LT. TOLMIN ) THEN
@@ -1377,9 +1442,9 @@ C-----------------------------------------------------------------------
             END IF
             RETURN
          END IF
-         TEST = 0.0             ! Test for convergence on delta_x
+         TEST = 0.0d0             ! Test for convergence on delta_x
          DO I = 1, N
-            TEMP = ( ABS( X( I ) - XOLD( I ) ) ) / MAX( ABS( X( I ) ), 1.0 )
+            TEMP = ( ABS( X( I ) - XOLD( I ) ) ) / MAX( ABS( X( I ) ), 1.0d0 )
             IF ( TEMP .GT. TEST ) TEST = TEMP
          END DO
          IF ( TEST .LT. TOLX ) RETURN
@@ -1414,28 +1479,29 @@ C Revision History:
 C   CGN 01/12/04 changed B1 & B2 to scalars
 C   SH  02/10/10 renamed NCVAP to n_oa. Value is inherited from SOA_DEFN.
 
+	  use HDMod 
       IMPLICIT NONE
 
       INTEGER N                 ! dimension of problem
-      REAL X( N )               ! initial guess of CAER
+      TYPE(hyperdual) X( N )               ! initial guess of CAER
 
-      REAL CT( N )
-      REAL CS( N )
-      REAL IMW( N )
-      REAL M
+      TYPE(hyperdual) CT( N )
+      TYPE(hyperdual) CS( N )
+      TYPE(hyperdual) IMW( N )
+      TYPE(hyperdual) M
 
-      REAL FJAC( N,N )
+      TYPE(hyperdual) FJAC( N,N )
 
       INTEGER I, J              ! loop index
-      REAL A( N_OA )
-      REAL B( N_OA )
-      REAL B1
-      REAL B2
-      REAL SUM_JNEI
+      TYPE(hyperdual) A( N_OA )
+      TYPE(hyperdual) B( N_OA )
+      TYPE(hyperdual) B1
+      TYPE(hyperdual) B2
+      TYPE(hyperdual) SUM_JNEI
 
       DO I = 1, N
          A( I ) = IMW( I )
-         SUM_JNEI = 0.0
+         SUM_JNEI = 0.0d0
          DO J = 1, N
             SUM_JNEI = SUM_JNEI + X( J ) * IMW( J )
          END DO
@@ -1446,7 +1512,7 @@ C   SH  02/10/10 renamed NCVAP to n_oa. Value is inherited from SOA_DEFN.
       DO J = 1, N
          DO I = 1, N
             IF ( I .EQ. J ) THEN
-               FJAC( I,J ) = 2.0 * A( I ) * X( I ) + B( I )
+               FJAC( I,J ) = 2.0d0 * A( I ) * X( I ) + B( I )
             ELSE
                FJAC( I,J ) = ( X( I ) - CT( I ) ) * IMW( J )
             END IF
@@ -1474,21 +1540,22 @@ C   YOJ 07/31/02 changed FUNCTION FMIN to SUBROUTINE FMINV to avoid errors
 C       with (some) compilers
 C   SH  02/10/10 renamed NCVAP to n_oa. Value is inherited from SOA_DEFN.
 
+	  use HDMod 
       IMPLICIT NONE
 
       INTEGER N
 
-      REAL X( * ), F
-      REAL :: FVEC( N ), CT( N ), CS( N ), IMW( N ), M
+      TYPE(hyperdual) X( * ), F
+      TYPE(hyperdual) :: FVEC( N ), CT( N ), CS( N ), IMW( N ), M
 
       INTEGER I
-      REAL SUM
+      TYPE(hyperdual) SUM
       CALL FUNCV( N, X, FVEC, CT, CS, IMW, M )
-      SUM = 0.0
+      SUM = 0.0d0
       DO I = 1, N
          SUM = SUM + FVEC( I ) ** 2
       END DO
-      F = 0.5 * SUM
+      F = 0.5d0 * SUM
       RETURN
       END SUBROUTINE FMINV
 
@@ -1528,26 +1595,27 @@ C      A. Abel, Modeling the formation of secondary organic aerosol
 C      within a comprehensive air quality modeling system, J. Geophys.
 C      Res., Vol 106, No D22, 28275-28293, 2001.
 
+	  use HDMod 
       IMPLICIT NONE
 
       INTEGER N
-      REAL X( * )
-      REAL FVEC( N )
+      TYPE(hyperdual) X( * )
+      TYPE(hyperdual) FVEC( N )
 
-      REAL CT( N )
-      REAL CS( N )
-      REAL IMW( N )
-      REAL M
+      TYPE(hyperdual) CT( N )
+      TYPE(hyperdual) CS( N )
+      TYPE(hyperdual) IMW( N )
+      TYPE(hyperdual) M
 
       INTEGER I, J
-      REAL SUM_JNEI
-      REAL A( N )
-      REAL B( N )
-      REAL C( N )
+      TYPE(hyperdual) SUM_JNEI
+      TYPE(hyperdual) A( N )
+      TYPE(hyperdual) B( N )
+      TYPE(hyperdual) C( N )
 
       DO I = 1, N
          A( I ) = IMW( I )
-         SUM_JNEI = 0.0
+         SUM_JNEI = 0.0d0
          DO J  = 1, N
             SUM_JNEI = SUM_JNEI + X( J ) * IMW( J )
          END DO
@@ -1589,25 +1657,26 @@ C   SH  02/10/10 added TOLX to the call vector.  In previous versions, this
 C       parameter was declared in the Module SOA_NEWT (which contained this
 C       subroutine).
 
+	  use HDMod 
       IMPLICIT NONE
 
       INTEGER N
       REAL TOLX
       LOGICAL CHECK
-      REAL F, FOLD, STPMAX
-      REAL G( N ), P( N ), X( N ), XOLD( N )
-      REAL CTOT( N )
+      TYPE(hyperdual) F, FOLD, STPMAX
+      TYPE(hyperdual) G( N ), P( N ), X( N ), XOLD( N )
+      TYPE(hyperdual) CTOT( N )
       REAL, PARAMETER :: ALF = 1.E-04
       REAL, PARAMETER :: CONMIN = 1.E-30
-      REAL :: FVEC( N ), CT( N ), CS( N ), IMW( N ), M
+      TYPE(hyperdual) :: FVEC( N ), CT( N ), CS( N ), IMW( N ), M
 
       INTEGER I
-      REAL A, ALAM, ALAM2, ALAMIN, B, DISC
-      REAL F2, FOLD2, RHS1, RHS2, SLOPE
-      REAL SUM, TEMP, TEST, TMPLAM
+      TYPE(hyperdual) A, ALAM, ALAM2, ALAMIN, B, DISC
+      TYPE(hyperdual) F2, FOLD2, RHS1, RHS2, SLOPE
+      TYPE(hyperdual) SUM, TEMP, TEST, TMPLAM
 
       CHECK = .FALSE.
-      SUM = 0.0
+      SUM = 0.0d0
       DO I = 1, N
          SUM = SUM + P( I ) * P( I )
       END DO
@@ -1617,17 +1686,17 @@ C       subroutine).
             P( I ) = P( I ) * STPMAX / SUM
          END DO
       END IF
-      SLOPE = 0.0
+      SLOPE = 0.0d0
       DO I = 1, N
          SLOPE = SLOPE + G( I ) * P( I )
       END DO
-      TEST = 0.0
+      TEST = 0.0d0
       DO I = 1, N
-         TEMP = ABS( P( I ) ) / MAX( ABS( XOLD( I ) ), 1.0 )
+         TEMP = ABS( P( I ) ) / MAX( ABS( XOLD( I ) ), hdual_cast(1.0d0) )
          IF ( TEMP .GT. TEST ) TEST = TEMP
       END DO
       ALAMIN = TOLX / TEST
-      ALAM = 1.0
+      ALAM = 1.0d0
 
 101   CONTINUE
 
@@ -1635,7 +1704,7 @@ C  avoid negative concentrations and set upper limit given by CTOT.
 
       DO I = 1, N
          X( I ) = XOLD( I ) + ALAM * P( I )
-         IF ( X( I ) .LE. 0.0 )       X( I ) = CONMIN
+         IF ( X( I ) .LE. 0.0d0 )       X( I ) = REAL ( CONMIN , 8 )
          IF ( X( I ) .GT. CTOT( I ) ) X( I ) = CTOT( I )
       END DO
       CALL FMINV( X,F,N,FVEC,CT,CS,IMW,M )
@@ -1648,21 +1717,21 @@ C  avoid negative concentrations and set upper limit given by CTOT.
       ELSE IF ( F .LE. FOLD + ALF * ALAM * SLOPE ) THEN
          RETURN
       ELSE
-         IF ( ALAM .EQ. 1.0 ) THEN
-            TMPLAM = -SLOPE / ( 2.0 * ( F - FOLD - SLOPE ) )
+         IF ( ALAM .EQ. 1.0d0 ) THEN
+            TMPLAM = -SLOPE / ( 2.0d0 * ( F - FOLD - SLOPE ) )
          ELSE
             RHS1 = F - FOLD - ALAM * SLOPE
             RHS2 = F2 - FOLD2 - ALAM2 * SLOPE
-            A = ( RHS1 / ALAM ** 2 - RHS2 / ALAM2 ** 2 ) / ( ALAM - ALAM2 )
-            B = ( -ALAM2 * RHS1 / ALAM ** 2 + ALAM * RHS2 / ALAM2 ** 2 )
+            A = ( RHS1 / ALAM ** 2.0d0 - RHS2 / ALAM2 ** 2.0d0 ) / ( ALAM - ALAM2 )
+            B = ( -ALAM2 * RHS1 / ALAM ** 2.0d0 + ALAM * RHS2 / ALAM2 ** 2.0d0 )
      &        / ( ALAM - ALAM2 )
-            IF ( A .EQ. 0.0 ) THEN
-               TMPLAM = -SLOPE / ( 2.0 * B )
+            IF ( A .EQ. 0.0d0 ) THEN
+               TMPLAM = -SLOPE / ( 2.0d0 * B )
             ELSE
-               DISC  = B * B - 3.0 * A * SLOPE
-               TMPLAM = ( -B + SQRT( DISC ) ) / ( 3.0 * A )
+               DISC  = B * B - 3.0d0 * A * SLOPE
+               TMPLAM = ( -B + SQRT( DISC ) ) / ( 3.0d0 * A )
             END IF
-            IF ( TMPLAM .GT. 0.5 * ALAM ) TMPLAM = 0.5 * ALAM
+            IF ( TMPLAM .GT. 0.5d0 * ALAM ) TMPLAM = 0.5d0 * ALAM
          END IF
       END IF
       ALAM2 = ALAM
@@ -1694,13 +1763,14 @@ C
 C Revision History:
 C    call vector modified to remove NCVAP and set dimensions to N.
 
+	  use HDMod 
       IMPLICIT NONE
 
       INTEGER N, INDX( N )
-      REAL A( N,N ), B( N ) ! A now has dimension NxN.
+      TYPE(hyperdual) A( N,N ), B( N ) ! A now has dimension NxN.
 
       INTEGER I, II, J, LL
-      REAL SUM
+      TYPE(hyperdual) SUM
 
       II = 0
       DO I = 1, N
@@ -1711,7 +1781,7 @@ C    call vector modified to remove NCVAP and set dimensions to N.
             DO J = II, I-1
                SUM = SUM - A( I,J ) * B( J )
             END DO
-         ELSE IF ( SUM .NE. 0 ) THEN
+         ELSE IF ( SUM .NE. 0.0d0 ) THEN
             II = I
          END IF
          B( I ) = SUM
@@ -1755,28 +1825,29 @@ C Revision History:
 C    call vector modified to remove NCVAP
 C    all dimensions now depend upon N only
 
+	  use HDMod 
       IMPLICIT NONE
 
       INTEGER N, INDX( N )
 !     INTEGER NMAX
 !     PARAMETER ( NMAX = 10 )   ! largest expected N
-      REAL D, A( N,N )     ! note that A now has dimension NxN
+      TYPE(hyperdual) D, A( N,N )     ! note that A now has dimension NxN
                            ! NCVAP is ignored
       REAL, PARAMETER :: TINY = 1.0E-20
 
       INTEGER I, IMAX, J, K
-      REAL AAMAX, DUM, SUM, VV( N )
+      TYPE(hyperdual) AAMAX, DUM, SUM, VV( N )
 
-      D = 1.0
+      D = 1.0d0
       DO I = 1, N
-         AAMAX = 0.0
+         AAMAX = 0.0d0
          DO J = 1, N
             IF ( ABS(A( I,J ) ) .GT. AAMAX ) AAMAX = ABS( A( I,J ) )
          END DO
-         IF ( AAMAX .EQ. 0.0 ) THEN
+         IF ( AAMAX .EQ. 0.0d0 ) THEN
             WRITE( *,'(a)' ) '*** Singular matrix in ludcmp!'
          END IF
-         VV( I ) = 1.0 / AAMAX
+         VV( I ) = 1.0d0 / AAMAX
       END DO
       DO J = 1, N
          DO I = 1, J-1
@@ -1786,7 +1857,7 @@ C    all dimensions now depend upon N only
             END DO
             A( I,J ) = SUM
          END DO
-         AAMAX = 0.0
+         AAMAX = 0.0d0
          DO I = J, N
             SUM = A( I,J )
             DO K = 1, J-1
@@ -1809,9 +1880,9 @@ C    all dimensions now depend upon N only
             VV( IMAX ) = VV( J )
          END IF
          INDX( J ) = IMAX
-         IF ( A( J,J ) .EQ. 0.0 ) A( J,J ) = TINY
+         IF ( A( J,J ) .EQ. 0.0d0 ) A( J,J ) = REAL ( TINY , 8 )
          IF ( J .NE. N ) THEN
-            DUM = 1.0 / A( J,J )
+            DUM = 1.0d0 / A( J,J )
             DO I = J+1, N
                A( I,J ) = A( I,J ) * DUM
             END DO
@@ -1836,15 +1907,16 @@ C     History
 C     Created 7/2011 by HOT Pye
 
       Use utilio_defn
-
+	  use HDMod 
+	  
       Implicit None
 
 C     Function arguments
-      Real, Intent(IN) :: lowerb, upperb      ! lower bound, upper bound 
-      Real, Intent(IN) :: nonvolmol           ! nonvolatile aerosol in moles = POA + non-voltile SOA
+      TYPE(hyperdual), Intent(IN) :: lowerb, upperb      ! lower bound, upper bound 
+      TYPE(hyperdual), Intent(IN) :: nonvolmol           ! nonvolatile aerosol in moles = POA + non-voltile SOA
       Integer, Intent(IN) :: n
       Real, Intent(IN) :: cstaratt(n)   ! Cstars at T of interest
-      Real, Intent(IN) :: totsemivol(n) ! total semivolatile to partition in ug/m3 (gas+aer+newlyformed)
+      TYPE(hyperdual), Intent(IN) :: totsemivol(n) ! total semivolatile to partition in ug/m3 (gas+aer+newlyformed)
       Real, Intent(IN) :: mlwt(n)       ! molecular weight of semivolatiles 
 
 C     Parameters for solution convergenc
@@ -1853,14 +1925,14 @@ C     Parameters for solution convergenc
       Real             :: ABSTOL  = 1.0e-08   ! Solution converged if there are less than ABSTOL umol/m3 in aerosol
 
 C     Result
-      Real             :: nroot               ! solution (final nguess)
+      TYPE(hyperdual)             :: nroot               ! solution (final nguess)
 
 C     Local variables
-      Real             :: nguess              ! current guess for total moles organic aerosol
-      Real             :: oldn, lower, upper, flower, fnguess ! intermediate values
-      Real             :: fupper              ! function evaluated at upper bound
-      Real             :: ea                  ! difference b/w old and new guesses (umol/m3)
-      Real             :: test                ! to detect sign change
+      TYPE(hyperdual)             :: nguess              ! current guess for total moles organic aerosol
+      TYPE(hyperdual)             :: oldn, lower, upper, flower, fnguess ! intermediate values
+      TYPE(hyperdual)             :: fupper              ! function evaluated at upper bound
+      TYPE(hyperdual)             :: ea                  ! difference b/w old and new guesses (umol/m3)
+      TYPE(hyperdual)             :: test                ! to detect sign change
       Integer          :: iter                ! counter to prevent infinite loops
       Character( 120 ) :: xmsg
 
@@ -1918,11 +1990,11 @@ C     abstol (absolute) amount
           lower  = nguess
           flower = fnguess
         Else If ( flower .Eq. 0.0 ) Then  ! if the lower bound is the root
-          ea      = 0.0
+          ea      = 0.0d0
           nguess  = lower
           fnguess = flower
         Else If ( fnguess .Eq. 0.0 ) Then ! guess is the root
-          ea      = 0.0
+          ea      = 0.0d0
         End If
 
         ! solution found if error is less than ABSTOL/100 % or N bounded by values less than ABSTOL
@@ -1975,21 +2047,23 @@ C
 C     History
 C     Created 7/2011 HOT Pye
 
+	  use HDMod 
       Implicit None
 
 C     Function inputs and output
-      Real, INTENT(IN) :: nonvmol, currentN             ! nonvolatile moles, total moles
+      TYPE(hyperdual), INTENT(IN) :: nonvmol, currentN             ! nonvolatile moles, total moles
       Integer, INTENT(IN) :: n                          ! number of semivolatile species
       Real, INTENT(IN) :: mlwt(n)                    ! molecular weights of semivolatiles
-      Real, INTENT(IN) :: semivol(n), cstar(n) ! semivolatile mass, sat conc in ug/m3
-      Real             :: eqnerror                         ! result, deviation from 0.0 in equation
+      TYPE(hyperdual), INTENT(IN) :: semivol(n)  
+      REAL :: cstar(n)                                ! semivolatile mass, sat conc in ug/m3
+      TYPE(hyperdual)             :: eqnerror                         ! result, deviation from 0.0 in equation
 
 C     Local variables
-      Real             :: temptot                          ! temporary total
+      TYPE(hyperdual)             :: temptot                          ! temporary total
       Integer          :: i                                ! counter
 
 C     Compute function value for current value of N 
-      temptot = 0.0e0
+      temptot = 0.0d0
       Do i = 1, n
          temptot = temptot + semivol(i) / ( cstar(i) + mlwt(i) * currentN )
       End Do
@@ -2003,34 +2077,35 @@ C-----------------------------------------------------------------------
 
       Use utilio_defn
       Use runtime_vars
-
+	  Use HDMod 
+	
       Implicit None
 
 C     Function arguments
-      Real, Intent(IN) :: lowerb, upperb      ! lower bound, upper bound
-      Real, Intent(IN) :: nonvolmol           ! nonvolatile aerosol in moles = POA + non-voltile SOA
+      TYPE(hyperdual), Intent(IN) :: lowerb, upperb      ! lower bound, upper bound
+      TYPE(hyperdual), Intent(IN) :: nonvolmol           ! nonvolatile aerosol in moles = POA + non-voltile SOA
       Integer, Intent(IN) :: n                ! Number of semivolatile species
-      Real, Intent(IN) :: cstaratt(:)   ! Cstars at T of interest
-      Real, Intent(IN) :: totsemivol(:) ! total semivolatile to partition in ug/m3 (gas+aer+newlyformed)
-      Real, Intent(IN) :: mlwt(:)       ! molecular weight of semivolatiles
+      REAL, Intent(IN) :: cstaratt(:)   ! Cstars at T of interest
+      TYPE(hyperdual), Intent(IN) :: totsemivol(:) ! total semivolatile to partition in ug/m3 (gas+aer+newlyformed)
+      REAL, Intent(IN) :: mlwt(:)       ! molecular weight of semivolatiles
 
 C     Parameters for solution convergenc
       Real             :: FRACTOL = 1.0e-6    ! Solution converged if abs(old-new)/new < FRACTOL
       Real             :: ABSTOL  = 1.0e-10   ! Solution converged if there are less than ABSTOL umol/m3 in aerosol
 
 C     Result
-      Real             :: nroot               ! solution (final nguess)
+      TYPE(hyperdual)             :: nroot               ! solution (final nguess)
 
 C External functions:
 
 C     Local variables
       Logical, Save    :: first_time = .True.
 
-      Real             :: nguess              ! current guess for total moles organic aerosol
-      Real             :: oldn, lower, upper, flower, fnguess ! intermediate values
-      Real             :: fupper              ! function evaluated at upper bound
-      Real             :: ea                  ! difference b/w old and new guesses (umol/m3)
-      Real             :: test                ! to detect sign change
+      TYPE(hyperdual)             :: nguess              ! current guess for total moles organic aerosol
+      TYPE(hyperdual)             :: oldn, lower, upper, flower, fnguess ! intermediate values
+      TYPE(hyperdual)             :: fupper              ! function evaluated at upper bound
+      TYPE(hyperdual)             :: ea                  ! difference b/w old and new guesses (umol/m3)
+      TYPE(hyperdual)             :: test                ! to detect sign change
       Integer          :: iter                ! counter to preventinfinite loops
       Character( 120 ) :: xmsg
 
@@ -2086,11 +2161,11 @@ C     (percent) or abstol (absolute) amount
           lower  = nguess
           flower = fnguess
         Else If ( flower .Eq. 0.0 ) Then    ! if the lower bound is the root
-          ea      = 0.0
+          ea      = 0.0d0
           nguess  = lower
           fnguess = flower
         Else If ( fnguess .Eq. 0.0 ) Then   ! guess is the root
-          ea      = 0.0
+          ea      = 0.0d0
         End If
 
         ! solution found if error is less than ABSTOL/100 % or N bounded
@@ -2130,20 +2205,21 @@ C                     R*T*dens*D
 C
 C The diameter is the wet, volume equivalent, diameter of the particle.
 
+	  use HDMod 
       Implicit None
                                        
       Include SUBST_CONST    ! common constants
 
 C     Function arguments
-      Real rh      ! RH between 0.005, 0.99 [fraction]
-      Real temp    ! temperature [K]
-      Real dtot    ! volume equivalent diameter of entire particle [m]
+      TYPE(hyperdual) rh      ! RH between 0.005, 0.99 [fraction]
+      Real            temp    ! temperature [K]
+      TYPE(hyperdual) dtot    ! volume equivalent diameter of entire particle [m]
 
 C     Function return value
-      Real aw      ! activity of water [fraction]
+      TYPE(hyperdual) aw      ! activity of water [fraction]
 
 C     Local variables
-      Real partialaw ! intermediate value
+      TYPE(hyperdual) partialaw ! intermediate value
 
 C     Parameters
       Real, Parameter :: surftens = 0.072e0  ! surface tension of water [J/m2]
@@ -2151,7 +2227,7 @@ C     Parameters
       Real, Parameter :: denswater = 1000e0  ! density of water [kg/m3]
 
 C     Calculations
-      partialaw = 4.0*surftens*mwtwater/(rgasuniv*temp*denswater)
+      partialaw = 4.0d0*surftens*mwtwater/(rgasuniv*temp*denswater)
       aw = rh / exp( partialaw/dtot )
 
       End Function activityw

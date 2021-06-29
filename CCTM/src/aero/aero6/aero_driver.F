@@ -117,7 +117,8 @@ C    1 Aug 19 David Wong: Added a few more variables in the USE Only blcok for t
 C   30 Dec 19 S. Napelenok: ddm-3d implementation for v 5.3.1
 C:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
       SUBROUTINE AERO ( CGRID, JDATE, JTIME, TSTEP )
-
+      
+      USE HDMod
       USE GRID_CONF, ONLY: NCOLS, NROWS, NLAYS, IO_PE_INCLUSIVE
       USE RXNS_DATA, ONLY: MECHNAME
       USE AERO_DATA, ONLY: COAG_BUDGET, COND_BUDGET, GROWTH_BUDGET, NPF_BUDGET,
@@ -166,7 +167,7 @@ C *** Includes:
 C *** Arguments:
 
 C *** CGRID is conc field (including gas and aerosol variables)
-      REAL, POINTER :: CGRID( :,:,:,: )              !  concentrations
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )              !  concentrations
       INTEGER      JDATE        ! Current model date , coded YYYYDDD
       INTEGER      JTIME        ! Current model time , coded HHMMSS
       INTEGER      TSTEP( 3 )   ! time step vector (HHMMSS)
@@ -208,8 +209,8 @@ C *** variables computed and output but not carried in CGRID
 
 C *** aerosol size distribution variables
 !     REAL DIAM_SPC( NCOLS,NROWS,NLAYS,39 )
-      REAL, ALLOCATABLE, SAVE :: PMDIAG_SPC( :,:,:,: )
-      REAL, ALLOCATABLE, SAVE :: A_PMDIAG_SPC( :,:,:,: )
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: PMDIAG_SPC( :,:,:,: )
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: A_PMDIAG_SPC( :,:,:,: )
       CHARACTER( 16 ) :: V_LIST( 2 )
 
       INTEGER, SAVE :: N_APMDIAG_STEP
@@ -219,10 +220,10 @@ C *** atmospheric properties
       REAL AMU             ! atmospheric dynamic viscosity [ kg/m s ]
 
 C *** mass fraction of each mode less than Specified Aerodynamic Diameters
-      REAL fPM1 ( N_MODE )  ! PM1 fraction
-      REAL fPM25( N_MODE )  ! PM2.5 fraction
-      REAL fPM10( N_MODE )  ! PM10 fraction
-      REAL fAMS ( N_MODE )  ! AMS Transmission Fraction
+      REAL( 8 ) fPM1 ( N_MODE )  ! PM1 fraction
+      REAL( 8 ) fPM25( N_MODE )  ! PM2.5 fraction
+      REAL( 8 ) fPM10( N_MODE )  ! PM10 fraction
+      REAL( 8 ) fAMS ( N_MODE )  ! AMS Transmission Fraction
 
 C *** visual range information
       REAL BLKDCV1         ! block deciview (Mie)
@@ -256,7 +257,7 @@ C *** ratio of molecular weights of water vapor to dry air = 0.622015
 C *** dry moment factor
       REAL, PARAMETER :: TWOTHIRDS = 2.0 / 3.0
 
-      LOGICAL :: TIME_TO_CALL_FEEDBACK_WRITE
+      LOGICAL :: TIME_TO_CALL_FEEDBACK_WRITE 
 
 C *** Statement Function **************
       REAL ESATL ! arithmetic statement function for vapor pressure [Pa]
@@ -270,7 +271,7 @@ C *** Coefficients for the equation, ESATL defining saturation vapor pressure
 
       CHARACTER( 16 ) :: AVG_FILE_ENDTIME = 'AVG_FILE_ENDTIME'
 
-      REAL, ALLOCATABLE, SAVE :: TEMP_DATA(:)
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: TEMP_DATA(:)
 
 C *** values of AL, BL, and CL are from:
 C     Alduchov and Eskridge, "Improved Magnus Form Approximations of
@@ -318,7 +319,7 @@ C ------------------ begin body of AERO_DRIVER -------------------------
      &              GROWTH_BUDGET( NSPCSD ),
      &              STAT=ALLOCSTAT)
 
-         A_PMDIAG_SPC  = 0.0
+         A_PMDIAG_SPC  = 0.0D0
          N_APMDIAG_STEP = 0
 
 #ifdef twoway
@@ -377,10 +378,10 @@ C *** air density [kg/m3]
 #endif
 
 ! *** Initialize Shared Arrays for Aerosol Budget
-      AERO_COND   = 0.
-      AERO_COAG   = 0.
-      AERO_NPF    = 0.
-      AERO_GROWTH = 0.
+      AERO_COND   = 0.0D0
+      AERO_COAG   = 0.0D0
+      AERO_NPF    = 0.0D0
+      AERO_GROWTH = 0.0D0
 
 
 C --------------------- Begin loops over grid cells --------------------------
@@ -403,10 +404,10 @@ C *** Grid cell meteorological data.
                AIRRH    = MAX( 0.005, MIN( 0.99, H2OVP / H2OSATVP ) )
 
 ! *** Initialize aerosol process variables
-               COND_BUDGET = 0.
-               COAG_BUDGET = 0.
-               NPF_BUDGET = 0.
-               GROWTH_BUDGET = 0.
+               COND_BUDGET = 0.0d0
+               COAG_BUDGET = 0.0d0
+               NPF_BUDGET = 0.0d0
+               GROWTH_BUDGET = 0.0d0
 
 C *** Extract grid cell concentrations of aero species from CGRID
 C     into aerospc_conc in aero_data module (set minimum)
@@ -419,24 +420,25 @@ C     into aerospc_conc in aero_data module (set minimum)
 C *** Extract grid cell concentrations of gas precursors from CGRID (ppm)
 C     into precursr_conc in precursor_data
                CALL EXTRACT_PRECURSOR( CGRID( C,R,L,: ) )
-
+			   
 C *** Calculate SO4RATE stored in module
-               SO4RATE = REAL( PRECURSOR_CONC( SULPRD_IDX ), 4 ) / DT
+               SO4RATE = PRECURSOR_CONC( SULPRD_IDX ) / DT
  
                IF ( PHGRXN_IDX .GT. 0 ) THEN
 C *** Calculate PHG_RATE stored in module
-                  PHG_RATE = REAL( PRECURSOR_CONC( PHGRXN_IDX ), 4 ) / DT
+                  PHG_RATE = PRECURSOR_CONC( PHGRXN_IDX ) / DT
                ELSE
-                  PHG_RATE = 0.0
+                  PHG_RATE = 0.0d0
                END IF
 
 C *** Extract soa concentrations from CGRID and 
 C     convert M2 to wet
                CALL EXTRACT_SOA( CGRID( C,R,L,: ) )
-
+               
 C *** Aerosol process routines
                CALL AEROPROC( DT, C, R, L )
-
+               			   
+			   
 C *** Update aerosol variables conc back into CGRID (set minimum) 
 C     and convert M2 to dry and save as surface area
 #ifdef sens
@@ -488,15 +490,15 @@ C     diagnostic array (lowest vertical layer only)
                   TEMP_DATA( 16 ) = MOMENT3_CONC( 1 )     ! wet i-mode 3rd moment
                   TEMP_DATA( 17 ) = MOMENT3_CONC( 2 )     ! wet j-mode 3rd moment
                   TEMP_DATA( 18 ) = MOMENT3_CONC( 3 )     ! wet k-mode 3rd moment
-                  TEMP_DATA( 20 ) = fPM1( 1 )             ! i-mode PM1 fraction
-                  TEMP_DATA( 21 ) = fPM1( 2 )             ! j-mode PM1 fraction
-                  TEMP_DATA( 22 ) = fPM1( 3 )             ! k-mode PM1 fraction
-                  TEMP_DATA( 23 ) = fPM25( 1 )            ! i-mode fine fraction
-                  TEMP_DATA( 24 ) = fPM25( 2 )            ! j-mode fine fraction
-                  TEMP_DATA( 25 ) = fPM25( 3 )            ! k-mode fine fraction
-                  TEMP_DATA( 26 ) = fPM10( 1 )            ! i-mode PM10 fraction
-                  TEMP_DATA( 27 ) = fPM10( 2 )            ! j-mode PM10 fraction
-                  TEMP_DATA( 28 ) = fPM10( 3 )            ! k-mode PM10 fraction
+                  TEMP_DATA( 20 ) = real( fPM1( 1 ), 8 )             ! i-mode PM1 fraction
+                  TEMP_DATA( 21 ) = real( fPM1( 2 ), 8 )             ! j-mode PM1 fraction
+                  TEMP_DATA( 22 ) = real( fPM1( 3 ), 8 )             ! k-mode PM1 fraction
+                  TEMP_DATA( 23 ) = real (fPM25( 1 ), 8 )            ! i-mode fine fraction
+                  TEMP_DATA( 24 ) = real( fPM25( 2 ), 8 )            ! j-mode fine fraction
+                  TEMP_DATA( 25 ) = real( fPM25( 3 ), 8 )            ! k-mode fine fraction
+                  TEMP_DATA( 26 ) = real( fPM10( 1 ), 8 )            ! i-mode PM10 fraction
+                  TEMP_DATA( 27 ) = real( fPM10( 2 ), 8 )            ! j-mode PM10 fraction
+                  TEMP_DATA( 28 ) = real( fPM10( 3 ), 8 )            ! k-mode PM10 fraction
                   TEMP_DATA( 29 ) = fAMS( 1 )             ! i-mode fraction transmitted through AMS
                   TEMP_DATA( 30 ) = fAMS( 2 )             ! j-mode fraction transmitted through AMS
                   TEMP_DATA( 31 ) = fAMS( 3 )             ! k-mode fraction transmitted through AMS
@@ -508,7 +510,7 @@ C     diagnostic array (lowest vertical layer only)
                      TEMP_DATA( 35 ) = YCLNO2K( C,R,L )      ! coarse CLNO2 heterorxn yield
                      TEMP_DATA( 36 ) = GAMMA_IEPOX( C,R,L )  ! IEPOX heterorxn uptake coeff
                   ELSE
-                     TEMP_DATA( 32:36 ) = 0.0
+                     TEMP_DATA( 32:36 ) = 0.0d0 
                   END IF
                   TEMP_DATA( 37 ) = AEROMODE_DENS( 1 )    ! Aitken Mode Density [kg m-3]
                   TEMP_DATA( 38 ) = AEROMODE_DENS( 2 )    ! Accumulation Mode Density [kg m-3]
@@ -535,7 +537,7 @@ C     diagnostic array (lowest vertical layer only)
                   TEMP_DATA( 13 ) = MOMENT3_CONC( 1 )    ! dry i-mode 3rd moment
                   TEMP_DATA( 14 ) = MOMENT3_CONC( 2 )    ! dry j-mode 3rd moment
                   TEMP_DATA( 15 ) = MOMENT3_CONC( 3 )    ! dry k-mode 3rd moment
-                  TEMP_DATA( 19 ) = AIRRH                ! relative humidity
+                  TEMP_DATA( 19 ) = REAL ( AIRRH , 8 )                ! relative humidity
                END IF
 
 C *** Accumulate wet diameters, 2nd, and 3rd moments to average aerosol diagnostic array
@@ -551,10 +553,10 @@ C *** Accumulate wet diameters, 2nd, and 3rd moments to average aerosol diagnost
                IF ( WRITETIME .AND. PMDIAG ) PMDIAG_SPC( C,R,L,: ) = TEMP_DATA
 
 ! *** Collect Aerosol Sub-Process Rates in shared arrays
-               AERO_COND  ( C,R,L,: ) = COND_BUDGET( : )
-               AERO_COAG  ( C,R,L,:,: )=COAG_BUDGET( :,: )
-               AERO_NPF   ( C,R,L,: ) = NPF_BUDGET( : )
-               AERO_GROWTH( C,R,L,: ) = GROWTH_BUDGET( : )
+               AERO_COND  ( C,R,L,: ) =  COND_BUDGET( : )
+               AERO_COAG  ( C,R,L,:,: )= COAG_BUDGET( :,: )
+               AERO_NPF   ( C,R,L,: ) =  NPF_BUDGET( : )
+               AERO_GROWTH( C,R,L,: ) =  GROWTH_BUDGET( : )
 
 #ifdef twoway
                IF ( CMAQ_WRF_FEEDBACK ) THEN
@@ -641,7 +643,7 @@ C *** Write data to the average aerosol diagnostic file.
                      XMSG = 'Could not write ' // CTM_APMDIAG_1 // ' file'
                      CALL M3EXIT ( PNAME, MDATE, MTIME, XMSG, XSTAT1 )
                   END IF
-                  A_PMDIAG_SPC( :,:,:,V ) = 0.0
+                  A_PMDIAG_SPC( :,:,:,V ) = 0.0D0
                END IF
             END DO
 

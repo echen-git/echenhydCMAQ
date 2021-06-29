@@ -64,6 +64,7 @@ C-----------------------------------------------------------------------
       USE AERO_DATA, ONLY: N_EM_AERO_REF, N_MODE
       USE EMIS_VARS, ONLY: EMLAYS, EM_STREAM_SIZE, N_EM_SRM
 
+	  use HDMod 
       IMPLICIT NONE
       SAVE 
 C aerosol emissions: [ppmv/s] for mass & number spcs, [m2/mol/s] for surface area spcs
@@ -77,7 +78,7 @@ C Variables for converting mass emissions rate to number emissions rate
       REAL   :: FACNUM( N_EM_AERO_REF,N_MODE )
 
 C Variables for converting mass emissions rate to 2nd moment emissions rate
-      REAL    :: FACSRF( N_EM_AERO_REF,N_MODE )
+      REAL   :: FACSRF( N_EM_AERO_REF,N_MODE )
 
 C Variables for Saving split factors between emission modes
       REAL, ALLOCATABLE :: SD_SPLIT( :,: )
@@ -185,6 +186,7 @@ C-----------------------------------------------------------------------
          USE UTILIO_DEFN, ONLY: INDEX1, M3EXIT, LATGRD3, XSTAT1, XSTAT2
          USE VDIFF_MAP, ONLY : N_SPC_DIFF, DIFF_SPC
      
+		 USE HDMod 
          INCLUDE SUBST_CONST     ! physical and mathematical constants
          INCLUDE SUBST_FILES_ID  ! file name parameters
 
@@ -361,6 +363,7 @@ C-----------------------------------------------------------------------
        USE EMIS_VARS, ONLY: SD_NML, INTERPRET_EM_RULE_STREAM
        USE UTILIO_DEFN, ONLY: INDEX1, XSTAT1
          
+	   USE HDMod 
        IMPLICIT NONE
 
        INTEGER, INTENT( IN ) :: JDATE      ! current model date, coded YYYYDDD
@@ -510,7 +513,7 @@ C
 C  Revision History:
 
 C   16 AUG 17 BMURPHY: Created
-C                      
+C   HYPERDUAL VERSION J.E.L.
 C ----------------------------------------------------------------------
 
          USE AERO_DATA, ONLY: AEROSPC, N_AEROSPC, AEROSPC_MWINV 
@@ -520,13 +523,14 @@ C ----------------------------------------------------------------------
          USE GRID_CONF, ONLY: NCOLS, NROWS
          USE SSEMIS, ONLY: SEA_FACTNUM, SEA_FACTSRF
 
+		 use HDMod 
          INTEGER, INTENT( IN ) :: ISRM, NL
-         REAL, INTENT( INOUT ) :: VDEMIS ( :,:,:,: ) 
+         TYPE(hyperdual), INTENT( INOUT ) :: VDEMIS ( :,:,:,: ) 
 
          INTEGER :: N, S, IAERO, IM, ISD, ISTR   ! Looping Variables
          INTEGER :: ROW, COL, LAY, N_SD, INUM, ISRF
          REAL    :: FACNUM, FACSRF, MW_FAC
-         REAL, ALLOCATABLE       :: EMISM3( :,:,:,:,: ) 
+         TYPE(hyperdual), ALLOCATABLE       :: EMISM3( :,:,:,:,: ) 
          REAL, ALLOCATABLE, SAVE :: GSFAC( :,:,: )
          REAL, ALLOCATABLE, SAVE :: DENS_FAC( : )
          REAL, PARAMETER   :: F6DPIM9 = 1.0E-9 * F6DPI  ! 1.0E-9 = Kg/ug
@@ -546,7 +550,7 @@ C *** Initialize Variables
 
          N_SD   = EM_STREAM_SIZE( ISRM )%LEN 
          ALLOCATE( EMISM3( EMLAYS,NCOLS,NROWS,N_MODE,N_SD ) )
-         EMISM3 = 0.0
+         EMISM3 = 0.0d0
          !NL = EMLAYS
 
 C *** Calculate scaling factor for converting mass emissions into [ug/m3/s]

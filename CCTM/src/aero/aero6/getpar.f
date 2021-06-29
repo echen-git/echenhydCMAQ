@@ -1,4 +1,3 @@
-
 !------------------------------------------------------------------------!
 !  The Community Multiscale Air Quality (CMAQ) system software is in     !
 !  continuous development by various groups and is based on information  !
@@ -60,8 +59,9 @@ C-----------------------------------------------------------------------
      &                       aeromode_dens, aeromode_lnsg, aeromode_diam, aeromode_mass,
      &                       min_diam_g, min_sigma_g, max_sigma_g, n_mode, n_aerospc,
      &                       aerospc, aero_missing, aerospc_conc, aeromode
-      Use aeromet_data, only : f6pi   ! Includes CONST.EXT
+      Use aeromet_data, only : f6pi, f6dpi   ! Includes CONST.EXT
 
+	  use HDMod 
       Implicit None
 
 C Arguments:
@@ -77,13 +77,13 @@ C Arguments:
                                          ! and max_sigma_g)
 
 C Local Variables:
-      Real( 8 ) :: xxm0        ! temporary storage of moment 0 conc's
-      Real( 8 ) :: xxm2        ! temporary storage of moment 2 conc's
-      Real( 8 ) :: xxm3        ! temporary storage of moment 3 conc's
-      Real( 8 ) :: xfsum       ! (ln(M0)+2ln(M3))/3; used in Sg calcs
-      Real( 8 ) :: lxfm2       ! ln(M2); used in Sg calcs
-      Real( 8 ) :: l2sg        ! square of ln(Sg); used in diameter calcs
-      Real      :: es36        ! exp(4.5*l2sg); used in diameter calcs
+      TYPE(hyperdual) :: xxm0        ! temporary storage of moment 0 conc's
+      TYPE(hyperdual) :: xxm2        ! temporary storage of moment 2 conc's
+      TYPE(hyperdual) :: xxm3        ! temporary storage of moment 3 conc's
+      TYPE(hyperdual) :: xfsum       ! (ln(M0)+2ln(M3))/3; used in Sg calcs
+      TYPE(hyperdual) :: lxfm2       ! ln(M2); used in Sg calcs
+      TYPE(hyperdual) :: l2sg        ! square of ln(Sg); used in diameter calcs
+      TYPE(hyperdual) :: es36        ! exp(4.5*l2sg); used in diameter calcs
 
       Real( 8 ), Parameter :: one3d = 1.0D0 / 3.0D0
       Real( 8 ), Parameter :: two3d = 2.0D0 / 3.0D0
@@ -94,11 +94,12 @@ C Local Variables:
       Real( 8 ), Save :: minl2sg( n_mode )   ! min value of ln(sg)**2 for each mode
       Real( 8 ), Save :: maxl2sg( n_mode )   ! max value of ln(sg)**2 for each mode
 
-      Real( 8 ) :: factor
-      Real( 8 ) :: species_mass
-      Real( 8 ) :: sumM3
-      Real( 8 ) :: sumMass
-      Integer   :: n, spc   ! loop counters
+      Real( 8 )       :: factor
+      TYPE(hyperdual) :: species_mass
+      TYPE(hyperdual) :: sumM3
+      TYPE(hyperdual) :: sumMass
+      Integer         :: n, spc   ! loop counters
+
 
       Real( 8 ), Save :: min_ln_sig_g_squ
       Real( 8 ), Save :: max_ln_sig_g_squ
@@ -125,22 +126,22 @@ C *** Calculate aerosol 3rd moment concentrations [ m**3 / m**3 ]
             If ( aerospc( spc )%tracer .Or. aero_missing(spc,n) .Or. 
      &         ( aerospc( spc )%no_M2Wet .AND. .Not. wet_moments_flag ) ) Cycle
 
-            factor       = Real( 1.0E-9 * f6pi / aerospc( spc )%density, 8 )
-            species_mass = Real( aerospc_conc( spc,n ), 8 )
+            factor       = Real( 1.0D-9 * f6dpi / aerospc( spc )%density, 8) 
+            species_mass = aerospc_conc( spc,n )
             sumM3        = sumM3   + factor * species_mass
             sumMass      = sumMass + species_mass
          End Do
 
-         moment3_conc( n )  = Max ( Real( sumM3 ), aeromode( n )%min_m3conc )
-         aeromode_mass( n ) = Real( sumMass )
+         moment3_conc( n )  = Max ( sumM3 , aeromode( n )%min_m3conc ) ! hyperdual
+         aeromode_mass( n ) = sumMass   ! hyperdual
       End Do
 
 C *** Calculate modal average particle densities [ kg/m**3 ]
-      aeromode_dens = 1.0E-9 * f6pi * aeromode_mass / moment3_conc
-      Where( aeromode_dens .Lt. densmin )
-         aeromode_dens = densmin
+      aeromode_dens = 1.0D-9 * f6dpi * aeromode_mass / moment3_conc ! hyperdual
+      Where( aeromode_dens%x .Lt. densmin )   
+         aeromode_dens%x = densmin            
       End Where
-
+      
 C *** Calculate geometric standard deviations as follows:
 c        ln^2(Sg) = 1/3*ln(M0) + 2/3*ln(M3) - ln(M2)
 c     NOTES:
@@ -154,15 +155,14 @@ c         the maximum limit.  M2 is artificially decreased when Sg falls
 c         below the minimum limit.
 
       Do n = 1, n_mode
-         xxm0 = Real( moment0_conc( n ), 8 )
-         xxm3 = Real( moment3_conc( n ), 8 )
+         xxm0 =  moment0_conc( n )
+         xxm3 =  moment3_conc( n )
          xfsum = one3d * Log( xxm0 ) + two3d * Log( xxm3 )
 
          if ( fixed_sg ) then
-            l2sg  = Real( aeromode_lnsg( n ) ** 2, 8)
-
+            l2sg  = aeromode_lnsg( n ) ** 2 
          else
-            xxm2  = Real( moment2_conc( n ), 8 )
+            xxm2  = moment2_conc( n )
 
             lxfm2 = Log( xxm2 )
             l2sg  = xfsum - lxfm2
@@ -173,13 +173,13 @@ c         below the minimum limit.
          end if
 
          lxfm2 = xfsum - l2sg
-         moment2_conc( n )  = Real( Exp ( lxfm2 ) )
-         aeromode_lnsg( n ) = Real( Sqrt( l2sg ) )
+         moment2_conc( n )  =  Exp ( lxfm2 ) 
+         aeromode_lnsg( n ) =  Sqrt( l2sg ) 
 
-         ES36 = Real( Exp( 4.5d0 * l2sg ) )
-         aeromode_diam( n ) = Max( min_diam_g( n ), ( moment3_conc( n )
-     &                      / ( moment0_conc( n ) * es36 ) ) ** one3 )
-
+         ES36 =  Exp( 4.5d0 * l2sg )
+         aeromode_diam( n ) = Max( REAL(min_diam_g( n ), 8 ), ( moment3_conc( n )
+     &                      / ( moment0_conc( n ) * es36 ) ) ** one3d )
+     	 
       End Do
 
       Return

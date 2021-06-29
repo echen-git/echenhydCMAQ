@@ -55,6 +55,7 @@ c      Model Description.  J. Geophys. Res., Vol 108, No D6, 4183
 c      doi:10.1029/2001JD001409, 2003.
 C-----------------------------------------------------------------------
 
+	  use HDMod 
       IMPLICIT NONE
 
 C *** Arguments:
@@ -62,47 +63,47 @@ C *** Arguments:
       REAL( 8 ) :: LAMDA   ! mean free path [ m ]
 
                            ! coefficients for Free Molecular regime:
-      REAL( 8 ) :: KFMAT      ! Aitken mode
-      REAL( 8 ) :: KFMAC      ! accumulation mode 
-      REAL( 8 ) :: KFMATAC    ! Aitken to accumulation mode
+      TYPE(hyperdual) :: KFMAT      ! Aitken mode
+      TYPE(hyperdual) :: KFMAC      ! accumulation mode 
+      TYPE(hyperdual) :: KFMATAC    ! Aitken to accumulation mode
 
       REAL( 8 ) :: KNC     ! coefficient for Near Continuum regime
 
                            ! modal geometric mean diameters: [ m ]
-      REAL( 8 ) :: DGATK      ! Aitken mode
-      REAL( 8 ) :: DGACC      ! accumulation mode
+      TYPE(hyperdual) :: DGATK      ! Aitken mode
+      TYPE(hyperdual) :: DGACC      ! accumulation mode
 
                            ! modal geometric standard deviation:
-      REAL( 8 ) :: SGATK      ! Atken mode
-      REAL( 8 ) :: SGACC      ! accumulation mode
+      TYPE(hyperdual) :: SGATK      ! Atken mode
+      TYPE(hyperdual) :: SGACC      ! accumulation mode
 
                            ! natural log of modal geometric standard deviation:
-      REAL( 8 ) :: XXLSGAT    ! Aitken mode
-      REAL( 8 ) :: XXLSGAC    ! accumulation mode
+      TYPE(hyperdual) :: XXLSGAT    ! Aitken mode
+      TYPE(hyperdual) :: XXLSGAC    ! accumulation mode
 
                            ! coagulation coefficients
-      REAL( 8 ) :: QS11, QN11, QS22, QN22,
+      TYPE(hyperdual) :: QS11, QN11, QS22, QN22,
      &             QS12, QS21, QN12, QV12 
 
 C *** Local Variables:
 
       INTEGER IBETA, N1, N2A, N2N ! indices for correction factors
 
-      REAL( 8 ) :: I1FM_AT
-      REAL( 8 ) :: I1NC_AT
-      REAL( 8 ) :: I1_AT
+      TYPE(hyperdual) :: I1FM_AT
+      TYPE(hyperdual) :: I1NC_AT
+      TYPE(hyperdual) :: I1_AT
       
-      REAL( 8 ) :: I1FM_AC
-      REAL( 8 ) :: I1NC_AC
-      REAL( 8 ) :: I1_AC
+      TYPE(hyperdual) :: I1FM_AC
+      TYPE(hyperdual) :: I1NC_AC
+      TYPE(hyperdual) :: I1_AC
       
-      REAL( 8 ) :: I1FM
-      REAL( 8 ) :: I1NC
-      REAL( 8 ) :: I1
+      TYPE(hyperdual) :: I1FM
+      TYPE(hyperdual) :: I1NC
+      TYPE(hyperdual) :: I1
       
-      REAL( 8 ) :: CONST II
+      TYPE(hyperdual) :: CONST II
       
-      REAL( 8 ) :: KNGAT, KNGAC
+      TYPE(hyperdual) :: KNGAT, KNGAC
 
       REAL( 8 ), PARAMETER :: ONE = 1.0D0, TWO = 2.0D0, HALF = 0.5D0
 !     REAL( 8 ), PARAMETER :: A = 2.492D0
@@ -112,71 +113,71 @@ C *** Local Variables:
       REAL( 8 ) :: SQRTTWO  !  sqrt(2.0)
       REAL( 8 ) :: DLGSQT2  !  1/ln( sqrt( 2.0 ) )
 
-      REAL( 8 ) :: ESAT01         ! Aitken mode exp( log^2( sigmag )/8 )
-      REAL( 8 ) :: ESAC01         ! accumulation mode exp( log^2( sigmag )/8 )
+      TYPE(hyperdual) :: ESAT01         ! Aitken mode exp( log^2( sigmag )/8 )
+      TYPE(hyperdual) :: ESAC01         ! accumulation mode exp( log^2( sigmag )/8 )
 
-      REAL( 8 ) :: ESAT04
-      REAL( 8 ) :: ESAC04
+      TYPE(hyperdual) :: ESAT04
+      TYPE(hyperdual) :: ESAC04
 
-      REAL( 8 ) :: ESAT05
-      REAL( 8 ) :: ESAC05
+      TYPE(hyperdual) :: ESAT05
+      TYPE(hyperdual) :: ESAC05
 
-      REAL( 8 ) :: ESAT08
-      REAL( 8 ) :: ESAC08
+      TYPE(hyperdual) :: ESAT08
+      TYPE(hyperdual) :: ESAC08
 
-      REAL( 8 ) :: ESAT09
-      REAL( 8 ) :: ESAC09
+      TYPE(hyperdual) :: ESAT09
+      TYPE(hyperdual) :: ESAC09
 
-      REAL( 8 ) :: ESAT16
-      REAL( 8 ) :: ESAC16
+      TYPE(hyperdual) :: ESAT16
+      TYPE(hyperdual) :: ESAC16
       
-      REAL( 8 ) :: ESAT20
-      REAL( 8 ) :: ESAC20
+      TYPE(hyperdual) :: ESAT20
+      TYPE(hyperdual) :: ESAC20
       
-      REAL( 8 ) :: ESAT24
-      REAL( 8 ) :: ESAC24
+      TYPE(hyperdual) :: ESAT24
+      TYPE(hyperdual) :: ESAC24
      
-      REAL( 8 ) :: ESAT25
-      REAL( 8 ) :: ESAC25
+      TYPE(hyperdual) :: ESAT25
+      TYPE(hyperdual) :: ESAC25
       
-      REAL( 8 ) :: ESAT36
-      REAL( 8 ) :: ESAC36
+      TYPE(hyperdual) :: ESAT36
+      TYPE(hyperdual) :: ESAC36
 
-      REAL( 8 ) :: ESAT49
+      TYPE(hyperdual) :: ESAT49
       
-      REAL( 8 ) :: ESAT64
-      REAL( 8 ) :: ESAC64
+      TYPE(hyperdual) :: ESAT64
+      TYPE(hyperdual) :: ESAC64
             
-      REAL( 8 ) :: ESAT100
+      TYPE(hyperdual) :: ESAT100
           
-      REAL( 8 ) :: DGAT2, DGAC2, DGAT3, DGAC3
-      REAL( 8 ) :: SQDGAT, SQDGAC
-      REAL( 8 ) :: SQDGAT5, SQDGAC5
-      REAL( 8 ) :: SQDGAT7
-      REAL( 8 ) :: R, R2, R3, R4, R5, R6, R8
-      REAL( 8 ) :: RI1, RI2, RI3, RI4
-      REAL( 8 ) :: RAT
-      REAL( 8 ) :: COAGFM0, COAGNC0
-      REAL( 8 ) :: COAGFM3, COAGNC3
-      REAL( 8 ) :: COAGFM_AT, COAGFM_AC
-      REAL( 8 ) :: COAGNC_AT, COAGNC_AC
-      REAL( 8 ) :: COAGATAT0
-      REAL( 8 ) :: COAGACAC0
-      REAL( 8 ) :: COAGATAT2
-      REAL( 8 ) :: COAGACAC2
-      REAL( 8 ) :: COAGATAC0, COAGATAC3
-      REAL( 8 ) :: COAGATAC2
-      REAL( 8 ) :: COAGACAT2
-      REAL( 8 ) :: XM2AT, XM3AT, XM2AC, XM3AC
+      TYPE(hyperdual) :: DGAT2, DGAC2, DGAT3, DGAC3
+      TYPE(hyperdual) :: SQDGAT, SQDGAC
+      TYPE(hyperdual) :: SQDGAT5, SQDGAC5
+      TYPE(hyperdual) :: SQDGAT7
+      TYPE(hyperdual) :: R, R2, R3, R4, R5, R6, R8
+      TYPE(hyperdual) :: RI1, RI2, RI3, RI4
+      TYPE(hyperdual) :: RAT
+      TYPE(hyperdual) :: COAGFM0, COAGNC0
+      TYPE(hyperdual) :: COAGFM3, COAGNC3
+      TYPE(hyperdual) :: COAGFM_AT, COAGFM_AC
+      TYPE(hyperdual) :: COAGNC_AT, COAGNC_AC
+      TYPE(hyperdual) :: COAGATAT0
+      TYPE(hyperdual) :: COAGACAC0
+      TYPE(hyperdual) :: COAGATAT2
+      TYPE(hyperdual) :: COAGACAC2
+      TYPE(hyperdual) :: COAGATAC0, COAGATAC3
+      TYPE(hyperdual) :: COAGATAC2
+      TYPE(hyperdual) :: COAGACAT2
+      TYPE(hyperdual) :: XM2AT, XM3AT, XM2AC, XM3AC
 
 C *** correction factors for coagulation rates      
-      REAL :: BM0    ( 10 )        ! M0 INTRAmodal FM - RPM values
-      REAL :: BM0IJ  ( 10,10,10 )  ! M0 INTERmodal FM
-      REAL :: BM3I   ( 10,10,10 )  ! M3 INTERmodal FM- RPM values
-      REAL :: BM2II  ( 10 )        ! M2 INTRAmodal FM
-      REAL :: BM2IITT( 10 )        ! M2 INTRAmodal total
-      REAL :: BM2IJ  ( 10,10,10 )  ! M2 INTERmodal FM i to j
-      REAL :: BM2JI  ( 10,10,10 )  ! M2 total INTERmodal  j from i
+      REAL( 8 ) :: BM0    ( 10 )        ! M0 INTRAmodal FM - RPM values
+      REAL( 8 ) :: BM0IJ  ( 10,10,10 )  ! M0 INTERmodal FM
+      REAL( 8 ) :: BM3I   ( 10,10,10 )  ! M3 INTERmodal FM- RPM values
+      REAL( 8 ) :: BM2II  ( 10 )        ! M2 INTRAmodal FM
+      REAL( 8 ) :: BM2IITT( 10 )        ! M2 INTRAmodal total
+      REAL( 8 ) :: BM2IJ  ( 10,10,10 )  ! M2 INTERmodal FM i to j
+      REAL( 8 ) :: BM2JI  ( 10,10,10 )  ! M2 total INTERmodal  j from i
 
 C *** populate the arrays for the correction factors.
 
@@ -1490,9 +1491,9 @@ C *** Calculate ratio of geometric mean diameters
 C *** Trap subscripts for BM0 and BM0I, between 1 and 10            
 c     See page H.5 of Whitby et al. (1991)
       N2N = MAX( 1, MIN( 10, 
-     &      NINT( 4.0 * ( SGATK - 0.75D0 ) ) ) )
+     &      NINT( 4.0D0 * ( SGATK - 0.75D0 ) ) ) )
       N2A = MAX( 1, MIN( 10, 
-     &      NINT( 4.0 * ( SGACC - 0.75D0 ) ) ) )
+     &      NINT( 4.0D0 * ( SGACC - 0.75D0 ) ) ) )
       N1  = MAX( 1, MIN( 10,
      &       1 + NINT( DLGSQT2 * LOG( RAT ) ) ) )
 
@@ -1697,13 +1698,14 @@ c     defined below at the end of the routine ghxi, ghwi are the gauss-hermite
 c     weights and n is one-half the number of abscissas, since an even number
 c     of abscissas is used
 
+	  use HDMod 
       implicit none
 
 c *** arguments:
-      real( 8 ), intent( in )  :: lamda   ! mean free path
-      real( 8 ), intent( in )  :: kfm, knc
-      real,      intent( in )  :: dg, xlnsig
-      real( 8 ), intent( out ) :: quads11, quadn11
+      TYPE(hyperdual), intent( in )  :: lamda   ! mean free path
+      TYPE(hyperdual), intent( in )  :: kfm, knc
+      TYPE(hyperdual), intent( in )  :: dg, xlnsig
+      TYPE(hyperdual), intent( out ) :: quads11, quadn11
 
 c *** parameters:
       real( 8 ), parameter :: pi = 3.14159265358979324d0
@@ -1713,16 +1715,16 @@ c *** parameters:
       real( 8 ), parameter :: twoA = 2.0d0 * A
 
 c *** local variables:
-      real( 8 ) :: sum1sfm, sum2sfm, sum1nfm, sum2nfm
-      real( 8 ) :: sum1snc, sum2snc, sum1nnc, sum2nnc
-      real( 8 ) :: xi, wxi, xf, dp1p, dp1m, dp1psq, dp1msq
-      real( 8 ) :: v1p,v1m, a2p, a2m, v2p, v2m
-      real( 8 ) :: yi, wyi, yf, dp2p, dp2m, dp2psq, dp2msq
-      real( 8 ) :: dspp, dsmp, dspm, dsmm
-      real( 8 ) :: bppfm, bmpfm, bpmfm, bmmfm
-      real( 8 ) :: bppnc, bmpnc, bpmnc, bmmnc
-      real( 8 ) :: xx1, xx2
-      real( 8 ) :: xbsfm, xbsnc, xbnfm, xbnnc
+      TYPE(hyperdual) :: sum1sfm, sum2sfm, sum1nfm, sum2nfm
+      TYPE(hyperdual) :: sum1snc, sum2snc, sum1nnc, sum2nnc
+      TYPE(hyperdual) :: xi, wxi, xf, dp1p, dp1m, dp1psq, dp1msq
+      TYPE(hyperdual) :: v1p,v1m, a2p, a2m, v2p, v2m
+      TYPE(hyperdual) :: yi, wyi, yf, dp2p, dp2m, dp2psq, dp2msq
+      TYPE(hyperdual) :: dspp, dsmp, dspm, dsmm
+      TYPE(hyperdual) :: bppfm, bmpfm, bpmfm, bmmfm
+      TYPE(hyperdual) :: bppnc, bmpnc, bpmnc, bmmnc
+      TYPE(hyperdual) :: xx1, xx2
+      TYPE(hyperdual) :: xbsfm, xbsnc, xbnfm, xbnnc
       integer i, j
 
 c *** Has a fixed number of Gauss-Herimite abscissas (n)
@@ -1753,17 +1755,17 @@ c *** The following Statement Functions are based on expressions from
 c     Binkowski & Shanker, Jour. Geophys. Research. Vol. 100, no. d12,
 c     pp 26,191-26,209 December 20, 1995
 
-      real( 8 ) :: betafm, betanc
+      TYPE(hyperdual) :: betafm, betanc
 
-c *** for Free Molecular, Eq. A5
-      betafm( xx1, xx2 ) = kfm
-     &                   * sqrt( 1.d0 / xx1 ** 3  + 1.d0 / xx2 ** 3 )
-     &                   * ( xx1 + xx2 ) ** 2
+! c *** for Free Molecular, Eq. A5
+!       betafm( xx1, xx2 ) = kfm
+!      &                   * sqrt( 1.d0 / xx1 ** 3  + 1.d0 / xx2 ** 3 )
+!      &                   * ( xx1 + xx2 ) ** 2
 
-c *** for Near Continuum, Eq. A6
-      betanc( xx1, xx2 ) = knc * ( xx1 + xx2 )
-     &                   * ( 1.0D0 / xx1 + 1.0d0 / xx2 + twoA * lamda
-     &                      * ( 1.0d0 / xx1 ** 2 + 1.0d0 / xx2 ** 2 ) )
+! c *** for Near Continuum, Eq. A6
+!       betanc( xx1, xx2 ) = knc * ( xx1 + xx2 )
+!      &                   * ( 1.0D0 / xx1 + 1.0d0 / xx2 + twoA * lamda
+!      &                      * ( 1.0d0 / xx1 ** 2 + 1.0d0 / xx2 ** 2 ) )
 C-----------------------------------------------------------------------
 
       sum1sfm = 0.d0
@@ -1803,15 +1805,15 @@ C-----------------------------------------------------------------------
             dspm = 0.5d0 * ( v1p + v2m ) ** two3rds - a2m
             dsmm = 0.5d0 * ( v1m + v2m ) ** two3rds - a2m
 
-            bppfm = betafm( dp1p, dp2p )
-            bmpfm = betafm( dp1m, dp2p )
-            bpmfm = betafm( dp1p, dp2m )
-            bmmfm = betafm( dp1m, dp2m )
+            bppfm = betafm( dp1p, dp2p, kfm)
+            bmpfm = betafm( dp1m, dp2p, kfm)
+            bpmfm = betafm( dp1p, dp2m, kfm )
+            bmmfm = betafm( dp1m, dp2m, kfm )
 
-            bppnc = betanc( dp1p, dp2p )
-            bmpnc = betanc( dp1m, dp2p )
-            bpmnc = betanc( dp1p, dp2m )
-            bmmnc = betanc( dp1m, dp2m )
+            bppnc = betanc( dp1p, dp2p, knc, A, lamda )
+            bmpnc = betanc( dp1m, dp2p, knc, A, lamda )
+            bpmnc = betanc( dp1p, dp2m, knc, A, lamda )
+            bmmnc = betanc( dp1m, dp2m, knc, A, lamda )
 
             sum2sfm = sum2sfm + wyi * ( dspp * bppfm + dspm * bpmfm
      &                        + dsmp * bmpfm + dsmm * bmmfm )
@@ -1863,14 +1865,15 @@ c     defined below at the end of the routine.
 c     ghxi, ghwi are the gauss-hermite weights and n is one-half the
 c     number of abscissas, since an even number of abscissas is used.
 
+	  use HDMod 
       implicit none
 
 
 c *** arguments:
-      real( 8 ), intent( in )  :: lamda   ! mean free path
-      real( 8 ), intent( in )  :: kfm, knc
-      real,      intent( in )  :: dg1, dg2, xlnsig1, xlnsig2
-      real( 8 ), intent( out ) :: quads12, quads21, quadn12, quadv12
+      TYPE(hyperdual), intent( in )  :: lamda   ! mean free path
+      TYPE(hyperdual), intent( in )  :: kfm, knc
+      TYPE(hyperdual),      intent( in )  :: dg1, dg2, xlnsig1, xlnsig2
+      TYPE(hyperdual), intent( out ) :: quads12, quads21, quadn12, quadv12
 
 c *** parameters:
       real( 8 ), parameter :: pi = 3.14159265358979324d0
@@ -1880,21 +1883,21 @@ c *** parameters:
       real( 8 ), parameter :: twoA = 2.0d0 * A
 
 c *** local variables:
-      real( 8 ) :: sum1s12fm, sum1s21fm, sum2s12fm, sum2s21fm
-      real( 8 ) :: sum1nfm, sum2nfm
-      real( 8 ) :: sum1vfm, sum2vfm
-      real( 8 ) :: sum1s12nc, sum1s21nc, sum2s12nc, sum2s21nc
-      real( 8 ) :: sum1nnc, sum2nnc
-      real( 8 ) :: sum1vnc, sum2vnc
-      real( 8 ) :: xi, wxi,xf, dp1p, dp1m, dp1psq, dp1msq
-      real( 8 ) :: a1p, a1m, v1p, v1m
-      real( 8 ) :: a2p, a2m, v2p, v2m
-      real( 8 ) :: yi, wyi, yf, dp2p, dp2m, dp2psq, dp2msq
-      real( 8 ) :: dspp, dsmp, dspm, dsmm
-      real( 8 ) :: bppfm, bmpfm, bpmfm, bmmfm
-      real( 8 ) :: bppnc, bmpnc, bpmnc, bmmnc
-      real( 8 ) :: xx1, xx2
-      real( 8 ) :: xbsfm, xbsnc, xbnfm, xbnnc, xbvfm, xbvnc
+      TYPE(hyperdual) :: sum1s12fm, sum1s21fm, sum2s12fm, sum2s21fm
+      TYPE(hyperdual) :: sum1nfm, sum2nfm
+      TYPE(hyperdual) :: sum1vfm, sum2vfm
+      TYPE(hyperdual) :: sum1s12nc, sum1s21nc, sum2s12nc, sum2s21nc
+      TYPE(hyperdual) :: sum1nnc, sum2nnc
+      TYPE(hyperdual) :: sum1vnc, sum2vnc
+      TYPE(hyperdual) :: xi, wxi,xf, dp1p, dp1m, dp1psq, dp1msq
+      TYPE(hyperdual) :: a1p, a1m, v1p, v1m
+      TYPE(hyperdual) :: a2p, a2m, v2p, v2m
+      TYPE(hyperdual) :: yi, wyi, yf, dp2p, dp2m, dp2psq, dp2msq
+      TYPE(hyperdual) :: dspp, dsmp, dspm, dsmm
+      TYPE(hyperdual) :: bppfm, bmpfm, bpmfm, bmmfm
+      TYPE(hyperdual) :: bppnc, bmpnc, bpmnc, bmmnc
+      TYPE(hyperdual) :: xx1, xx2
+      TYPE(hyperdual) :: xbsfm, xbsnc, xbnfm, xbnnc, xbvfm, xbvnc
       integer i, j
 
 c *** Has a fixed number of Gauss-Herimite abscissas (n)
@@ -1925,17 +1928,17 @@ c *** The following Statement Functions are based on expressions from
 c     Binkowski & Shanker, Jour. Geophys. Research. Vol. 100, no. d12,
 c     pp 26,191-26,209 December 20, 1995
 
-      real( 8 ) :: betafm, betanc
+      TYPE(hyperdual) :: betafm, betanc
 
-c *** for Free Molecular, Eq. A5
-      betafm( xx1, xx2 ) = kfm
-     &                   * sqrt( 1.d0 / xx1 ** 3  + 1.d0 / xx2 ** 3 )
-     &                   * ( xx1 + xx2 ) ** 2
+! c *** for Free Molecular, Eq. A5
+!       betafm( xx1, xx2 ) = kfm
+!      &                   * sqrt( 1.d0 / xx1 ** 3  + 1.d0 / xx2 ** 3 )
+!      &                   * ( xx1 + xx2 ) ** 2
 
-c *** for Near Continuum, Eq. A6
-      betanc( xx1, xx2 ) = knc * ( xx1 + xx2 )
-     &                   * ( 1.0D0 / xx1 + 1.0d0 / xx2 + twoA * lamda
-     &                      * ( 1.0d0 / xx1 ** 2 + 1.0d0 / xx2 ** 2 ) )
+! c *** for Near Continuum, Eq. A6
+!       betanc( xx1, xx2 ) = knc * ( xx1 + xx2 )
+!      &                   * ( 1.0D0 / xx1 + 1.0d0 / xx2 + twoA * lamda
+!      &                      * ( 1.0d0 / xx1 ** 2 + 1.0d0 / xx2 ** 2 ) )
 c-----------------------------------------------------------------------
 
       sum1s12fm = 0.d0
@@ -1985,15 +1988,15 @@ c-----------------------------------------------------------------------
             dspm = ( v1p + v2m ) ** two3rds - a2m
             dsmm = ( v1m + v2m ) ** two3rds - a2m
 
-            bppfm = betafm( dp1p, dp2p )
-            bmpfm = betafm( dp1m, dp2p )
-            bpmfm = betafm( dp1p, dp2m )
-            bmmfm = betafm( dp1m, dp2m )
+            bppfm = betafm( dp1p, dp2p, kfm)
+            bmpfm = betafm( dp1m, dp2p, kfm)
+            bpmfm = betafm( dp1p, dp2m, kfm )
+            bmmfm = betafm( dp1m, dp2m, kfm )
 
-            bppnc = betanc( dp1p, dp2p )
-            bmpnc = betanc( dp1m, dp2p )
-            bpmnc = betanc( dp1p, dp2m )
-            bmmnc = betanc( dp1m, dp2m )
+            bppnc = betanc( dp1p, dp2p, knc, A, lamda )
+            bmpnc = betanc( dp1m, dp2p, knc, A, lamda )
+            bpmnc = betanc( dp1p, dp2m, knc, A, lamda )
+            bmmnc = betanc( dp1m, dp2m, knc, A, lamda )
 
             sum2s12fm = sum2s12fm + wyi * ( a1p * bppfm + a1p * bpmfm
      &                            + a1m * bmpfm + a1m * bmmfm )
@@ -2059,3 +2062,45 @@ c *** quadv12 is the intermodal coagulation coefficient for 3rd moment
       return
       end subroutine intercoag_gh
 
+
+      FUNCTION betafm(xx1, xx2, kfm)
+
+c *** Explicitly calculate the betafm parameter
+c *** The following Statement Functions are based on expressions from
+c     Binkowski & Shanker, Jour. Geophys. Research. Vol. 100, no. d12,
+c     pp 26,191-26,209 December 20, 1995
+c *** for Free Molecular, Eq. A5
+
+	    use HDMod 
+        implicit none
+        TYPE(hyperdual) :: xx1, xx2, kfm, betafm
+
+        betafm = kfm
+     &        * sqrt( 1.d0 / xx1 ** 3  + 1.d0 / xx2 ** 3 )
+     &        * ( xx1 + xx2 ) ** 2
+
+        RETURN
+
+      END FUNCTION
+
+
+      FUNCTION betanc(xx1, xx2, knc, A1, lamda)
+c *** Explicitly calculate the betanc parameter
+c *** The following Statement Functions are based on expressions from
+c     Binkowski & Shanker, Jour. Geophys. Research. Vol. 100, no. d12,
+c     pp 26,191-26,209 December 20, 1995
+c *** for Near Continuum, Eq. A6
+
+	    use HDMod 
+        implicit none
+        TYPE(hyperdual) :: xx1, xx2, knc, lamda, betanc
+        TYPE(hyperdual) :: A1
+
+
+        betanc = knc * ( xx1 + xx2 )
+     &           * ( 1.0D0 / xx1 + 1.0d0 / xx2 + 2.0d0 * A1 * lamda
+     &           * ( 1.0d0 / xx1 ** 2 + 1.0d0 / xx2 ** 2 ) )
+
+        RETURN
+
+      END FUNCTION
