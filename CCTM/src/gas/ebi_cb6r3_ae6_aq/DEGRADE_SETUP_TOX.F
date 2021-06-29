@@ -39,7 +39,7 @@ C**********************************************************************
 
       USE CGRID_SPCS   ! CGRID species number and offsets
       USE UTILIO_DEFN  ! IOAPI declarations and definitions
-
+	  USE HDMod
 
       IMPLICIT NONE
 
@@ -121,12 +121,12 @@ C..arrays to store indices to CGRID
 
 C..saved cell concentrations
 
-      REAL( 8 ), ALLOCATABLE :: PREV_CONC( : )
-      REAL( 8 ), ALLOCATABLE :: CURR_CONC( : )
+      TYPE(hyperdual), ALLOCATABLE :: PREV_CONC( : )
+      TYPE(hyperdual), ALLOCATABLE :: CURR_CONC( : )
       REAL( 8 )              :: TEMP                ! cell temperature [ K ]
       REAL( 8 )               :: NUMB_DENS           ! cell air number density [ 1/CM^3 ]
 
-      REAL(8), ALLOCATABLE :: DELT_CONC( : )   ! changes predicted by degrade routine
+      TYPE(hyperdual), ALLOCATABLE :: DELT_CONC( : )   ! changes predicted by degrade routine
 
 C**********************************************************************
 

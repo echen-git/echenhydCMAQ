@@ -43,13 +43,13 @@ C**********************************************************************
       USE RUNTIME_VARS
       USE RXNS_DATA
       USE DEGRADE_SETUP_TOX
-
+	  USE HDMod
       IMPLICIT NONE
 
 
 C.....ARGUMENTS:
 
-      REAL( 8 ), INTENT( IN ) :: CBLK( : )                 !  species concentration in cell
+      TYPE(hyperdual), INTENT( IN ) :: CBLK( : )                 !  species concentration in cell
       REAL,      INTENT( IN ) :: TCELL                     !  cell temperature  [ k ]
       REAL,      INTENT( IN ) :: DCELL                     !  cell air density  [ kg/m^3 ]
       REAL( 8 ), INTENT( IN ) :: PHOTO_CELL( : )           !  Photolysis table for cell [1/s]

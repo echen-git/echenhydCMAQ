@@ -32,7 +32,9 @@ C
 C   18 Jul 14 B.Hutzell: revised to use real(8) variables for solution
 C*************************************************************************
 
-c..EBI solver fixed parameters
+c..EBI solver fixed parameters	  
+	  USE HDMod
+	  
       INTEGER, PARAMETER    ::  NEBITER       = 1000      ! No. of iterations for EBI
       INTEGER, PARAMETER    ::  MAX_CELLS_EBI = 1         ! max # cells in local conc arrays
       REAL( 8 ), PARAMETER  ::  DELTAT        = 2.500D+00 ! EBI time step (min)
@@ -75,20 +77,20 @@ c...Allocatable arrays
       REAL( 8 ), ALLOCATABLE ::  RKI(  : )     ! Rate constants
       REAL( 8 ), ALLOCATABLE ::  RKI_SAV(  :,  : )  ! Saved values of RKI for SS species calcs
 
-      REAL( 8 ), ALLOCATABLE ::  YC (  : )      ! Species concentrations
-      REAL( 8 ), ALLOCATABLE ::  YC0(  : )      ! Species concentrations
-      REAL( 8 ), ALLOCATABLE ::  YCP(  : )      ! Species concentrations
+      TYPE(hyperdual), ALLOCATABLE ::  YC (  : )      ! Species concentrations
+      TYPE(hyperdual), ALLOCATABLE ::  YC0(  : )      ! Species concentrations
+      TYPE(hyperdual), ALLOCATABLE ::  YCP(  : )      ! Species concentrations
       REAL( 8 ), ALLOCATABLE ::  SYC(  :, : )   ! Species concentrations
 
       REAL, ALLOCATABLE      :: FORWARD_CONV( : )  ! CGRID to CHEM Species conversion factor
       REAL, ALLOCATABLE      :: REVERSE_CONV( : )  ! CHEM to CGRID Species conversion factor
 
-      REAL( 8 ), ALLOCATABLE ::  RXRAT( : )     ! Reaction rates
+      TYPE(hyperdual), ALLOCATABLE ::  RXRAT( : )     ! Reaction rates
       REAL( 8 ), ALLOCATABLE ::  RTOL(  : )        ! Species tolerances
-      REAL( 8 ), ALLOCATABLE ::  YCCELL( : )       ! ALL Species in cgrid
-      REAL( 8 ), ALLOCATABLE ::  PROD(  : )     ! Prod of species
-      REAL( 8 ), ALLOCATABLE ::  LOSS(  : )     ! Loss of species
-      REAL( 8 ), ALLOCATABLE ::  PNEG(  : )! Negative production rates
+      TYPE(hyperdual), ALLOCATABLE ::  YCCELL( : )       ! ALL Species in cgrid
+      TYPE(hyperdual), ALLOCATABLE ::  PROD(  : )     ! Prod of species
+      TYPE(hyperdual), ALLOCATABLE ::  LOSS(  : )     ! Loss of species
+      TYPE(hyperdual), ALLOCATABLE ::  PNEG(  : )! Negative production rates
 
       REAL, ALLOCATABLE      :: PRES( :, :, : )          ! pressure (Pa)
       REAL, ALLOCATABLE      :: QV  ( :, :, : )          ! water vapor (Kg/Kg air)
@@ -105,7 +107,8 @@ c...Allocatable arrays
       REAL( 8 ), ALLOCATABLE ::  H2O     ( : )     ! Cell H2O mixing ratio (ppmV)
       REAL( 8 ), ALLOCATABLE ::  TEMP    ( : )     ! Cell Temperature
       REAL( 8 ), ALLOCATABLE ::  DENSITY ( : )     ! Cell mass density (Kg/m3)
-      REAL( 8 ), ALLOCATABLE ::  HET     ( :, : )  ! cell heterogeneous reaction rates
+!     REAL( 8 ), ALLOCATABLE ::  HET     ( :, : )  ! cell heterogeneous reaction rates
+      TYPE(hyperdual), ALLOCATABLE :: HET( :, : )
       REAL( 8 ), ALLOCATABLE ::  RJIN    ( :, : )  ! J-values for a cell
       LOGICAL, ALLOCATABLE   ::  LAND    ( : )     ! land_zone value for specific cell
 

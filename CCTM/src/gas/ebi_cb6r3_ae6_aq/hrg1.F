@@ -37,7 +37,7 @@ C                        approximation. To match conditions where the initial
 C                        concentration cannot be neglected.
 C**********************************************************************
       USE HRDATA
-
+	  USE HDMod
       IMPLICIT NONE
 
 
@@ -59,26 +59,26 @@ C..SAVED LOCAL VARIABLES:
 
 
 C..SCRATCH LOCAL VARIABLES:
-      REAL( 8 ) :: O1D_S               ! sum of O1D loss frequencies
-      REAL( 8 ) :: O3P_S               ! stoich coeff for O3P from O1D
+      TYPE(hyperdual) :: O1D_S               ! sum of O1D loss frequencies
+      TYPE(hyperdual) :: O3P_S               ! stoich coeff for O3P from O1D
 
 
 
-      REAL( 8 ) :: R1_2                ! production term for NO from NO2
-      REAL( 8 ) :: R2_1                ! production term for NO2 from NO
-      REAL( 8 ) :: P1, P2, P3, P12     ! production terms for NO, NO2, O3, & O3P
-      REAL( 8 ) :: L1, L2, L3, L12     ! loss terms for NO, NO2, O3, O3P
-      REAL( 8 ) :: L1_INV, L2_INV,
+      TYPE(hyperdual) :: R1_2                ! production term for NO from NO2
+      TYPE(hyperdual) :: R2_1                ! production term for NO2 from NO
+      TYPE(hyperdual) :: P1, P2, P3, P12     ! production terms for NO, NO2, O3, & O3P
+      TYPE(hyperdual) :: L1, L2, L3, L12     ! loss terms for NO, NO2, O3, O3P
+      TYPE(hyperdual) :: L1_INV, L2_INV,
      &             L3_INV, L12_INV     ! inverse of loss terms
 
-      REAL( 8 ) :: T1, T2, T3, T4, T5  ! intermerdiate terms
-      REAL( 8 ) :: F1, F2, F3          ! intermerdiate terms
-      REAL( 8 ) :: A, B, C             ! coefficients for quadratic equation
-      REAL( 8 ) :: Q, XX, S1, S2       ! intermerdiate terms
+      TYPE(hyperdual) :: T1, T2, T3, T4, T5  ! intermerdiate terms
+      TYPE(hyperdual) :: F1, F2, F3          ! intermerdiate terms
+      TYPE(hyperdual) :: A, B, C             ! coefficients for quadratic equation
+      TYPE(hyperdual) :: Q, XX, S1, S2       ! intermerdiate terms
 
-      REAL( 8 ) :: RK1, RK2, RK3       ! rate constants
+      TYPE(hyperdual) :: RK1, RK2, RK3       ! rate constants
 
-      REAL( 8 ) :: PO3                 ! temp variable for O3
+      TYPE(hyperdual) :: PO3                 ! temp variable for O3
 
 C**********************************************************************
 

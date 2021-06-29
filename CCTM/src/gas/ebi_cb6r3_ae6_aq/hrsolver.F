@@ -42,7 +42,7 @@ C**********************************************************************
       USE UTILIO_DEFN
       USE RXNS_DATA
       USE HRDATA
-      USE PA_IRR_MODULE
+C     USE PA_IRR_MODULE
 #ifdef isam
       USE SA_IRR_DEFN
 #endif
@@ -77,8 +77,8 @@ C..SAVED LOCAL VARIABLES:
       LOGICAL, ALLOCATABLE, SAVE :: MAXCONC ( : )       ! MAXCONC ERROR Flag for EBI species
       LOGICAL, ALLOCATABLE, SAVE :: NOTMAX  ( : )       ! Initial concentration not greater than MAXPRED
 
-      REAL( 8 ), ALLOCATABLE, SAVE :: RERROR  ( : )     ! Relative Error
-      REAL( 8 ), ALLOCATABLE, SAVE :: AERROR  ( : )     ! Absolute Error
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: RERROR  ( : )     ! Relative Error
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: AERROR  ( : )     ! Absolute Error
 
 
 C..SCRATCH LOCAL VARIABLES:
@@ -105,8 +105,8 @@ C..SCRATCH LOCAL VARIABLES:
 
       REAL( 8 ) DTC              ! Time step to take
       REAL( 8 ) DTG         ! Time step in degrade routines, sec
-      REAL( 8 ) FXDLOSS          ! Total loss due to negative stoichiometry
-      REAL( 8 ) VARLOSS          ! Loss excluding negative stoichiometry
+      TYPE(hyperdual) FXDLOSS          ! Total loss due to negative stoichiometry
+      TYPE(hyperdual) VARLOSS          ! Loss excluding negative stoichiometry
 
 
 #ifdef hrdebug
@@ -123,7 +123,8 @@ C..SCRATCH LOCAL VARIABLES:
 
       INTERFACE ! for degrade algorithm
         SUBROUTINE DEGRADE( CBLK, DT, JDATE, JTIME )
-          REAL( 8 ), INTENT( IN ) :: CBLK( : )      ! array holding species concentrations
+          USE HDMod
+          TYPE(hyperdual), INTENT( IN ) :: CBLK( : )      ! array holding species concentrations
           REAL( 8 ), INTENT( IN ) :: DT             ! time step for integrations [sec]
           INTEGER,   INTENT( IN ) :: JDATE          ! current model date , coded YYYYDDD
           INTEGER,   INTENT( IN ) :: JTIME          ! current model time , coded HHMMSS
@@ -232,14 +233,17 @@ c++++++++++++++++++++++++Debug section++++++++++++++++++++++++++++++++++
       END DO
 
 ! Initial PA_IRR
-      IF( CALL_IRR ) CALL PA_IRR ( .TRUE., RKI, YC, DTC )
+C     IF( CALL_IRR ) CALL PA_IRR ( .TRUE., RKI, YC, DTC )
       TSTEP_EBI: DO    ! EBI time-step loop
 
          SUBSTEP_EBI: DO NINR = 1, N_INR_STEPS   ! time substeps loop
 !  first attempt is sub time-step equals EBI time-step
 
-            IF( LEBI_CONV ) FORALL( S = 1:NUMB_MECH_SPC )YC0( S ) = YC( S )   ! Set ICs for EBI iterations
-
+            IF( LEBI_CONV ) FORALL( S = 1:NUMB_MECH_SPC )YC0( S )%x = YC( S )%x   ! Set ICs for EBI iterations
+            IF( LEBI_CONV ) FORALL( S = 1:NUMB_MECH_SPC )YC0( S )%dx1 = YC( S )%dx1   ! Set ICs for EBI iterations
+            IF( LEBI_CONV ) FORALL( S = 1:NUMB_MECH_SPC )YC0( S )%dx2 = YC( S )%dx2   ! Set ICs for EBI iterations
+            IF( LEBI_CONV ) FORALL( S = 1:NUMB_MECH_SPC )YC0( S )%dx1x2 = YC( S )%dx1x2   ! Set ICs for EBI iterations
+                                    
             ITER_SUBSTEP: DO ITER = 1, NEBITER  ! iteration loop solving for sub time-step
 
 
@@ -358,7 +362,7 @@ c++++++++++++++++++++++++Debug section++++++++++++++++++++++++++++++++++
                 END DO
                 IF( CALL_DEG )CALL DEGRADE(YCCELL, DTG, JDATE, JTIME) ! :WTH Call degradation routine
 
-                 IF( CALL_IRR ) CALL PA_IRR ( .FALSE., RKI, YC, DTC )
+C                IF( CALL_IRR ) CALL PA_IRR ( .FALSE., RKI, YC, DTC )
 #ifdef isam
                  IF( NEBI .EQ. N_EBI_STEPS )UPDATE_SOLD = .TRUE.
                  CALL SA_IRR_UNBLOCKED ( .FALSE., RKI, YC, DTC )
@@ -391,8 +395,11 @@ c++++++++++++++++++++++++Debug section++++++++++++++++++++++++++++++++++
                   END DO
                END IF
 
-               FORALL( S = 1:NUMB_MECH_SPC )YC( S ) = YC0( S )   ! Set ICs for EBI time-step
-
+               FORALL( S = 1:NUMB_MECH_SPC )YC( S )%x = YC0( S )%x   ! Set ICs for EBI time-step
+               FORALL( S = 1:NUMB_MECH_SPC )YC( S )%dx1 = YC0( S )%dx1   ! Set ICs for EBI time-step
+               FORALL( S = 1:NUMB_MECH_SPC )YC( S )%dx2 = YC0( S )%dx2   ! Set ICs for EBI time-step
+               FORALL( S = 1:NUMB_MECH_SPC )YC( S )%dx1x2 = YC0( S )%dx1x2   ! Set ICs for EBI time-step    
+                                         
                DTC = 0.5D0 * DTC
 
                N_INR_STEPS = 2 ** NBKUPS

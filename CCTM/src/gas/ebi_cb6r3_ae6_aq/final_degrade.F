@@ -41,12 +41,12 @@ C
 C**********************************************************************
 
       USE DEGRADE_SETUP_TOX
-
+	  USE HDMod
       IMPLICIT NONE
 
 C.....ARGUMENTS:
 
-      REAL( 8 ), INTENT( INOUT ) :: CBLK( : )    !  species concentration in cell
+      TYPE(hyperdual), INTENT( INOUT ) :: CBLK( : )    !  species concentration in cell
 
 C.....LOCAL VARIABLES:
 

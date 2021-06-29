@@ -57,7 +57,7 @@ C-----------------------------------------------------------------------
       USE CGRID_SPCS           ! CGRID mechanism species
       USE UTILIO_DEFN
       USE RXNS_DATA, ONLY : MECHNAME
-      USE AERO_DATA, only : CHECK_AERO_ICBC, N_MODE
+      USE AERO_DATA, only : CHECK_AERO_ICBC_REAL, N_MODE
       use CENTRALIZED_IO_MODULE, only : interpolate_var, window
 
 #ifdef sens
@@ -383,7 +383,7 @@ C Read & interpolate boundary concentrations
       !Check Aerosol Size Distributions and Warn 
       !the User if They Are Not Robust
       DO BND = 1,NBNDY
-        CALL CHECK_AERO_ICBC( BCON( BND,STRT:FINI ), .FALSE., STAT, AER_PAR, LMODE )
+        CALL CHECK_AERO_ICBC_REAL( BCON( BND,STRT:FINI ), .FALSE., STAT, AER_PAR, LMODE )
         IF ( STAT .GT. 0 ) THEN
           LSTAT = .TRUE.
 #ifdef verbose_rdbcon

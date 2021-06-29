@@ -54,25 +54,25 @@ C..SAVED LOCAL VARIABLES:
 
 
 C..SCRATCH LOCAL VARIABLES:
-      REAL( 8 ) ::    O1D_S                 ! sum of O1D loss frequencies
-      REAL( 8 ) ::    OH_S                  ! stoich coeff for OH from O1D+H2O or H2
-      REAL( 8 ) ::    HO2_S                 ! stoich coeff for HO2 from O1D+H2 rxn
-      REAL( 8 ) ::    XOH_S                 ! stoich coeff for OH & HONO from NO2EX loss rxn
-      REAL( 8 ) ::    R4_19                 ! production of OH from HONO
-      REAL( 8 ) ::    R19_4                 ! production of HONO from OH
-      REAL( 8 ) ::    R4_5                  ! production of OH from HO2
-      REAL( 8 ) ::    R5_4                  ! production of HO2 from OH
-      REAL( 8 ) ::    R5_21                 ! production of HO2 from HNO4
-      REAL( 8 ) ::    R21_5                 ! production of HNO4 from HO2
-      REAL( 8 ) ::    P4, P5, P19, P21      ! species production form other paths
-      REAL( 8 ) ::    L4, L5, L19, L21      ! species loss terms
+      TYPE(hyperdual) ::    O1D_S                 ! sum of O1D loss frequencies
+      TYPE(hyperdual) ::    OH_S                  ! stoich coeff for OH from O1D+H2O or H2
+      TYPE(hyperdual) ::    HO2_S                 ! stoich coeff for HO2 from O1D+H2 rxn
+      TYPE(hyperdual) ::    XOH_S                 ! stoich coeff for OH & HONO from NO2EX loss rxn
+      TYPE(hyperdual) ::    R4_19                 ! production of OH from HONO
+      TYPE(hyperdual) ::    R19_4                 ! production of HONO from OH
+      TYPE(hyperdual) ::    R4_5                  ! production of OH from HO2
+      TYPE(hyperdual) ::    R5_4                  ! production of HO2 from OH
+      TYPE(hyperdual) ::    R5_21                 ! production of HO2 from HNO4
+      TYPE(hyperdual) ::    R21_5                 ! production of HNO4 from HO2
+      TYPE(hyperdual) ::    P4, P5, P19, P21      ! species production form other paths
+      TYPE(hyperdual) ::    L4, L5, L19, L21      ! species loss terms
 
-      REAL( 8 ) ::    A, B, C               ! coeffs of quadratic eq. for HO2
-      REAL( 8 ) ::    Q                     ! intermediate term
+      TYPE(hyperdual) ::    A, B, C               ! coeffs of quadratic eq. for HO2
+      TYPE(hyperdual) ::    Q                     ! intermediate term
 
-      REAL( 8 ) ::    T1, T2, T3            ! intermediate terms
+      TYPE(hyperdual) ::    T1, T2, T3            ! intermediate terms
 
-      REAL( 8 ) ::    L21_INV               ! reciprocal of HNO4 loss term
+      TYPE(hyperdual) ::    L21_INV               ! reciprocal of HNO4 loss term
 
 C**********************************************************************
 

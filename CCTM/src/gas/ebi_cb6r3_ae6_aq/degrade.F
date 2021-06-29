@@ -49,12 +49,14 @@ C**********************************************************************
 
       USE RXNS_DATA
       USE DEGRADE_SETUP_TOX
+      USE HDMod
+      
 
       IMPLICIT NONE
 
 C.....ARGUMENTS:
 
-      REAL( 8 ), INTENT( IN ) :: CBLK( : )      ! array holding species concentrations
+      TYPE(hyperdual), INTENT( IN ) :: CBLK( : )      ! array holding species concentrations
       REAL( 8 ), INTENT( IN ) :: DT             ! time step for integrations [sec]
       INTEGER,   INTENT( IN ) :: JDATE          ! current model date , coded YYYYDDD
       INTEGER,   INTENT( IN ) :: JTIME          ! current model time , coded HHMMSS
@@ -79,10 +81,10 @@ C.....LOCAL VARIABLES:
 
       LOGICAL, SAVE  :: FIRSTCALL  = .TRUE.
 
-      REAL(8)        :: TRANS                    ! molecules/cm^3 transferred to products
-      REAL(8)        :: LOSS_RATE( N_PROCESSES ) ! individual loss rates  [sec^-1]
-      REAL(8)        :: NET_RATE                 ! net rate of transfer   [sec^-1]
-      REAL(8)        :: NET_LIFE                 ! lifetime based on net transfer rate  [sec]
+      TYPE(hyperdual)        :: TRANS                    ! molecules/cm^3 transferred to products
+      TYPE(hyperdual)        :: LOSS_RATE( N_PROCESSES ) ! individual loss rates  [sec^-1]
+      TYPE(hyperdual)        :: NET_RATE                 ! net rate of transfer   [sec^-1]
+      TYPE(hyperdual)        :: NET_LIFE                 ! lifetime based on net transfer rate  [sec]
       REAL(8)        :: TSTEP                    ! degradation time step, sec
 
 C**********************************************************************

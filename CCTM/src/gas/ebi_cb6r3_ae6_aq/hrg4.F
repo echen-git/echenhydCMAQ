@@ -32,7 +32,7 @@ C
 C   18 Jul 14 B.Hutzell: revised to use real(8) variables
 C**********************************************************************
       USE HRDATA
-
+	  USE HDMod
       IMPLICIT NONE
 
 
@@ -54,14 +54,14 @@ C..SAVED LOCAL VARIABLES:
 
 
 C..SCRATCH LOCAL VARIABLES:
-      REAL( 8 ) ::   A, B, C, Q   ! Quadratic equation terms
-      REAL( 8 ) ::   CMN          ! Temp scalar
-      REAL( 8 ) ::   L15          ! Loss of NO3
-      REAL( 8 ) ::   L16          ! Loss of N2O5
-      REAL( 8 ) ::   P15          ! Production of NO3
-      REAL( 8 ) ::   K15_15       ! Kno3+no3 * delta t
-      REAL( 8 ) ::   R15_16       ! Kn2o5-->no3 * delta t
-      REAL( 8 ) ::   R16_15       ! Kno3+no2-->n2o5[NO2] * delta t
+      TYPE(hyperdual) ::   A, B, C, Q   ! Quadratic equation terms
+      TYPE(hyperdual) ::   CMN          ! Temp scalar
+      TYPE(hyperdual) ::   L15          ! Loss of NO3
+      TYPE(hyperdual) ::   L16          ! Loss of N2O5
+      TYPE(hyperdual) ::   P15          ! Production of NO3
+      TYPE(hyperdual) ::   K15_15       ! Kno3+no3 * delta t
+      TYPE(hyperdual) ::   R15_16       ! Kn2o5-->no3 * delta t
+      TYPE(hyperdual) ::   R16_15       ! Kno3+no2-->n2o5[NO2] * delta t
 
 
 C**********************************************************************

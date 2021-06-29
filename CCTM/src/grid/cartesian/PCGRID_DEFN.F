@@ -49,10 +49,11 @@ C-----------------------------------------------------------------------
 
       USE GRID_CONF                ! horizontal & vertical domain specifications
       USE CGRID_SPCS, ONLY: NSPCSD  ! CGRID mechanism species
-
+	  USE HDMod
+	  
       IMPLICIT NONE
 
-      REAL, ALLOCATABLE, SAVE, TARGET :: PCGRID( :,:,:,: )
+      TYPE(hyperdual), ALLOCATABLE, SAVE, TARGET :: PCGRID( :,:,:,: )
 
       CONTAINS
          FUNCTION PCGRID_INIT () RESULT ( SUCCESS )
@@ -98,7 +99,7 @@ C PCGRID extents
                SUCCESS = .FALSE.; RETURN
                END IF
 
-            PCGRID = 0.0
+            PCGRID = 0.0d0
 !           PCGRID = -999.999
 
             ELSE
