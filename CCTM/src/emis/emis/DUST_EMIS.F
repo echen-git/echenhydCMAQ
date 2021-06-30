@@ -72,14 +72,15 @@ C-----------------------------------------------------------------------
       use lus_defn
       use aero_data
       use emis_vars
-
+	  use HDMod 
+	  
       implicit none 
 
       public ndust_spc, dust_spc,
      &       dust_emis_init, get_dust_emis
       private
 
-      real, allocatable, save :: dust_em( :,: )  ! total dust emissions [g/m**3/s]
+      TYPE(hyperdual), allocatable, save :: dust_em( :,: )  ! total dust emissions [g/m**3/s]
 
 C updated values of mass fraction for "freshly emitted dust"
 C based on Kok [PNAS, 2011] and Nabat et al. [ACP, 2012]
@@ -121,7 +122,7 @@ C Variables for the windblown dust diagnostic file:
       real, allocatable, save :: dustbf( :,:,: ) ! diagnostic accumulate buffer
 
 #ifdef verbose_wbdust
-      real, allocatable, save :: sdiagv( : )  ! global sum of each diag output var
+      TYPE(hyperdual), allocatable, save :: sdiagv( : )  ! global sum of each diag output var
 #endif
 
       type diag_type
@@ -192,6 +193,7 @@ C   implementation
          use centralized_io_module
 
 C Arguments:
+	     use HDMod 
          integer, intent( in ) :: jdate   ! current model date, coded YYYYDDD
          integer, intent( in ) :: jtime   ! current model time, coded HHMMSS
          integer, intent( in ) :: tstep   ! output time step
@@ -292,9 +294,9 @@ C Allocate private arrays
             call m3warn( pname, jdate, jtime, xmsg )
             success = .false.; return
          end if
-         agland = 0.0   ! array assignment
-         wmax   = 0.0   ! array assignment
-         sd_ep  = 0.0   ! array assignment
+         agland = 0.0d0   ! array assignment
+         wmax   = 0.0d0   ! array assignment
+         sd_ep  = 0.0d0   ! array assignment
 
 C Initialize land use/cover variables
          if ( .not. lus_init( jdate, jtime ) ) then
@@ -509,6 +511,7 @@ C   27 Dec 10 J.Young: initial
          use grid_conf           ! horizontal & vertical domain specifications
          use utilio_defn
 
+	     use HDMod 
          implicit none
 
          include SUBST_FILES_ID  ! file name parameters
@@ -603,6 +606,7 @@ C                       RC -> RCA and RN -> RNA and made it backward compatible
 C       8/12/15 D.Wong: added code to handle parallel I/O implementation
 
 C Arguments:
+	     use HDMod 
          integer, intent( in ) :: jdate      ! current model date, coded YYYYDDD
          integer, intent( in ) :: jtime      ! current model time, coded HHMMSS
          integer, intent( in ) :: tstep( 3 ) ! output time step, sync step, 2way step
@@ -644,25 +648,25 @@ C Parameters:
          integer         :: mdate, mtime   ! diagnostic file write date&time
 
                        ! automatic arrays
-         real       :: fmoit  ( ncols,nrows )      ! factor of soil moisture on u*t
-         real       :: soimt  ( ncols,nrows )      ! gravimetric soil moisture (Kg/Kg)
-         real       :: tfa    ( ncols,nrows )      ! transport fraction above canopy
-         real       :: wrbuf  ( ncols,nrows )      ! diagnositc write buffer
-         real       :: vegfrac( ncols,nrows )      ! vegetation fraction
-         real       :: vegfree                     ! 1.0 - vegfrac for this col, row
-         real       :: lai    ( ncols,nrows )      ! leaf area index
+         real  :: fmoit  ( ncols,nrows )      ! factor of soil moisture on u*t
+         real  :: soimt  ( ncols,nrows )      ! gravimetric soil moisture (Kg/Kg)
+         real  :: tfa    ( ncols,nrows )      ! transport fraction above canopy
+         TYPE(hyperdual)  :: wrbuf  ( ncols,nrows )      ! diagnositc write buffer
+         real  :: vegfrac( ncols,nrows )      ! vegetation fraction
+         real  :: vegfree                     ! 1.0 - vegfrac for this col, row
+         real  :: lai    ( ncols,nrows )      ! leaf area index
 
          real, allocatable, save :: ustr  ( :,:,: ) ! U* [m/s]
          real, allocatable, save :: qam   ( :,:,: ) ! emis for landuse type [g/m**2/s]
          real, allocatable, save :: elus  ( :,:,: ) ! erodible landuse percent (0~100)
          real, allocatable, save :: fruf  ( :,:,: ) ! surface roughness factor
 
-         real       :: edust( 2 )       ! mass emis rate [g/s] per mode (only accum & coarse)
-         real       :: sumdfr           ! sum var for desert fraction
-         real       :: rlay1hgt         ! reciprocal of layer-1 height [1/m]
-         real       :: m3j              ! 3rd moment accumulation (J) mode emis rates [m3/m3/s]
-         real       :: m3k              ! 3rd moment coarse mode (K) emis rates [m3/m3/s]
-         real       :: fruf2            ! surface roughness factor squared
+         TYPE(hyperdual)  :: edust( 2 )       ! mass emis rate [g/s] per mode (only accum & coarse)
+         TYPE(hyperdual)  :: sumdfr           ! sum var for desert fraction
+         real  :: rlay1hgt         ! reciprocal of layer-1 height [1/m]
+         TYPE(hyperdual)  :: m3j              ! 3rd moment accumulation (J) mode emis rates [m3/m3/s]
+         TYPE(hyperdual)  :: m3k              ! 3rd moment coarse mode (K) emis rates [m3/m3/s]
+         real  :: fruf2            ! surface roughness factor squared
 
          character( 16 ), save :: rc_name, rn_name    ! new names: RC -> RCA, RN -> RNA
          logical, save :: firstime = .true.
@@ -808,7 +812,7 @@ C Initialize windblown dust diagnostics output buffer
          if ( dustem_diag .and. wstep .eq. 0 ) then
             dustbf = 0.0   ! array assignment
 #ifdef verbose_wbdust
-            sdiagv = 0.0   ! array assignment
+            sdiagv = 0.0d0   ! array assignment
 #endif
          end if
 
@@ -822,13 +826,13 @@ C --------- ###### Start Main Loop ###### ---------
  
          do r = 1, nrows
          do c = 1, ncols
-            dust_em( c,r ) = 0.0
+            dust_em( c,r ) = 0.0d0
             soimt( c,r )   = 0.0
             fmoit( c,r )   = 0.0   ! for diagnostic output visualization
             vegfrac( c,r ) = 0.0
             do m = 1, n_dlcat+1
                ustr( c,r,m ) = 0.0   ! for diagnostic output visualization
-               qam ( c,r,m ) = 0.0
+               qam ( c,r,m ) = 0.0d0
                elus( c,r,m ) = 0.0
                fruf( c,r,m ) = 0.0
                kvh ( c,r,m ) = 0.0
@@ -1075,42 +1079,42 @@ C 2nd moment multiplied by PI to obtain the surface area emissions rate.
 
             if ( dustem_diag ) then
                do m = 1, n_dlcat+1
-                  diagv( m ) = qam( c,r,m )             ! g/m**3/s
+                  diagv( m ) = real(qam( c,r,m ), 8)             ! g/m**3/s
                end do
                n = n_dlcat + 2
                diagv( n ) = dust_em( c,r )              ! g/m**3/s
 
-               sumdfr = 0.0
+               sumdfr = 0.0d0
                do m = 1, n_dlcat+1
-                  diagv( m+n ) = elus( c,r,m )
-                  sumdfr = sumdfr + elus( c,r,m )
+                  diagv( m+n ) = real(elus( c,r,m ), 8)
+                  sumdfr = sumdfr + real(elus( c,r,m ), 8)
                end do
                n = n + n_dlcat + 2
                diagv( n ) = sumdfr
 
                do m = 1, n_dlcat+1
-                  diagv( m+n ) = ustr( c,r,m )
+                  diagv( m+n ) = real(ustr( c,r,m ), 8)
                end do
                n = n + n_dlcat + 1
 
                do m = 1, n_dlcat+1
-                  diagv( m+n ) = kvh( c,r,m )
+                  diagv( m+n ) = real(kvh( c,r,m ), 8)
                end do
                n = n + n_dlcat + 1
 
                do m = 1, n_dlcat+1
-                  diagv( m+n ) = fruf( c,r,m )
+                  diagv( m+n ) = real(fruf( c,r,m ), 8)
                end do
                n = n + n_dlcat + 1
 
-               diagv( n+1  ) = fmoit( c,r )       ! 'Soil_Moist_Fac  '
-               diagv( n+2  ) = sd_ep( c,r )       ! 'Soil_Erode_Pot  '
-               diagv( n+3  ) = wmax ( c,r )       ! 'Mx_Adsrb_H2O_Frc'
-               diagv( n+4  ) = vegfrac( c,r )     ! 'Vegetation_Frac '
-               diagv( n+5  ) = uland( c,r,3 )     ! 'Urban_Cover     '
-               diagv( n+6  ) = uland( c,r,4 )     ! 'Forest_Cover    '
-               diagv( n+7  ) = tfa  ( c,r )       ! 'Trfac_Above_Can '
-               diagv( n+8 )  = tfb  ( c,r )       ! 'Trfac_Inside_Can'
+               diagv( n+1  ) = real(fmoit( c,r ), 8)       ! 'Soil_Moist_Fac  '
+               diagv( n+2  ) = real(sd_ep( c,r ), 8)       ! 'Soil_Erode_Pot  '
+               diagv( n+3  ) = real(wmax ( c,r ), 8)       ! 'Mx_Adsrb_H2O_Frc'
+               diagv( n+4  ) = real(vegfrac( c,r ), 8)     ! 'Vegetation_Frac '
+               diagv( n+5  ) = real(uland( c,r,3 ), 8)     ! 'Urban_Cover     '
+               diagv( n+6  ) = real(uland( c,r,4 ), 8)     ! 'Forest_Cover    '
+               diagv( n+7  ) = real(tfa( c,r ), 8)         ! 'Trfac_Above_Can '
+               diagv( n+8 )  = real(tfb( c,r ), 8)         ! 'Trfac_Inside_Can'
 
                n = n + 8
 
@@ -1143,10 +1147,10 @@ C Multiply by sync step because when write to output we divide by the output ste
 C to get a timestep average.
                do v = 1, ndust_diag
                   dustbf( v,c,r ) = dustbf( v,c,r ) + diagv( v )
-     &                            * float( time2sec( tstep( 2 ) ) )
+     &                            * real(time2sec( tstep( 2 ) ) )
 #ifdef verbose_wbdust
                   sdiagv( v ) = sdiagv( v ) + diagv( v )
-     &                                      * float( time2sec( tstep( 2 ) ) )
+     &                                      * real(time2sec( tstep( 2 ) ) )
 #endif
                end do
             end if   ! dustem_diag
@@ -1174,7 +1178,7 @@ C Then reset the emissions array and local write counter.
                call nextime( mdate, mtime, tstep( 1 ) )
 
 #ifdef verbose_wbdust
-               sdiagv = sdiagv / float( wstep )   ! array assignment
+               sdiagv = sdiagv / real( wstep, 8 )   ! array assignment
                write( logdev,2015 ) jdate, jtime
                do v = 1, ndust_diag
                   if ( diagnm( v )%var(1:4) .ne. 'ANUM' ) then
@@ -1188,7 +1192,7 @@ C Then reset the emissions array and local write counter.
                do v = 1, ndust_diag
                   do r = 1, nrows
                      do c = 1, ncols
-                        wrbuf( c,r ) = dustbf( v,c,r ) / float( wstep )
+                        wrbuf( c,r ) = dustbf( v,c,r ) / real( wstep, 8 )
                      end do
                   end do
 
@@ -1203,7 +1207,7 @@ C Then reset the emissions array and local write counter.
      &               'Timestep written to CTM_DUST_EMIS_1',
      &               'for date and time', mdate, mtime
                wstep = 0
-               dustbf = 0.0   ! array assignment
+               dustbf = 0.0d0   ! array assignment
             end if   !  time to write
          end if   ! dustem_diag
 

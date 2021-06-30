@@ -37,6 +37,7 @@ C-----------------------------------------------------------------------
       USE HGRD_DEFN
       USE AERO_DATA, ONLY: N_MODE
       USE EMIS_VARS
+      USE HDMod
 
       IMPLICIT NONE
 
@@ -53,14 +54,14 @@ C Position of H2O in sea-salt emission arrays
 C Variables for the sea-salt diagnostic file
       INTEGER :: NSSDIAG                ! number of species in sea-salt
                                         ! diagnostic emission file
-      Real,    ALLOCATABLE, SAVE :: SSOUTM( :,:,: )  ! SeaSpray Mass Emiss Rate [ug/m3/s]
-      Real,    ALLOCATABLE, SAVE :: SSOUTN( :,:,: )  ! SeaSpray Number Emiss Rate [1/m3/s]
-      Real,    ALLOCATABLE, SAVE :: SSOUTS( :,:,: )  ! SeaSpray Surface Area Emiss Rate [m2/m3/s]
-      REAL,    ALLOCATABLE       :: SSOUTD( : )   ! emission rates
-      REAL,    ALLOCATABLE, SAVE :: SSBF( :,:,: ) ! seasalt emiss accumulator
-      REAL,    ALLOCATABLE, SAVE :: WRSS( :,: )   ! seasalt emiss write buffer
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: SSOUTM( :,:,: )  ! SeaSpray Mass Emiss Rate [ug/m3/s]
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: SSOUTN( :,:,: )  ! SeaSpray Number Emiss Rate [1/m3/s]
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: SSOUTS( :,:,: )  ! SeaSpray Surface Area Emiss Rate [m2/m3/s]
+      TYPE(hyperdual),    ALLOCATABLE       :: SSOUTD( : )   ! emission rates
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: SSBF( :,:,: ) ! seasalt emiss accumulator
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: WRSS( :,: )   ! seasalt emiss write buffer
       REAL,    ALLOCATABLE, SAVE :: SEA_FACTNUM( :,:,: ) ! Array for scaling Number Emissions
-      REAL,    ALLOCATABLE, SAVE :: SEA_FACTSRF( :,:,: ) ! Array for scaling Surface Area Emissions 
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: SEA_FACTSRF( :,:,: ) ! Array for scaling Surface Area Emissions 
 
 C Species names in the speciated sea-salt-emissions
       CHARACTER( 16 ), ALLOCATABLE :: WRSS_SPC( : )  ! species names
@@ -671,10 +672,14 @@ C 3rd moment emission rates [m3/m3/s]
             REAL      :: M3K              ! coarse mode, 3rd moment
          
 C Variables for calculating dry surface-area emission rate for accum mode
-            REAL      :: WET_M3J, DRY_M3J ! wet & dry 3rd moment emis rates [m3/m3/s] 
-            REAL      :: WET_M2J, DRY_M2J ! wet & dry 2nd moment emis rates [m3/m3/s] 
-            REAL      :: WET_M3K, DRY_M3K ! wet & dry 3rd moment emis rates [m3/m3/s] 
-            REAL      :: WET_M2K, DRY_M2K ! wet & dry 2nd moment emis rates [m3/m3/s] 
+            REAL      :: WET_M3J ! wet & dry 3rd moment emis rates [m3/m3/s] 
+            TYPE(hyperdual) :: DRY_M3J
+            REAL      :: WET_M2J ! wet & dry 2nd moment emis rates [m3/m3/s] 
+            TYPE(hyperdual) :: DRY_M2J
+            REAL      :: WET_M3K ! wet & dry 3rd moment emis rates [m3/m3/s]
+            TYPE(hyperdual) :: DRY_M3K 
+            REAL      :: WET_M2K ! wet & dry 2nd moment emis rates [m3/m3/s]
+            TYPE(hyperdual) :: DRY_M2K 
 
             INTEGER, SAVE     :: WSTEP  = 0    ! local write counter
             INTEGER           :: MDATE, MTIME  ! SSEMIS write date&time
@@ -690,9 +695,9 @@ C Mathematical constants; statement function for ERF approximation
 C----------------------------- Begin calc ------------------------------
 
 C Initialize sea-salt output buffer
-            IF ( SSEMDIAG .AND. WSTEP .EQ. 0 ) SSBF = 0.0
+            IF ( SSEMDIAG .AND. WSTEP .EQ. 0 ) SSBF = 0.0d0
             SEA_FACTNUM = 0.0
-            SEA_FACTSRF = 0.0
+            SEA_FACTSRF = 0.0d0
 
             DO R = 1, NROWS
                DO C = 1, NCOLS
@@ -708,10 +713,10 @@ C Initialize sea-salt output buffer
                   ELSE
                      DO N = 1, 2
                         DO S = 1, NSSSPC
-                           SSOUTM( (N-1)*NSSSPC+S,C,R ) = 0.0
+                           SSOUTM( (N-1)*NSSSPC+S,C,R ) = 0.0d0
                         END DO
-                        SSOUTN( N,C,R ) = 0.0
-                        SSOUTS( N,C,R ) = 0.0
+                        SSOUTN( N,C,R ) = 0.0d0
+                        SSOUTS( N,C,R ) = 0.0d0
                      END DO
                      CYCLE
                   END IF
@@ -864,8 +869,8 @@ C Roselle (2003)
                   FACTM2K  = EXP( 0.5 * LNSGK * LNSGK ) / DGVKRH 
 
 C Calculate mode-specific emission rates of particle number [1/s]
-                  SSOUTN( 1,C,R ) = M3J * FACTNUMJ
-                  SSOUTN( 2,C,R ) = M3K * FACTNUMK
+                  SSOUTN( 1,C,R ) = REAL ( M3J * FACTNUMJ , 8 )
+                  SSOUTN( 2,C,R ) = REAL ( M3K * FACTNUMK , 8 ) 
 
 C Calculate mode-specific dry surface area emission rates [m2/m3/s].  
 C Subtract water from 3rd moment to obtain dry 3rd moment emission rate.  
@@ -889,7 +894,7 @@ C Multiply dry 2nd moment by PI to obtain dry surface area emission rate.
                   SEA_FACTNUM( 1,C,R ) = 0.0
                   SEA_FACTNUM( 2,C,R ) = FACTNUMJ
                   SEA_FACTNUM( 3,C,R ) = FACTNUMK
-                  SEA_FACTSRF( 1,C,R ) = 0.0
+                  SEA_FACTSRF( 1,C,R ) = 0.0d0
                   SEA_FACTSRF( 2,C,R ) = SSOUTS( 1,C,R ) / M3J
                   SEA_FACTSRF( 3,C,R ) = SSOUTS( 2,C,R ) / M3K
 
@@ -967,7 +972,7 @@ C Then reset the sea-salt emissions array and local write counter.
      &                  'Timestep written to', CTM_SSEMIS_1,
      &                  'for date and time', MDATE, MTIME
                   WSTEP = 0
-                  SSBF = 0.0
+                  SSBF = 0.0d0
                END IF
 
             END IF  ! SSEMDIAG

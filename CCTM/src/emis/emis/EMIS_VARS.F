@@ -27,12 +27,13 @@
 !-----------------------------------------------------------------------
       USE RUNTIME_VARS
       USE em_param_module
+      USE HDMod
 
       IMPLICIT NONE
 
       SAVE
 
-      REAL,    ALLOCATABLE :: VDEMIS_DIFF( :,:,:,: ) ! emissions array mapped to diffused species
+      TYPE(hyperdual),    ALLOCATABLE :: VDEMIS_DIFF( :,:,:,: ) ! emissions array mapped to diffused species
 
       INTEGER              :: EMLAYS
 

@@ -66,6 +66,7 @@ C     19 Sep  2019 D. Wong: Fixed the way to advance to next day on an emission 
 C-----------------------------------------------------------------------
 
       USE UDTYPES, ONLY: RARRY1
+      USE HDMod
 
       IMPLICIT NONE
 
@@ -105,7 +106,7 @@ C Layer fractions source id output files
 C Point source 3d emis diagnostic file names
 !     CHARACTER( 16 ),               SAVE :: PT3DNAME
 C Point source 3d emis diagnostic integral average write buffers
-      REAL,    ALLOCATABLE, SAVE :: VDEMIS_BUF( :,:,:,: )
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: VDEMIS_BUF( :,:,:,: )
 C Diagnostic file avg factor
       REAL                       :: DIVFAC
 
@@ -538,6 +539,7 @@ C=======================================================================
          USE RUNTIME_VARS, ONLY : LOGDEV, PT3DDIAG, PT3DFRAC, STDATE, STTIME
          USE CENTRALIZED_IO_MODULE, only : interpolate_var
          USE UTILIO_DEFN
+         USE HDMod
 
          IMPLICIT NONE
 
@@ -551,7 +553,7 @@ C=======================================================================
          INTEGER, INTENT( IN ) :: TSTEP( 3 )
          INTEGER, INTENT( IN ) :: ISRM
          INTEGER, INTENT( OUT) :: PT_LAYS
-         REAL, INTENT(INOUT)  :: VDEMIS_PT( :,:,:,: ) 
+         TYPE(hyperdual), INTENT(INOUT)  :: VDEMIS_PT( :,:,:,: ) 
 
 ! Parameters:
 
@@ -604,7 +606,7 @@ C-----------------------------------------------------------------------
 
               ALLOCATE ( VDEMIS_BUF( N_EMIS_ISTR,EMLAYS,NCOLS,NROWS ), STAT = IOS )
               CALL CHECKMEM( IOS, 'VDEMIS_BUF', PNAME )
-              VDEMIS_BUF = 0.0   ! array
+              VDEMIS_BUF = 0.0d0   ! array
               WRITE( LOGDEV,'(/5X, A /5X, A )' )
      &                        'Recording 3d point source emissions diagnostics',
      &                        'as a linear average over the output timestep'
@@ -755,7 +757,7 @@ C Write Out Diagnostic Info
                WRITE( LOGDEV,94030 )
      &               'Timestep written to', CTM_PT3D_DIAG,
      &               'for date and time', WDATE, WTIME
-            VDEMIS_BUF = 0.0   ! array
+            VDEMIS_BUF = 0.0d0  ! array
             NTICS = 0
             END IF
          END IF

@@ -30,11 +30,12 @@ C     10 May 2011 D.Wong: incorporated twoway model implementation
 C     01 Feb 19 David Wong: removed MY_N clauses
 C-----------------------------------------------------------------------
       USE RUNTIME_VARS
+      USE HDMod
 
       IMPLICIT NONE
 
       INTEGER,              SAVE :: N_SPC_BIOG ! biogenics emissions species
-      REAL,    ALLOCATABLE, SAVE :: VDEMIS_BI( :,:,: ) ! beis emis
+      TYPE(hyperdual),    ALLOCATABLE, SAVE :: VDEMIS_BI( :,:,: ) ! beis emis
       INTEGER, ALLOCATABLE, SAVE :: BEIS_MAP( : ) ! map to GC
       CHARACTER( 16 ),      SAVE :: CTM_BIOGEMIS = 'CTM_BIOGEMIS'! env var for
 
@@ -111,11 +112,12 @@ C=======================================================================
          LOGICAL, SAVE :: FIRST_TIME = .TRUE.
 
          INTERFACE
-            SUBROUTINE TMPBEIS312 ( MDATE, MTIME, TSTEP, BEIS_MAP, VDEMIS_BI )
+            SUBROUTINE TMPBEIS312_HD ( MDATE, MTIME, TSTEP, BEIS_MAP, VDEMIS_BI )
+               USE HDMod
                INTEGER, INTENT(  IN ) :: MDATE, MTIME, TSTEP( 3 )
                INTEGER, INTENT(  IN ) :: BEIS_MAP( : )
-               REAL,    INTENT( OUT ) :: VDEMIS_BI( :,:,: )
-            END SUBROUTINE TMPBEIS312
+               TYPE(hyperdual),    INTENT( OUT ) :: VDEMIS_BI( :,:,: )
+            END SUBROUTINE TMPBEIS312_HD
          END INTERFACE
 
 C-----------------------------------------------------------------------
@@ -133,7 +135,7 @@ C-----------------------------------------------------------------------
              FIRST_TIME = .FALSE.
          END IF    
 
-         CALL TMPBEIS312( JDATE, JTIME, TSTEP, BEIS_MAP, VDEMIS_BI )
+         CALL TMPBEIS312_HD( JDATE, JTIME, TSTEP, BEIS_MAP, VDEMIS_BI )
 
          RETURN
 

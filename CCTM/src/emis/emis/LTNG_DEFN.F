@@ -69,6 +69,7 @@
 !C----------------------------------------------------------------------
       USE RUNTIME_VARS
       USE EMIS_VARS
+      USE HDMod
 
       IMPLICIT NONE
 
@@ -626,7 +627,7 @@ C statement function for ERF approximation
      &                    'for date and time', LDATE, LTIME
                   END IF
 
-                  VDEMIS_DIAG = 0.0   ! array assignment
+                  VDEMIS_DIAG = 0.0d0   ! array assignment
                   COLUMN_DIAG = 0.0
                END IF ! LASTTIC
 
