@@ -19,7 +19,8 @@
 
 C:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
       MODULE STD_CONC
-
+	  
+	  use HDMod
       IMPLICIT NONE
 
 C Function: species, layer pointers and definitions for standard CONC
@@ -147,7 +148,7 @@ C Create conc subset array
             CALL M3EXIT ( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
          END IF
 
-         SGRID = 0.0
+         SGRID = 0.0d0
 
 C Check species names against include files and create CONC_MAP, and
 C get starting index in CGRID and total count for each species class

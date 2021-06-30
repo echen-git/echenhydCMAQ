@@ -67,7 +67,10 @@
 
 ! CCTM Output Files:
 
-      CHARACTER( 16 ) :: CTM_CONC_1      ! On-Hour Concentrations
+      CHARACTER( 16 ) :: CTM_CONC_1      ! On-Hour Concentrations, %x
+      CHARACTER( 16 ) :: CTM_CONC_2      ! On-Hour Concentrations, %dx1
+      CHARACTER( 16 ) :: CTM_CONC_3      ! On-Hour Concentrations, %dx2
+      CHARACTER( 16 ) :: CTM_CONC_4      ! On-Hour Concentrations, %dx1x2      
       CHARACTER( 16 ) :: CTM_VEXT_1      ! On-Hour 3D Concentration at select sites
       CHARACTER( 16 ) :: CTM_DRY_DEP_1   ! Hourly Dry Deposition
       CHARACTER( 16 ) :: CTM_WET_DEP_1   ! Wet Deposition from all Clouds

@@ -72,6 +72,8 @@ C-----------------------------------------------------------------------
       USE HGRD_DEFN             ! horizontal domain specifications
       USE CGRID_SPCS            ! CGRID mechanism species
       USE UTILIO_DEFN
+      USE HDMod
+      
 #ifdef parallel
       USE SE_MODULES            ! stenex (using SE_UTIL_MODULE)
 #else
@@ -99,7 +101,7 @@ C Includes:
 C Arguments:
 
 !     REAL      :: CGRID( :,:,:,: )  ! for initial CONC
-      REAL, POINTER :: CGRID( :,:,:,: )  ! for initial CONC
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )  ! for initial CONC
       INTEGER      TSTEP( 3 )   ! time step vector (HHMMSS)
                                 ! TSTEP(1) = local output step
                                 ! TSTEP(2) = sciproc sync. step (chem)
@@ -109,7 +111,7 @@ C Arguments:
 
 C Parameters:
 
-      REAL, PARAMETER :: CMIN = 1.0E-30
+      REAL( 8 ), PARAMETER :: CMIN = 1.0D-30
 
 C Local Variables
       CHARACTER( 16 ) :: PNAME = 'INITSCEN'
@@ -130,13 +132,15 @@ C Local Variables
 
       INTERFACE
          SUBROUTINE LOAD_CGRID ( FNAME, SPC_CAT, CMIN, CGRID )
+         	USE HDMod
             CHARACTER( 16 ), INTENT( IN ) :: FNAME
             CHARACTER(  2 ), INTENT( IN ) :: SPC_CAT
-            REAL,    INTENT( IN )         :: CMIN
-            REAL, POINTER                 :: CGRID( :,:,:,: )
+            REAL( 8 ),    INTENT( IN )    :: CMIN
+            TYPE(hyperdual), POINTER      :: CGRID( :,:,:,: )
          END SUBROUTINE LOAD_CGRID
          SUBROUTINE WR_INIT ( CGRID, JDATE, JTIME, TSTEP )
-            REAL, POINTER                 :: CGRID(:,:,:,:)
+         	USE HDMod
+            TYPE(hyperdual), POINTER      :: CGRID(:,:,:,:)
             INTEGER, INTENT( IN )         :: JDATE
             INTEGER, INTENT( IN )         :: JTIME
             INTEGER, INTENT( IN )         :: TSTEP

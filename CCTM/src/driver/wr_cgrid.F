@@ -38,6 +38,7 @@ C-----------------------------------------------------------------------
       USE GRID_CONF             ! horizontal & vertical domain specifications
       USE CGRID_SPCS            ! CGRID mechanism species
       USE UTILIO_DEFN
+      USE HDMod
 #ifdef parallel
       USE SE_MODULES            ! stenex (using SE_UTIL_MODULE)
 #else
@@ -50,7 +51,8 @@ C Include Files:
 
       INCLUDE SUBST_FILES_ID    ! file name parameters
 
-      REAL, POINTER :: CGRID( :,:,:,: )
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )
+      REAL, POINTER            :: CGRID_DUMMY ( :,:,:,: )
       INTEGER      JDATE        ! current model date, coded YYYYDDD
       INTEGER      JTIME        ! current model time, coded HHMMSS
       INTEGER      TSTEP        ! output timestep (HHMMSS)
@@ -289,7 +291,7 @@ C proc 0 has CTM_CONC_1 open
          END IF
       END IF
 
-      IF ( .NOT. WRITE3( S_CGRID, ALLVAR3, JDATE, JTIME, CGRID ) ) THEN
+      IF ( .NOT. WRITE3( S_CGRID, ALLVAR3, JDATE, JTIME, REAL ( CGRID%x , 4 ) ) ) THEN
          XMSG = 'Could not write S_CGRID'
          CALL M3EXIT( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
       END IF
@@ -301,7 +303,7 @@ C proc 0 has CTM_CONC_1 open
          CALL M3EXIT( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
       END IF
 #else
-      IF ( .NOT. WRITE3( S_CGRID, ALLVAR3, JDATE, JTIME, CGRID ) ) THEN
+      IF ( .NOT. WRITE3( S_CGRID, ALLVAR3, JDATE, JTIME, REAL ( CGRID%x , 4 ) ) ) THEN
          XMSG = 'Could not write S_CGRID'
          CALL M3EXIT( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
       END IF

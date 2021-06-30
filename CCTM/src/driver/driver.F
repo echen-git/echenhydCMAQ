@@ -115,6 +115,7 @@ C-----------------------------------------------------------------------
       use get_env_module
       use lus_defn
       USE AERO_DATA
+      use HDMod
 
       use mio_module
 #else
@@ -123,8 +124,8 @@ C-----------------------------------------------------------------------
       USE STD_CONC              ! standard CONC
       USE AVG_CONC              ! integral average CONC
       USE WVEL_DEFN             ! derived vertical velocity component
-      USE PA_DEFN, Only: LIPR, LIRR  ! Process Anaylsis control and data variables
-      USE PAGRD_DEFN            ! Process Anaylsis horiz domain specs
+C     USE PA_DEFN, Only: LIPR, LIRR  ! Process Anaylsis control and data variables
+C     USE PAGRD_DEFN            ! Process Anaylsis horiz domain specs
       USE UTILIO_DEFN
       USE RUNTIME_VARS
 
@@ -170,7 +171,7 @@ c     USE PMFRC_DEFN            ! MAPFRAC array definition ( adapted )
       LOGICAL, INTENT( IN )  :: LAST_STEP
       INTEGER, INTENT( IN ), OPTIONAL :: COUPLE_TSTEP
       INTEGER, INTENT( IN ), OPTIONAL :: NCOLS_IN, NLAYS_IN
-
+      INTEGER         :: DX1_WRITE_TIME, DX2_WRITE_TIME, DX1X2_WRITE_TIME
 #ifdef mpas
       real, parameter :: cmin = 1.0E-30
 
@@ -213,8 +214,8 @@ C Local variables:
       CHARACTER( 16 ) :: PNAME = 'DRIVER'
       CHARACTER( 96 ) :: XMSG = ' '
 
-      REAL, SAVE, POINTER     :: CGRID( :,:,:,: )
-      REAL, ALLOCATABLE, SAVE :: AGRID( :,:,:,: )
+      TYPE(hyperdual), SAVE, POINTER :: CGRID( :,:,:,: )
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: AGRID( :,:,:,: )
       REAL    DIVFAC      ! trapezoidal average factor
 
       LOGICAL, SAVE :: FIRST_RUN = .TRUE.  ! used for twoway model
@@ -240,13 +241,14 @@ C Local variables:
                                            !      Before
                                            !      (N, M2, M3) -
                                            !      After
-      REAL,ALLOCATABLE :: AECON( : )
+      REAL, ALLOCATABLE :: AECON( : )
       LOGICAL,SAVE :: NEW_START
 #endif
 
       INTERFACE
          SUBROUTINE INITSCEN ( CGRID, TSTEP )
-            REAL, POINTER            :: CGRID( :,:,:,: )
+         	USE HDMod
+            TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )
             INTEGER, INTENT( OUT )   :: TSTEP( 3 )
          END SUBROUTINE INITSCEN
 #ifndef mpas
@@ -257,8 +259,9 @@ C Local variables:
             INTEGER, INTENT( OUT )   :: NREPS
          END SUBROUTINE ADVSTEP
          SUBROUTINE CKSUMMER ( PRNAME, CGRID, JDATE, JTIME )
+         	USE HDMod
             CHARACTER( * ), INTENT( IN ) :: PRNAME
-            REAL, POINTER            :: CGRID( :,:,:,: )
+            TYPE(hyperdual), POINTER     :: CGRID( :,:,:,: )
             INTEGER, INTENT( IN )    :: JDATE, JTIME
          END SUBROUTINE CKSUMMER
          SUBROUTINE PA_INIT ( CGRID, JDATE, JTIME, TSTEP )
@@ -266,11 +269,13 @@ C Local variables:
             INTEGER, INTENT( IN )    :: JDATE, JTIME, TSTEP( 3 )
          END SUBROUTINE PA_INIT
          SUBROUTINE WR_ACONC ( AGRID, JDATE, JTIME, TSTEP )
-            REAL,    INTENT( IN )    :: AGRID( :,:,:,: )
+         	use HDMod
+            TYPE(hyperdual),    INTENT( IN )    :: AGRID( :,:,:,: )
             INTEGER, INTENT( IN )    :: JDATE, JTIME, TSTEP
          END SUBROUTINE WR_ACONC
          SUBROUTINE WR_CGRID ( CGRID, JDATE, JTIME, TSTEP )
-            REAL, POINTER            :: CGRID( :,:,:,: )
+         	use HDMod
+            TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )
             INTEGER, INTENT( IN )    :: JDATE, JTIME, TSTEP
          END SUBROUTINE WR_CGRID
          SUBROUTINE PA_OUTPUT ( CGRID, JDATE, JTIME )
@@ -305,13 +310,15 @@ C Local variables:
 #endif
 
          SUBROUTINE SCIPROC ( CGRID, JDATE, JTIME, TSTEP, ASTEP )
-            REAL, POINTER            :: CGRID( :,:,:,: )
+         	USE HDMod
+            TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )
             INTEGER, INTENT( INOUT ) :: JDATE, JTIME
             INTEGER, INTENT( IN )    :: TSTEP( 3 ), ASTEP( : )
          END SUBROUTINE SCIPROC
 #ifdef mpas
          SUBROUTINE UNLOAD_CGRID ( CGRID )
-            REAL, INTENT(IN)  :: CGRID( :,:,:,: )
+         	use HDMod
+            TYPE(hyperdual), INTENT(IN)  :: CGRID( :,:,:,: )
          END SUBROUTINE UNLOAD_CGRID
 #endif
       END INTERFACE
@@ -418,27 +425,27 @@ C Initialize stencil exchange
 #endif
 
 C Generate the process analysis data: load PA_DEFN module
-         CALL PA_DATAGEN( )
+C        CALL PA_DATAGEN( )
 
 C Set up horizontal domain and calculate processor-to-subdomain maps for
 C process analysis, if required
-         IF ( LIPR .OR. LIRR ) THEN
-            IF ( .NOT. PAGRD_INIT( MYPE ) ) THEN
-               XMSG = '*** Failure defining PA domain configuration'
-               CALL M3EXIT ( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
-            END IF
-         END IF
+   !       IF ( LIPR .OR. LIRR ) THEN
+   !          IF ( .NOT. PAGRD_INIT( MYPE ) ) THEN
+   !             XMSG = '*** Failure defining PA domain configuration'
+   !             CALL M3EXIT ( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
+   !          END IF
+   !       END IF
 
-         IF ( NSPCSD .GT. MXVARS3 ) THEN
-            WRITE( XMSG,'(5X, A, I5, A)' ) 'The number of variables,', NSPCSD,
-     &      ' to be written to the State CGRID File'
-            CALL LOG_MESSAGE( LOGDEV, XMSG )
-            WRITE( XMSG,'(5X, A, I5)' ) 'exceeds the I/O-API limit:', MXVARS3
-            CALL LOG_MESSAGE( LOGDEV, XMSG )
-            XMSG = 'Recompile with an I/O-API lib having a larger MXVARS3'
-            CALL LOG_MESSAGE( LOGDEV, XMSG )
-            CALL M3EXIT( PNAME, JDATE, JTIME, ' ', XSTAT1 )
-         END IF
+   !       IF ( NSPCSD .GT. MXVARS3 ) THEN
+   !          WRITE( XMSG,'(5X, A, I5, A)' ) 'The number of variables,', NSPCSD,
+   !   &      ' to be written to the State CGRID File'
+   !          CALL LOG_MESSAGE( LOGDEV, XMSG )
+   !          WRITE( XMSG,'(5X, A, I5)' ) 'exceeds the I/O-API limit:', MXVARS3
+   !          CALL LOG_MESSAGE( LOGDEV, XMSG )
+   !          XMSG = 'Recompile with an I/O-API lib having a larger MXVARS3'
+   !          CALL LOG_MESSAGE( LOGDEV, XMSG )
+   !          CALL M3EXIT( PNAME, JDATE, JTIME, ' ', XSTAT1 )
+   !       END IF
 
 C Initialize PCGRID
          IF ( .NOT. PCGRID_INIT () ) THEN
@@ -529,8 +536,8 @@ C Convention: the input file concentration units are always ppmV.
 
 #ifndef mpas
          CALL CKSUMMER ( 'INITSCEN', CGRID, JDATE, JTIME )
-
-         IF ( LIPR .OR. LIRR ) CALL PA_INIT ( CGRID, JDATE, JTIME, TSTEP )
+         
+         ! IF ( LIPR .OR. LIRR ) CALL PA_INIT ( CGRID, JDATE, JTIME, TSTEP )
 
 C Verify input file header consistency and run duration
          CALL FLCHECK ( JDATE, JTIME, TSTEP( 1 ) )
@@ -646,7 +653,7 @@ C Main processing loop:
             DO R = 1, NROWS
                DO C = 1, NCOLS
                   AECON( 1:N_AE_SPC ) = CGRID( C,R,L,SPC_STRT:SPC_FINI )
-                  CALL CHECK_AERO_ICBC( AECON, .TRUE., STAT, AER_PAR,
+                  CALL CHECK_AERO_ICBC_REAL( AECON, .TRUE., STAT, AER_PAR,
                   CLMODE )
                   CGRID( C,R,L,SPC_STRT:SPC_FINI ) = AECON( 1:N_AE_SPC )
                   IF ( STAT .GT. 0 ) THEN
@@ -804,10 +811,10 @@ C Use trapezoidal rule to time-average data
 #endif
 
       END IF
-
+ 	  
       DO V = 1, N_CSPCS
          S = CONC_MAP( V )
-         SGRID( :,:,:,V ) = CGRID( :,:,CONC_BLEV:CONC_ELEV,S )
+         SGRID( :,:,:,V ) = CGRID( :,:,CONC_BLEV:CONC_ELEV,S )%x
       END DO
 
 C write conc fields
@@ -819,7 +826,46 @@ C write conc fields
          CALL CPU_TIME( REAL_TIME )
          CPU_TIME_START = REAL( REAL_TIME,8 )
 #endif
+
+C        Write dx1, dx2, dx1x2 at 10, 20, 30 min after the hourly write, respectively. 
+C        For a 24-hour run with 1-hour interval, this should leads to a total of 
+C        96 writes
+
+ 	     DX1_WRITE_TIME = JTIME + 60000
+ 	     DX2_WRITE_TIME = JTIME + 120000
+ 	     DX1X2_WRITE_TIME = JTIME + 180000	
+C     DX1_WRITE_TIME = JTIME + 10000
+C     DX2_WRITE_TIME = JTIME + 20000
+C     DX1X2_WRITE_TIME = JTIME + 30000
+		 	 		 
+    	 DO V = 1, N_CSPCS
+         	S = CONC_MAP( V )
+         	SGRID( :,:,:,V ) = REAL ( CGRID( :,:,CONC_BLEV:CONC_ELEV,S )%x , 4 ) 
+      	 END DO
+
          CALL WR_CONC ( JDATE, JTIME, TSTEP( 1 ) )
+    	 
+    	 DO V = 1, N_CSPCS
+         	S = CONC_MAP( V )
+         	SGRID( :,:,:,V ) = REAL ( CGRID( :,:,CONC_BLEV:CONC_ELEV,S )%dx1 , 4 )
+      	 END DO         
+         
+         CALL WR_CONC ( JDATE, DX1_WRITE_TIME, TSTEP( 1 ) )
+    	 
+    	 DO V = 1, N_CSPCS
+         	S = CONC_MAP( V )
+         	SGRID( :,:,:,V ) = REAL ( CGRID( :,:,CONC_BLEV:CONC_ELEV,S )%dx2 , 4 )
+      	 END DO  
+         
+         CALL WR_CONC ( JDATE, DX2_WRITE_TIME, TSTEP( 1 ) )
+    	 
+    	 DO V = 1, N_CSPCS
+         	S = CONC_MAP( V )
+         	SGRID( :,:,:,V ) = REAL ( CGRID( :,:,CONC_BLEV:CONC_ELEV,S )%dx1x2 , 4 )
+      	 END DO       	 
+         
+         CALL WR_CONC ( JDATE, DX1X2_WRITE_TIME, TSTEP( 1 ) )   
+            	         
 #ifdef parallel
          IF ( LVEXT ) CALL WR_VEXT ( CGRID, JDATE, JTIME, TSTEP( 1 ) )
 #endif
@@ -832,7 +878,7 @@ C write conc fields
 #ifdef sens
          CALL WR_ASENS ( JDATE, JTIME, TSTEP( 1 ) )
 #endif
-         IF ( LIPR .OR. LIRR ) CALL PA_OUTPUT ( CGRID, JDATE, JTIME )
+         ! IF ( LIPR .OR. LIRR ) CALL PA_OUTPUT ( CGRID, JDATE, JTIME )
          IF ( PRINT_PROC_TIME ) CALL TIMING_SPLIT ( CPU_TIME_START, 3 )
       END IF
 

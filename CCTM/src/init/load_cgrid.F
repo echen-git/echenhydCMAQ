@@ -58,8 +58,9 @@ C-----------------------------------------------------------------------
       USE CGRID_SPCS            ! CGRID mechanism species
       USE UTILIO_DEFN
       USE RXNS_DATA, ONLY : MECHNAME
-      USE AERO_DATA, ONLY : CHECK_AERO_ICBC, N_MODE
+      USE AERO_DATA, ONLY : CHECK_AERO_ICBC_REAL, N_MODE
       Use CENTRALIZED_IO_MODULE, only : interpolate_var
+      USE HDMod
 
       IMPLICIT NONE
 
@@ -72,14 +73,14 @@ C Arguments:
       INTEGER      JDATE
       INTEGER      JTIME
       CHARACTER( 2 ) :: SPC_CAT
-      REAL         CMIN
+      REAL( 8 )      :: CMIN
 !     REAL      :: CGRID( :,:,:,: )  ! for initial CONC
-      REAL, POINTER :: CGRID( :,:,:,: )  ! for initial CONC
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )  ! for initial CONC
 
 C Parameters:
 
 C minimum aerosol sulfate concentration [ ug/m**3 ]
-      REAL, PARAMETER :: AEROCONCMIN = 0.001
+      REAL( 8 ), PARAMETER :: AEROCONCMIN = 0.001d0
 
 C The following two factors assume that sulfate density is 1.8e3 [ kg/m**3 ]
 C and that the geometric mean diameter and geometric standard deviations
@@ -345,7 +346,8 @@ C If there is no surrogate or it cant be found, look for the (main) species name
      &         WRITE( LOGDEV,1013 ) INDX( SPC ), NR_SPC( SPC ), ICBC_FAC( SPC )
 
          END DO
-
+        
+         
       ELSE IF ( SPC_CAT .EQ. 'TR' ) THEN
          WRITE( XMSG, 1009 ) 'transported inert tracer gas species'
          WRITE( LOGDEV, * )
@@ -423,7 +425,7 @@ C IOFDESC common now loaded with FNAME header
             DO L = 1, NLAYS
                DO R = 1, NROWS
                   DO C = 1, NCOLS
-                     CGRID( C,R,L,V ) = ICBC_FAC( SPC ) * DBUFF( C,R,L )
+                     CGRID( C,R,L,V ) = REAL( ICBC_FAC( SPC ) * DBUFF( C,R,L ) , 8 ) 
                   END DO
                END DO
             END DO
@@ -431,8 +433,7 @@ C IOFDESC common now loaded with FNAME header
          END IF   ! INDX .GT. 0
 
       END DO
- 
-
+      
       !IF ( N_SPCS .NE. 0 ) WRITE( LOGDEV,'(/ 5X, A)' )
       !&                            SPC_CAT // ' loaded into CGRID'
 
@@ -446,7 +447,7 @@ C Load RHOJ for transport and mixing ratio advection adjustment
          DO L = 1, NLAYS
             DO R = 1, NROWS
                DO C = 1, NCOLS
-                  CGRID( C,R,L,ASPC ) = RHOJ( C,R,L )
+                  CGRID( C,R,L,ASPC ) = REAL ( RHOJ( C,R,L ) , 8 ) 
                END DO
             END DO
          END DO
@@ -467,9 +468,10 @@ C Load RHOJ for transport and mixing ratio advection adjustment
            DO L = 1, NLAYS
            DO R = 1, NROWS
            DO C = 1, NCOLS
-              AECON( 1:N_AE_SPC ) = CGRID( C,R,L,SPC_STRT:SPC_FINI )
-              CALL CHECK_AERO_ICBC( AECON, .TRUE., STAT, AER_PAR, LMODE )
-              CGRID( C,R,L,SPC_STRT:SPC_FINI ) = AECON( 1:N_AE_SPC )
+              AECON( 1:N_AE_SPC ) = REAL ( CGRID( C,R,L,SPC_STRT:SPC_FINI )%x , 4 )               
+              CALL CHECK_AERO_ICBC_REAL( AECON, .TRUE., STAT, AER_PAR, LMODE )
+              CGRID( C,R,L,SPC_STRT:SPC_FINI )%x = REAL ( AECON( 1:N_AE_SPC ) , 8 )
+                                        
               IF ( STAT .GT. 0 ) THEN
                  LSTAT = .TRUE.
 #ifdef verbose_loadcgrid

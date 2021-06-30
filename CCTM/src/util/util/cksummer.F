@@ -59,6 +59,7 @@ C-----------------------------------------------------------------------
       USE RUNTIME_VARS, ONLY: LOGDEV, OUTDEV, CMYPE, APPL_NAME
 
       USE UTILIO_DEFN, ONLY: GETEFILE
+      USE HDMod
 #ifdef parallel
       USE SE_MODULES          ! stenex (using SE_GLOBAL_SUM_MODULE)
 #else
@@ -70,13 +71,13 @@ C-----------------------------------------------------------------------
 C Arguments:
 
       CHARACTER( * ), INTENT( IN ) :: SCIPROC  ! science process name
-      REAL, POINTER :: CGRID( :,:,:,: )
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )
       INTEGER, INTENT( IN ) :: JDATE        ! current model date, coded YYYYDDD
       INTEGER, INTENT( IN ) :: JTIME        ! current model time, coded HHMMSS
 
 C Parameters:
 
-      REAL, PARAMETER :: CMIN = 0.0
+      REAL( 8 ), PARAMETER :: CMIN = 0.0d0
 
 C Local variables:
  
@@ -92,8 +93,8 @@ C Local variables:
       LOGICAL ::  FMTTED = .TRUE.
 
       INTEGER     S, V, L, C, R
-      REAL( 8 ) :: DBL_CKSUM
-      REAL         GC_CKSUM, AE_CKSUM, NR_CKSUM, TR_CKSUM
+      TYPE(hyperdual) :: DBL_CKSUM
+      TYPE(hyperdual)         GC_CKSUM, AE_CKSUM, NR_CKSUM, TR_CKSUM
       REAL, SAVE :: LCELLS
 
       LOGICAL, SAVE :: OPFLG = .TRUE.               ! open file flag
@@ -113,7 +114,7 @@ C-----------------------------------------------------------------------
 
          EXFLG = .TRUE.
 
-         DBL_CKSUM = 0.0
+         DBL_CKSUM = 0.0d0
          IF ( N_GC_SPC .GT. 0 ) THEN
 
             V = 0
@@ -141,15 +142,15 @@ C-----------------------------------------------------------------------
                END DO
             END DO
 
-            GC_CKSUM = REAL( DBL_CKSUM, 4 )
+            GC_CKSUM = DBL_CKSUM 
  
          ELSE
 
-            GC_CKSUM = 0.0
+            GC_CKSUM = 0.0d0
  
          END IF
      
-         DBL_CKSUM = 0.0
+         DBL_CKSUM = 0.0d0
          IF ( N_AE_SPC .GT. 0 ) THEN
 
             V = 0
@@ -177,15 +178,15 @@ C-----------------------------------------------------------------------
                END DO
             END DO
 
-            AE_CKSUM = REAL( DBL_CKSUM, 4 )
+            AE_CKSUM = DBL_CKSUM 
   
          ELSE
 
-            AE_CKSUM = 0.0
+            AE_CKSUM = 0.0d0
  
          END IF
 
-         DBL_CKSUM = 0.0
+         DBL_CKSUM = 0.0d0
          IF ( N_NR_SPC .GT. 0 ) THEN
  
             V = 0
@@ -213,15 +214,15 @@ C-----------------------------------------------------------------------
                END DO
             END DO
 
-            NR_CKSUM = REAL( DBL_CKSUM, 4 )
+            NR_CKSUM = DBL_CKSUM
   
          ELSE
 
-            NR_CKSUM = 0.0
+            NR_CKSUM = 0.0d0
  
          END IF
      
-         DBL_CKSUM = 0.0
+         DBL_CKSUM = 0.0d0
          IF ( N_TR_SPC .GT. 0 ) THEN
  
             V = 0
@@ -249,11 +250,11 @@ C-----------------------------------------------------------------------
                END DO
             END DO
 
-            TR_CKSUM = REAL( DBL_CKSUM, 4 )
+            TR_CKSUM = DBL_CKSUM 
   
          ELSE
 
-            TR_CKSUM = 0.0
+            TR_CKSUM = 0.0d0
  
          END IF
 
@@ -270,29 +271,58 @@ C-----------------------------------------------------------------------
 
       IF ( N_TR_SPC .EQ. 0 ) THEN
          WRITE( LOGDEV,1005 ) SCIPROC,
-     &                        GC_CKSUM / LCELLS,
-     &                        AE_CKSUM / LCELLS,
-     &                        NR_CKSUM / LCELLS
+     &                        GC_CKSUM%x / LCELLS,
+     &                        AE_CKSUM%x / LCELLS,
+     &                        NR_CKSUM%x / LCELLS
+     	 WRITE( LOGDEV,1005 ) SCIPROC,
+     &                        GC_CKSUM%dx1 / LCELLS,
+     &                        AE_CKSUM%dx1 / LCELLS,
+     &                        NR_CKSUM%dx1 / LCELLS
+         WRITE( LOGDEV,1005 ) SCIPROC,
+     &                        GC_CKSUM%dx2 / LCELLS,
+     &                        AE_CKSUM%dx2 / LCELLS,
+     &                        NR_CKSUM%dx2 / LCELLS
+     	 WRITE( LOGDEV,1005 ) SCIPROC,
+     &                        GC_CKSUM%dx1x2 / LCELLS,
+     &                        AE_CKSUM%dx1x2 / LCELLS,
+     &                        NR_CKSUM%dx1x2 / LCELLS
+     
          IF ( ( GC_CKSUM .NE. GC_CKSUM ) .OR. ( GC_CKSUM*2. .EQ. GC_CKSUM ) .OR.
      &        ( AE_CKSUM .NE. AE_CKSUM ) .OR. ( AE_CKSUM*2. .EQ. AE_CKSUM ) .OR.
-     &        ( NR_CKSUM .NE. NR_CKSUM ) .OR. ( NR_CKSUM*2. .EQ. NR_CKSUM ) ) THEN
+     &        ( NR_CKSUM .NE. NR_CKSUM) .OR. ( NR_CKSUM*2. .EQ. NR_CKSUM ) ) THEN
               WRITE( OUTDEV, '(7x,A,A)' ),'NaN or Infinity detected on processor ',TRIM(CMYPE)
-              WRITE( OUTDEV,1008 ) SCIPROC,GC_CKSUM/LCELLS,AE_CKSUM/LCELLS,NR_CKSUM/LCELLS
+              WRITE( OUTDEV,1008 ) SCIPROC,GC_CKSUM%x/LCELLS,AE_CKSUM%x/LCELLS,NR_CKSUM%x/LCELLS
               CALL M3EXIT( PNAME, jdate, jtime,'NaN or Infinity detected in '//SCIPROC, 1 )
          END IF
  
       ELSE
          WRITE( LOGDEV,1007 ) SCIPROC,
-     &                        GC_CKSUM / LCELLS,
-     &                        AE_CKSUM / LCELLS,
-     &                        NR_CKSUM / LCELLS,
-     &                        TR_CKSUM / LCELLS
+     &                        GC_CKSUM%x / LCELLS,
+     &                        AE_CKSUM%x / LCELLS,
+     &                        NR_CKSUM%x / LCELLS,
+     &                        TR_CKSUM%x / LCELLS
+     	WRITE( LOGDEV,1007 ) SCIPROC,
+     &                        GC_CKSUM%dx1 / LCELLS,
+     &                        AE_CKSUM%dx1 / LCELLS,
+     &                        NR_CKSUM%dx1 / LCELLS,
+     &                        TR_CKSUM%dx1 / LCELLS
+     	WRITE( LOGDEV,1007 ) SCIPROC,
+     &                        GC_CKSUM%dx2 / LCELLS,
+     &                        AE_CKSUM%dx2 / LCELLS,
+     &                        NR_CKSUM%dx2 / LCELLS,
+     &                        TR_CKSUM%dx2 / LCELLS
+     	WRITE( LOGDEV,1007 ) SCIPROC,
+     &                        GC_CKSUM%dx1x2 / LCELLS,
+     &                        AE_CKSUM%dx1x2 / LCELLS,
+     &                        NR_CKSUM%dx1x2 / LCELLS,
+     &                        TR_CKSUM%dx1x2 / LCELLS
+     
          IF ( ( GC_CKSUM .NE. GC_CKSUM ) .OR. ( GC_CKSUM*2. .EQ. GC_CKSUM ) .OR.
      &        ( AE_CKSUM .NE. AE_CKSUM ) .OR. ( AE_CKSUM*2. .EQ. AE_CKSUM ) .OR.
      &        ( NR_CKSUM .NE. NR_CKSUM ) .OR. ( NR_CKSUM*2. .EQ. NR_CKSUM ) .OR.
      &        ( TR_CKSUM .NE. TR_CKSUM ) .OR. ( TR_CKSUM*2. .EQ. TR_CKSUM ) ) THEN
               WRITE( OUTDEV, '(7x,A,A)' ),'NaN or Infinity detected on processor ',TRIM(CMYPE)
-              WRITE( OUTDEV,1009 ) SCIPROC,GC_CKSUM/LCELLS,AE_CKSUM/LCELLS,NR_CKSUM/LCELLS,TR_CKSUM/LCELLS
+              WRITE( OUTDEV,1009 ) SCIPROC,GC_CKSUM%x/LCELLS,AE_CKSUM%x/LCELLS,NR_CKSUM%x/LCELLS,TR_CKSUM%x/LCELLS
               CALL M3EXIT( PNAME, jdate, jtime,'NaN or Infinity detected in '//SCIPROC, 1 )
          END IF
       END IF
@@ -330,3 +360,5 @@ C-----------------------------------------------------------------------
      &                 1X, ' | Trc ', 1PE10.3 )
  
       END
+      
+

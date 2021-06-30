@@ -37,6 +37,8 @@ C-----------------------------------------------------------------------
       USE WVEL_DEFN             ! derived vertical velocity component
       USE STD_CONC              ! standard CONC
       USE UTILIO_DEFN
+      USE HDMod
+      
 #ifdef parallel
       USE SE_MODULES            ! stenex (using SE_UTIL_MODULE)
 #else
@@ -49,15 +51,15 @@ C-----------------------------------------------------------------------
       
 C Arguments:
 
-      REAL, POINTER :: CGRID( :,:,:,: )  ! for initial CONC
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )  ! for initial CONC
       INTEGER, INTENT( IN ) :: JDATE     ! starting date (YYYYDDD)
       INTEGER, INTENT( IN ) :: JTIME     ! starting time (HHMMSS)
       INTEGER, INTENT( IN ) :: TSTEP     ! output timestep (HHMMSS)
 
 C Local Variables:
 
-      REAL, ALLOCATABLE :: DBUFF( :,:,: ), DBUFFP( :, :, :),
-     &                     DBUFFTA( :, :, :), DBUFFQV(:, :, :)
+      REAL( 8 ), ALLOCATABLE :: DBUFF( :,:,: ) 
+      REAL, ALLOCATABLE      :: DBUFFP( :, :, :), DBUFFTA( :, :, :), DBUFFQV(:, :, :)
 
       INTEGER      ALLOCSTAT
 
@@ -110,7 +112,7 @@ C (inital data assumed to be in correct output units)
          V = V + 1
          INDX = CONC_MAP( V )
 
-         DBUFF = CGRID( 1:NCOLS,1:NROWS,CONC_BLEV:CONC_ELEV,INDX )
+         DBUFF = REAL ( CGRID( 1:NCOLS,1:NROWS,CONC_BLEV:CONC_ELEV,INDX )%x , 4 )
 
          IF ( .NOT. WRITE3( CTM_CONC_1, C_GC_SPC( SPC ),
      &                      JDATE, JTIME, DBUFF ) ) THEN
@@ -131,7 +133,7 @@ C (inital data assumed to be in correct output units)
          V = V + 1
          INDX = CONC_MAP( V )
 
-         DBUFF = CGRID( 1:NCOLS,1:NROWS,CONC_BLEV:CONC_ELEV,INDX )
+         DBUFF = REAL ( CGRID( 1:NCOLS,1:NROWS,CONC_BLEV:CONC_ELEV,INDX )%x , 4 )
 
          IF ( .NOT. WRITE3( CTM_CONC_1, C_AE_SPC( SPC ),
      &                      JDATE, JTIME, DBUFF ) ) THEN
@@ -152,7 +154,7 @@ C (inital data assumed to be in correct output units)
          V = V + 1
          INDX = CONC_MAP( V )
 
-         DBUFF = CGRID( 1:NCOLS,1:NROWS,CONC_BLEV:CONC_ELEV,INDX )
+         DBUFF = REAL ( CGRID( 1:NCOLS,1:NROWS,CONC_BLEV:CONC_ELEV,INDX )%x , 4 )
 
          IF ( .NOT. WRITE3( CTM_CONC_1, C_NR_SPC( SPC ),
      &                      JDATE, JTIME, DBUFF ) ) THEN
@@ -172,7 +174,7 @@ C (inital data assumed to be in correct output units)
          V = V + 1
          INDX = CONC_MAP( V )
 
-         DBUFF = CGRID( 1:NCOLS,1:NROWS,CONC_BLEV:CONC_ELEV,INDX )
+         DBUFF = REAL ( CGRID( 1:NCOLS,1:NROWS,CONC_BLEV:CONC_ELEV,INDX )%x , 4 )
 
          IF ( .NOT. WRITE3( CTM_CONC_1, C_TR_SPC( SPC ),
      &                      JDATE, JTIME, DBUFF ) ) THEN
