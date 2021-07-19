@@ -1,7 +1,7 @@
 #!/bin/csh -f
 
 ### Job Name
-#PBS -N hyd_aero+vdiff
+#PBS -N hyd_aerovdiffvadv
 
 ### Project code
 #PBS -A UDRE0001                                                                                                                                                                             
@@ -71,7 +71,7 @@ echo 'Start Model Run At ' `date`
 
 #> Set Working, Input, and Output Directories
  setenv WORKDIR ${CMAQ_HOME}/CCTM/scripts          #> Working Directory. Where the runscript is.
- setenv OUTDIR  ${CMAQ_DATA}/output_CCTM_${RUNID}_hyd_test  #> Output Directory
+ setenv OUTDIR  ${CMAQ_DATA}/output_CCTM_${RUNID}_hyd_vadv  #> Output Directory
  setenv INPDIR  /glade/work/edliu/models/inputs/SEv5.3.2.BENCH/CMAQv5.3.2_Benchmark_2Day_Input/2016_12SE1            #> Input Directory
  setenv LOGDIR  ${OUTDIR}/LOGS     #> Log Directory Location
  setenv NMLpath ${BLD}             #> Location of Namelists. Common places are: 

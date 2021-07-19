@@ -103,7 +103,8 @@ C-----------------------------------------------------------------------
 #ifdef sens
       USE DDM3D_DEFN, ONLY: SENGRID, NPMAX, NP
 #endif 
-
+	  USE HDMod
+	  
       IMPLICIT NONE
 
 C Includes:
@@ -112,7 +113,7 @@ C Includes:
 
 C Arguments:
 
-      REAL, POINTER :: CGRID( :,:,:,: )
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )
       INTEGER     JDATE         ! current model date, coded YYYYDDD
       INTEGER     JTIME         ! current model time, coded HHMMSS
       INTEGER     TSTEP( 3 )    ! time step vector (HHMMSS)
@@ -143,14 +144,14 @@ C Local variables:
 
       INTEGER       MTIME, MDATE
 !     REAL          CON1( NLAYS,N_SPC_ADV ) ! concentrations subset
-      REAL, ALLOCATABLE, SAVE :: CON1( :,: ) ! concentrations subset
-      REAL          VEL ( NLAYS+1 )        ! Velocities in a N-S column
-      REAL          FLX ( NLAYS+1 )        ! upstream donor cell computed conc. flux
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: CON1( :,: ) ! concentrations subset
+      TYPE(hyperdual)          VEL ( NLAYS+1 )        ! Velocities in a N-S column
+      TYPE(hyperdual)          FLX ( NLAYS+1 )        ! upstream donor cell computed conc. flux
       REAL, ALLOCATABLE, SAVE :: DS ( : )  ! dx3 (dimensionless in sigma coord.)
       REAL          DTSEC                  ! sync time step in seconds
       REAL          DELT                   ! adjusted time step
-      REAL          FLUX                   ! intermediate flux
-
+      TYPE(hyperdual)          FLUX                   ! intermediate flux
+ 
 !     INTEGER, SAVE :: ADV_MAP( N_SPC_ADV ) ! global adv map to CGRID
       INTEGER, ALLOCATABLE, SAVE :: ADV_MAP( : ) ! global adv map to CGRID
 
@@ -162,9 +163,10 @@ C Local variables:
       INTEGER, SAVE :: ASPC                ! pointer in CGRID to transported RHOJ
       REAL          RJ1( NLAYS )           ! local adjusted RHOJ
       REAL          RJ2( NLAYS )           ! local RHOJM at tstep + 1
-      REAL          RJT( NLAYS )           ! local adjusted RHOJ
-      REAL          DRJ, DUDX, DVDY
-      REAL          DIVV( NLAYS )
+      TYPE(hyperdual)   ::     RJT( NLAYS )           ! local adjusted RHOJ
+      TYPE(hyperdual)   ::       DRJ 
+      REAL          DUDX, DVDY
+      TYPE(hyperdual)          DIVV( NLAYS )
       REAL          CC                     ! local Courant No.
       REAL          DTNEW                  ! sub timestep
       REAL          DSDT                   ! DS/DT
@@ -189,12 +191,13 @@ C Local variables:
 #else
          SUBROUTINE VPPM ( NI, DT, DS, FLX, VEL, CON )
 #endif
+			use HDMod
             INTEGER, INTENT( IN )    :: NI
             REAL,    INTENT( IN )    :: DT, DS( NI )
-            REAL,    INTENT( IN )    :: FLX( NI+1 )
+            TYPE(hyperdual),    INTENT( IN )    :: FLX( NI+1 )
 !           REAL,    INTENT( IN )    :: VEL( NI+1 )
-            REAL,    INTENT( INOUT ) :: VEL( NI+1 )
-            REAL,    INTENT( INOUT ) :: CON( :,: )
+            TYPE(hyperdual),    INTENT( INOUT ) :: VEL( NI+1 )
+            TYPE(hyperdual),    INTENT( INOUT ) :: CON( :,: )
 #ifdef isam
             REAL,    INTENT( INOUT ) :: SA_CON( NI,N_SPCTAG )
 #elif sens
@@ -342,9 +345,9 @@ C Get rho*J at end of sync step
 
             ITER = 0
             DELT = DTSEC
-            VEL( 1 ) = 0.0   ! impermeable boundary condition at the surface
-            FLX( 1 ) = 0.0
-            DRJ = 0.0
+            VEL( 1 ) = 0.0D0   ! impermeable boundary condition at the surface
+            FLX( 1 ) = 0.0D0
+            DRJ = 0.0D0
             DO LVL = 1, NLAYS
                DSDT = DS( LVL ) / DELT              ! initial for this col/row
                RJT( LVL ) = CON1( LVL,N_SPC_ADV )   ! initial for this col/row
@@ -366,7 +369,7 @@ Ckrt...import isam array into sa_con
                         
 111         CONTINUE   ! iteration loop if CC > 1
 
-            FLUX = 0.0
+            FLUX = 0.0D0
             DO LVL = 1, NLAYS
                RJT( LVL ) = CON1( LVL,N_SPC_ADV )
 !----Yamo part
@@ -394,10 +397,10 @@ C Find Maximum Courant Number
 
             DO LVL = 2, NLAYS
                IF ( VEL( LVL ) .GT. 0.0 ) THEN
-                  CC = MAX ( CC, ( VEL( LVL ) * DELT / DS( LVL-1 ) ) )
+                  CC = MAX ( CC, ( VEL( LVL )%x * DELT / DS( LVL-1 ) ) )
                   DTNEW = MIN( DTNEW, 0.9 * DELT / CC )
                ELSE
-                  CC = MAX ( CC, ( -VEL( LVL ) * DELT / DS( LVL ) ) )
+                  CC = MAX ( CC, ( -VEL( LVL )%x * DELT / DS( LVL ) ) )
    !              DTNEW = MIN( DTNEW, DELT / MAX( CC, 0.9 ) )
                   DTNEW = MIN( DTNEW, 0.9 * DELT / MAX( CC, 1.0 ) ) ! MAX in case vel = 0
                END IF
@@ -405,10 +408,10 @@ C Find Maximum Courant Number
 
             LVL = NLAYS+1
             IF ( VEL( LVL ) .GT. 0.0 ) THEN
-               CC = MAX ( CC, ( VEL( LVL ) * DELT / DS( LVL-1 ) ) )
+               CC = MAX ( CC, ( VEL( LVL )%x * DELT / DS( LVL-1 ) ) )
                DTNEW = MIN( DTNEW, 0.9 * DELT / CC )
             ELSE
-               CC = MAX ( CC, ( -VEL( LVL ) * DELT / DS( LVL-1 ) ) )
+               CC = MAX ( CC, ( -VEL( LVL )%x * DELT / DS( LVL-1 ) ) )
    !           DTNEW = MIN( DTNEW, DELT / MAX( CC, 0.9 ) )
                DTNEW = MIN( DTNEW, 0.9 * DELT / MAX( CC, 1.0 ) ) ! MAX in case vel = 0
             END IF
@@ -490,7 +493,7 @@ Ckrt...update ISAM with SA_CON....20120821
 #endif
             IF ( W_VEL ) THEN ! If the user wants vertical velocity written to file, fill in global scope array (WY)
               DO LVL = 1, NLAYS
-                 WY( LVL,COL,ROW ) = VEL( LVL+1 )
+                 WY( LVL,COL,ROW ) = REAL ( VEL( LVL+1 )%x , 4 )  ! Only writes the real component in the global scope array
               END DO
             END IF 
 

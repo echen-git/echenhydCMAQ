@@ -144,7 +144,8 @@ c      INTEGER         :: DX1_WRITE_TIME, DX2_WRITE_TIME, DX1X2_WRITE_TIME
             INTEGER, INTENT( IN )     :: ASTEP( : )
          END SUBROUTINE HADV
          SUBROUTINE ZADV ( CGRID, JDATE, JTIME, TSTEP )
-            REAL, POINTER             :: CGRID( :,:,:,: )
+         	USE HDMod
+            TYPE(hyperdual), POINTER             :: CGRID( :,:,:,: )
             INTEGER, INTENT( IN )     :: JDATE, JTIME
             INTEGER, INTENT( IN )     :: TSTEP( 3 )
          END SUBROUTINE ZADV
@@ -269,7 +270,7 @@ C Synchronization Step Physical Processes Sequence
       IF ( PRINT_PROC_TIME ) CALL TIMING_SPLIT ( CPU_TIME_START, 1, 'VDIFF' )
 
 
-C     IF ( .NOT. COLUMN_MODEL ) THEN
+      IF ( .NOT. COLUMN_MODEL ) THEN
 C couple CGRID for advection and horizontal diffusion
 C The COUPLE routine converts aerosol mass from ug/m3 to kg/m3. The 
 C DECOUPLE routine converts it back to ug/m3.
@@ -283,11 +284,11 @@ C        CALL HADV ( CGRID, JDATE, JTIME, TSTEP, ASTEP )
 C        IF ( CKSUM ) CALL CKSUMMER ( 'HADV', CGRID, JDATE, JTIME )
 C     ! IF ( LIPR ) CALL PA_UPDATE ( 'HADV', CGRID, JDATE, JTIME, TSTEP )
 C        IF ( PRINT_PROC_TIME ) CALL TIMING_SPLIT ( CPU_TIME_START, 1, 'HADV' )
-C        
-C        CALL ZADV ( CGRID, JDATE, JTIME, TSTEP )
-C        IF ( CKSUM ) CALL CKSUMMER ( 'ADV', CGRID, JDATE, JTIME )
-C        ! IF ( LIPR ) CALL PA_UPDATE ( 'ZADV', CGRID, JDATE, JTIME, TSTEP )
-C        IF ( PRINT_PROC_TIME ) CALL TIMING_SPLIT ( CPU_TIME_START, 1, 'ZADV' )
+        
+         CALL ZADV ( CGRID, JDATE, JTIME, TSTEP )
+         IF ( CKSUM ) CALL CKSUMMER ( 'ADV', CGRID, JDATE, JTIME )
+         ! IF ( LIPR ) CALL PA_UPDATE ( 'ZADV', CGRID, JDATE, JTIME, TSTEP )
+         IF ( PRINT_PROC_TIME ) CALL TIMING_SPLIT ( CPU_TIME_START, 1, 'ZADV' )
          
 C        CALL HDIFF ( CGRID, JDATE, JTIME, TSTEP )
 C        IF ( CKSUM ) CALL CKSUMMER ( 'HDIFF', CGRID, JDATE, JTIME )
@@ -296,15 +297,15 @@ C        IF ( PRINT_PROC_TIME ) CALL TIMING_SPLIT ( CPU_TIME_START, 1, 'HDIFF' )
 
 C decouple CGRID for cloud and chemistry
 
-C        SDATE = JDATE
-C        STIME = JTIME
-C        CALL NEXTIME ( SDATE, STIME, TSTEP( 2 ) )
+         SDATE = JDATE
+         STIME = JTIME
+         CALL NEXTIME ( SDATE, STIME, TSTEP( 2 ) )
 C        
 C        CALL DECOUPLE ( CGRID, SDATE, STIME, TSTEP )
 C        IF ( CKSUM ) CALL CKSUMMER ( 'DECOUPLE', CGRID, JDATE, JTIME )
 C        IF ( PRINT_PROC_TIME ) CALL TIMING_SPLIT ( CPU_TIME_START, 1, 'DECOUPLE' )
 C
-C     END IF
+      END IF
 C     
 C     CALL PHOT ( CGRID, JDATE, JTIME, TSTEP )
 C     IF ( CKSUM ) CALL CKSUMMER ( 'PHOT', CGRID, JDATE, JTIME )
@@ -340,64 +341,6 @@ C#endif
       IF ( PRINT_PROC_TIME ) CALL TIMING_SPLIT ( CPU_TIME_START, 1, 'AERO' )
       IF ( STM ) CALL STM_WRAP_AE ( CGRID, JDATE, JTIME )
 	  
-
-C     Write the results 
-
-C  	  
-C  DO V = 1, N_CSPCS
-C           S = CONC_MAP( V )
-C           SGRID( :,:,:,V ) = REAL ( CGRID( :,:,CONC_BLEV:CONC_ELEV,S )%x , 4 )
-C           IF (S .EQ. 156) THEN
-C           	WRITE(*,*) 'SGRID(SP)'
-C           	WRITE(*,*) SGRID(15, 15, 1, V)
-C           END IF
-C           	
-C     END DO 
-      
-      
-C      write(*,*) CGRID(15,15,1,156)%x
-C      write(*,*) SGRID(15,15,1,10)
-
-C     DO V = 1, N_CSPCS
-C        S = CONC_MAP( V )
-C        SGRID( :,:,:,V ) = REAL ( CGRID( :,:,CONC_BLEV:CONC_ELEV,S )%x , 4 )
-C     END DO
-C  
-C  IF ( MOD( TIME2SEC( JTIME ), TIME2SEC( TSTEP( 1 ) ) ) .EQ. 0 ) THEN
-C        CALL WR_CONC( JDATE, JTIME, TSTEP( 1 ) )
-C     END IF
-C         
-C     DO V = 1, N_CSPCS
-C           S = CONC_MAP( V )
-C           SGRID( :,:,:,V ) = REAL ( CGRID( :,:,CONC_BLEV:CONC_ELEV,S )%dx1 , 4 )
-C     END DO
-C     
-C     IF ( MOD( TIME2SEC( JTIME ), TIME2SEC( TSTEP( 1 ) ) ) .EQ. 0 ) THEN
-C     	 DX1_WRITE_TIME = JTIME + 10000
-C        CALL WR_CONC( JDATE, DX1_WRITE_TIME, TSTEP( 1 ) )
-C     END IF
-C     
-C     
-C      DO V = 1, N_CSPCS
-C           S = CONC_MAP( V )
-C           SGRID( :,:,:,V ) = REAL ( CGRID( :,:,CONC_BLEV:CONC_ELEV,S )%dx2 , 4 ) 
-C     END DO
-C     
-C     IF ( MOD( TIME2SEC( JTIME ), TIME2SEC( TSTEP( 1 ) ) ) .EQ. 0 ) THEN
-C     	 DX2_WRITE_TIME = JTIME + 20000
-C        CALL WR_CONC( JDATE, DX2_WRITE_TIME, TSTEP( 1 ) )
-C     END IF
-C     
-C     
-C      DO V = 1, N_CSPCS
-C           S = CONC_MAP( V )
-C           SGRID( :,:,:,V ) = REAL ( CGRID( :,:,CONC_BLEV:CONC_ELEV,S )%dx1x2 , 4 ) 
-C     END DO
-C     
-C     IF ( MOD( TIME2SEC( JTIME ), TIME2SEC( TSTEP( 1 ) ) ) .EQ. 0 ) THEN
-C     	 DX1X2_WRITE_TIME = JTIME + 30000
-C        CALL WR_CONC( JDATE, DX1X2_WRITE_TIME, TSTEP( 1 ) )
-C     END IF
 
 
 #ifdef isam
