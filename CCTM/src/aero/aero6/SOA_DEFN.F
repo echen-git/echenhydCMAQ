@@ -855,7 +855,7 @@ C Key Subroutines/Functions called:  newt, soabisection
       TYPE(hyperdual) numparticles     ! number of acc mode particles [#/m3]
       TYPE(hyperdual) diam             ! volume equivalent particle diameter [m]
       TYPE(hyperdual) aw               ! activity of water [fraction]
-      TYPE(hyperdual) relhumid         ! relative humidity capped at 95% [fraction]
+      REAL relhumid         ! relative humidity capped at 95% [fraction]
                             ! Cap represents conservative est of water uptake
                             ! and is consistent with IMPROVE visibility methods
 
@@ -942,11 +942,11 @@ C-----------------------------------------------------------------------
       
       do i = 1, n_oa
       	if ( GR3( i , 1 )%x .gt. 0.0d0 ) then
-      		GR3FRAC( i,1 ) = GR3( i,1 ) / ( GR3( i,1 ) + GR3( i,2 ) ) 
+      		GR3FRAC( i , 1 ) = GR3( i , 1 ) / ( GR3( i , 1 ) + GR3( i , 2 ) ) 
         endif	
       	
       	if ( GR3( i , 2 )%x .gt. 0.0d0 ) then 
-      		GR3FRAC( :,2 ) = GR3( :,2 ) / ( GR3(:,1) + GR3(:,2) )    
+      		GR3FRAC( i , 2 ) = GR3( i , 2 ) / ( GR3( i , 1 ) + GR3( i , 2 ) )    
         endif
       enddo
       		
@@ -1150,12 +1150,13 @@ C    &    GR3FRAC( :,2 )%dx1x2 = GR3( :,2 )%dx1x2 / ( GR3(:,1)%dx1x2 + GR3(:,2)%
            indx = map_OAtoAERO( i )
            totaer%x = max( sum( aerospc_conc( indx,: )%x , mask = 
      &                 .NOT. aero_missing( indx,: ) ), conmin )
-           totaer%dx1 = sum( aerospc_conc( indx,: )%dx1 , mask = 
-     &                 .NOT. aero_missing( indx,: ) )
-           totaer%dx2 = sum( aerospc_conc( indx,: )%dx2 , mask = 
-     &                 .NOT. aero_missing( indx,: ) )
-           totaer%dx1x2 = sum( aerospc_conc( indx,: )%dx1x2 , mask = 
-     &                 .NOT. aero_missing( indx,: ) )              
+C          totaer%dx1 = sum( aerospc_conc( indx,: )%dx1 , mask = 
+C    &                 .NOT. aero_missing( indx,: ) )
+C          totaer%dx2 = sum( aerospc_conc( indx,: )%dx2 , mask = 
+C    &                 .NOT. aero_missing( indx,: ) )
+C          totaer%dx1x2 = sum( aerospc_conc( indx,: )%dx1x2 , mask = 
+C    &                 .NOT. aero_missing( indx,: ) )  
+            
            ! Transfer the semivolatile mass
            Do im = 1,2
               If ( aero_missing( indx,im ) ) Cycle
@@ -2211,7 +2212,7 @@ C The diameter is the wet, volume equivalent, diameter of the particle.
       Include SUBST_CONST    ! common constants
 
 C     Function arguments
-      TYPE(hyperdual) rh      ! RH between 0.005, 0.99 [fraction]
+      REAL rh      ! RH between 0.005, 0.99 [fraction]
       Real            temp    ! temperature [K]
       TYPE(hyperdual) dtot    ! volume equivalent diameter of entire particle [m]
 

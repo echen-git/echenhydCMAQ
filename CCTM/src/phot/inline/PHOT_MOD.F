@@ -67,7 +67,8 @@ C-----------------------------------------------------------------------
 
       USE RUNTIME_VARS    
       USE CSQY_DATA
-
+	  USE HDMod
+	  
       IMPLICIT NONE
 
 !***include files
@@ -283,10 +284,10 @@ C-----------------------------------------------------------------------
       REAL AO3
       REAL ANO2
       REAL BETA_M     ! molecular scattering coefficient [ 1/m ]
-      REAL BEXT       ! total aerosol extinction coefficient [ 1/m ]
+      TYPE(hyperdual) BEXT       ! total aerosol extinction coefficient [ 1/m ]
       REAL VFAC, BSC  ! unit correction factors
-      REAL BSCAT      ! total aerosol scattering coefficient [ 1/m ]
-      REAL G_BAR      ! total aerosol asymmetry factor
+      TYPE(hyperdual) BSCAT      ! total aerosol scattering coefficient [ 1/m ]
+      TYPE(hyperdual) G_BAR      ! total aerosol asymmetry factor
 
 !***FSB The following variable is aq switch that allows a fast version of
 !***  aerosol optics to be used when set to .TRUE.
@@ -633,21 +634,23 @@ C*** find ozone column density for atmosphere, stratosphere, and troposphere
 !***  of the total single scatering albedo of the column of aerosols
 !***  as measured by satellites.
 
+! *** Ignore sensitivity terms here for now J.E.L. 
+
             DTSCAT_M = BETA_M * BLKDZ( II ) ! molecular scattering
-            DTSCAT_A = BSCAT  * BLKDZ( II ) ! particle scattering
+            DTSCAT_A = real_hdual(BSCAT)  * BLKDZ( II ) ! particle scattering
 
             DTSCAT_M = MAX( DTSCAT_M, SMALL )
             DTSCAT_A = MAX( DTSCAT_A, SMALL )
 
 
             DTABS_M  = ( AO3 + ANO2  )  * BLKDZ( II ) ! molecular absorption
-            DTABS_A  = ( BEXT - BSCAT ) * BLKDZ( II ) ! particle absorption
+            DTABS_A  = real_hdual( BEXT - BSCAT ) * BLKDZ( II ) ! particle absorption
 
             DTABS_M  = MAX( DTABS_M, SMALL )
             DTABS_A  = MAX( DTABS_A, SMALL )
 
             GAS_EXTINCTION( II,IWL ) = BETA_M + AO3 + ANO2        ! gas extinction
-            EXTINCTION( II,IWL )     = BETA_M + BEXT + AO3 + ANO2 ! gas and aerosol extinction
+            EXTINCTION( II,IWL )     = BETA_M + real_hdual(BEXT) + AO3 + ANO2 ! gas and aerosol extinction
             
             IF ( CLOUDS( II ) ) THEN 
      
@@ -757,7 +760,7 @@ C*** find ozone column density for atmosphere, stratosphere, and troposphere
 
 !***set aerosol optical depth for later use
 
-            DT_AERO ( L ) = BEXT * BLKDZ( II )
+            DT_AERO ( L ) = real_hdual(BEXT) * BLKDZ( II )
 
 !***Now calculate the vertical profiles of optical depth,
 !***  single scattering albedo, asymmetry factor
@@ -765,7 +768,7 @@ C*** find ozone column density for atmosphere, stratosphere, and troposphere
 
             DTAU( L ) = DTSCAT + DTABS
             OM  ( L ) = DTSCAT / ( DTSCAT + DTABS )
-            G   ( L ) = ( G_BAR * DTSCAT_A + G_CLOUD * DTSCAT_CLOUD ) / DTSCAT
+            G   ( L ) = ( real_hdual(G_BAR) * DTSCAT_A + G_CLOUD * DTSCAT_CLOUD ) / DTSCAT
 
             IF ( G( L ) .GE. 1.0 .OR. G( L ) .LE. -1.0 .OR. G( L ) .NE. G( L ) ) THEN
                WRITE( LOGDEV,'(A,ES12.4,A)',ADVANCE = 'NO' )

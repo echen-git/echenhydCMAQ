@@ -831,12 +831,12 @@ C        Write dx1, dx2, dx1x2 at 10, 20, 30 min after the hourly write, respect
 C        For a 24-hour run with 1-hour interval, this should leads to a total of 
 C        96 writes
 
- 	     DX1_WRITE_TIME = JTIME + 60000
- 	     DX2_WRITE_TIME = JTIME + 120000
- 	     DX1X2_WRITE_TIME = JTIME + 180000	
-C     DX1_WRITE_TIME = JTIME + 10000
-C     DX2_WRITE_TIME = JTIME + 20000
-C     DX1X2_WRITE_TIME = JTIME + 30000
+        DX1_WRITE_TIME = JTIME + 60000
+        DX2_WRITE_TIME = JTIME + 120000
+        DX1X2_WRITE_TIME = JTIME + 180000	
+C     	DX1_WRITE_TIME = JTIME + 10000
+C     	DX2_WRITE_TIME = JTIME + 20000
+C     	DX1X2_WRITE_TIME = JTIME + 30000
 		 	 		 
     	 DO V = 1, N_CSPCS
          	S = CONC_MAP( V )

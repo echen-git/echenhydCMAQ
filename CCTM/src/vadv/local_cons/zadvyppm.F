@@ -103,7 +103,8 @@ C-----------------------------------------------------------------------
 #ifdef sens
       USE DDM3D_DEFN, ONLY: SENGRID, NPMAX, NP
 #endif 
-
+	  USE HDMod
+	  
       IMPLICIT NONE
 
 C Includes:
@@ -112,7 +113,7 @@ C Includes:
  
 C Arguments:
  
-      REAL, POINTER :: CGRID( :,:,:,: )
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )
       INTEGER     JDATE         ! current model date, coded YYYYDDD
       INTEGER     JTIME         ! current model time, coded HHMMSS
       INTEGER     TSTEP( 3 )    ! time step vector (HHMMSS)
@@ -140,13 +141,13 @@ C Local variables:
 
       INTEGER       MTIME, MDATE
 !     REAL          CON1( NLAYS,N_SPC_ADV ) ! concentrations subset
-      REAL, ALLOCATABLE, SAVE :: CON1( :,: ) ! concentrations subset
-      REAL          VEL ( NLAYS+1 )        ! Velocities in a N-S column
-      REAL          FLX ( NLAYS+1 )        ! upstream donor cell computed conc. flux
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: CON1( :,: ) ! concentrations subset
+      TYPE(hyperdual)          VEL ( NLAYS+1 )        ! Velocities in a N-S column
+      TYPE(hyperdual)          FLX ( NLAYS+1 )        ! upstream donor cell computed conc. flux
       REAL, ALLOCATABLE, SAVE :: DS ( : )  ! dx3 (dimensionless in sigma coord.)
       REAL          DTSEC                  ! sync time step in seconds
       REAL          DELT                   ! adjusted time step
-      REAL          FLUX                   ! intermediate flux
+      TYPE(hyperdual)          FLUX                   ! intermediate flux
  
 !     INTEGER, SAVE :: ADV_MAP( N_SPC_ADV ) ! global adv map to CGRID
       INTEGER, ALLOCATABLE, SAVE :: ADV_MAP( : ) ! global adv map to CGRID
@@ -157,7 +158,7 @@ C Local variables:
 
       CHARACTER( 96 ) :: XMSG = ' '
       INTEGER, SAVE :: ASPC                ! pointer in CGRID to transported RHOJ
-      REAL          RJT( NLAYS )           ! local adjusted RHOJ
+      TYPE(hyperdual)          RJT( NLAYS )           ! local adjusted RHOJ
       REAL          RJM( NLAYS )           ! local RHOJM at tstep + 1
       REAL          DSTM                   ! subexpression
       REAL          CC                     ! local Courant No.
@@ -188,12 +189,13 @@ C Local variables:
 #else
          SUBROUTINE VPPM ( NI, DT, DS, FLX, VEL, CON )
 #endif
+			use HDMod
             INTEGER, INTENT( IN )    :: NI
             REAL,    INTENT( IN )    :: DT, DS( NI )
             REAL,    INTENT( IN )    :: FLX( NI+1 )
 !           REAL,    INTENT( IN )    :: VEL( NI+1 )
-            REAL,    INTENT( INOUT ) :: VEL( NI+1 )
-            REAL,    INTENT( INOUT ) :: CON( :,: )
+            TYPE(hyperdual),    INTENT( INOUT ) :: VEL( NI+1 )
+            TYPE(hyperdual),    INTENT( INOUT ) :: CON( :,: )
 #ifdef isam
             REAL,    INTENT( INOUT ) :: SA_CON( NI,N_SPCTAG )
 #elif sens
@@ -330,7 +332,7 @@ C Get rho*J at end of sync step
 
             ITER = 0
             DELT = DTSEC
-            VEL( 1 ) = 0.0   ! impermeable boundary condition at the surface
+            VEL( 1 ) = 0.0d0   ! impermeable boundary condition at the surface
             FLX( 1 ) = 0.0
 
 

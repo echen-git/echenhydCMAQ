@@ -82,7 +82,8 @@ C-----------------------------------------------------------------------
      &                       S_REMOVAC, S_HPWDEP, S_GAS, S_GASWDEP,
      &                       S_AEROSOL, S_AERWDEP, S_WSRGGAS, S_WSRGAER
 #endif 
-
+	  USE HDMod
+	  
       IMPLICIT NONE
       INCLUDE SUBST_CONST   ! for DPI
       
@@ -108,8 +109,8 @@ C Arguments:
       REAL,    INTENT( IN )    :: AIRM      ! total air mass (moles/m2) in cloudy air
       REAL,    INTENT( IN )    :: PRATE1    ! storm rainfall rate (mm/hr)
       REAL,    INTENT( IN )    :: TAUCLD    ! cloud lifetime
-      REAL,    INTENT( IN )    :: POLC ( : )  ! avg vert conc incloud (moles/mole)
-      REAL,    INTENT( INOUT ) :: CEND ( : )  ! ending incloud conc (moles/mole)
+      TYPE(hyperdual),    INTENT( IN )    :: POLC ( : )  ! avg vert conc incloud (moles/mole)
+      TYPE(hyperdual),    INTENT( INOUT ) :: CEND ( : )  ! ending incloud conc (moles/mole)
       REAL,    INTENT( INOUT ) :: REMOV( : )  ! moles/m2 or mm*mol/lit scavenged
       REAL,    INTENT( INOUT ) :: REMOVAC   ! variable storing H+ deposition
       REAL,    INTENT( IN )    :: ALFA0     ! scav coef for aitken aerosol number
@@ -133,10 +134,10 @@ C Local Variables (scalars):
 
       REAL( 8 )  :: BETASO4
       REAL       :: EALFA2T                ! EXP( -ALFA2 * TAUCLD )
-      REAL( 8 )  :: M3NEW( NMODES )        ! modal mass at time t
-      REAL( 8 )  :: M3OLD( NMODES )        ! modal mass at time 0
-      REAL( 8 )  :: Dens_wmean_old( NMODES ) ! concentration weighted molecular weight g/mol
-      REAL( 8 )  :: Dens_wmean_new( NMODES ) ! concentration weighted molecular weight g/mol
+      TYPE(hyperdual)  :: M3NEW( NMODES )        ! modal mass at time t
+      TYPE(hyperdual)  :: M3OLD( NMODES )        ! modal mass at time 0
+      TYPE(hyperdual)  :: Dens_wmean_old( NMODES ) ! concentration weighted molecular weight g/mol
+      TYPE(hyperdual)  :: Dens_wmean_new( NMODES ) ! concentration weighted molecular weight g/mol
 
       REAL       :: HPWDEP                        ! hydrogen wet dep (mm mol/liter)
       REAL( 8 ), ALLOCATABLE, SAVE :: GAS    ( : )    ! gas phase conc (mol/mol)
@@ -250,7 +251,9 @@ C...load gas-phase concentrations
 
         DO ISRG = 1, NSRGGAS( IGAS )
           PNTR = CGRID2AQ_MAP( LSRGGAS( IGAS, ISRG ) )
-          GAS( IGAS ) = GAS( IGAS ) + REAL( POLC( PNTR ), 8 )
+C         GAS( IGAS ) = GAS( IGAS ) + REAL( POLC( PNTR ), 8 )
+C         Ignore sensitivity here J.E.L.
+		  GAS( IGAS ) = GAS( IGAS ) + REAL_HDUAL( POLC( PNTR ) )
 #ifdef sens
           DO NP = 1, NPMAX
             S_GAS( NP, IGAS ) = S_GAS( NP, IGAS ) + S_POLC ( NP, PNTR )
@@ -261,7 +264,7 @@ C...load gas-phase concentrations
         IF ( GAS( IGAS ) .GT. 0.0D0 ) THEN
           DO ISRG = 1, NSRGGAS( IGAS )
             PNTR = CGRID2AQ_MAP( LSRGGAS( IGAS, ISRG ) )
-            WSRGGAS( IGAS, ISRG ) = REAL( POLC( PNTR ), 8 ) / GAS( IGAS )
+            WSRGGAS( IGAS, ISRG ) =  REAL_HDUAL( POLC( PNTR ) )  / GAS( IGAS )
 #ifdef sens
             DO NP = 1, NPMAX
                IF ( S_GAS( NP, IGAS ) .NE. 0.0D0 ) THEN
@@ -320,7 +323,7 @@ C...load aerosol concentrations
 #endif
             DO ISRG = 1, NSRGAER( IAER, IMODE )
               PNTR = CGRID2AQ_MAP( LSRGAER( IAER, IMODE, ISRG ) )
-              AEROSOL( IAER, IMODE ) = AEROSOL( IAER, IMODE ) + REAL( POLC( PNTR ), 8 )
+              AEROSOL( IAER, IMODE ) = AEROSOL( IAER, IMODE ) + REAL_HDUAL ( POLC( PNTR ) )
 #ifdef sens
               DO NP = 1, NPMAX
                 S_AEROSOL( NP, IAER, IMODE ) = S_AEROSOL( NP, IAER, IMODE ) + S_POLC( NP, PNTR )
@@ -331,7 +334,9 @@ C...load aerosol concentrations
             IF ( AEROSOL( IAER, IMODE ) .GT. 0.0D0 ) THEN
               DO ISRG = 1, NSRGAER( IAER, IMODE )
                 PNTR = CGRID2AQ_MAP( LSRGAER( IAER, IMODE, ISRG ) )
-                WSRGAER( IAER, IMODE, ISRG ) = REAL( POLC( PNTR ), 8 )
+C               WSRGAER( IAER, IMODE, ISRG ) = REAL( POLC( PNTR ), 8 )
+C    &                                       / REAL( AEROSOL( IAER, IMODE ), 8 )
+     			WSRGAER( IAER, IMODE, ISRG ) = REAL_HDUAL( POLC( PNTR ) )
      &                                       / REAL( AEROSOL( IAER, IMODE ), 8 )
 #ifdef sens
                DO NP = 1, NPMAX
@@ -385,8 +390,8 @@ C     into aerospc_conc in aero_data module
 
 C *** Calculate pseudo aerosol 3rd moment (ignore factors that cancel in the division)
 C ... M3OLD is in units of m3/kmol_air
-      M3OLD = 0.0
-      Dens_wmean_old = 0.0
+      M3OLD = 0.0d0
+      Dens_wmean_old = 0.0d0
       DO IMODE = 2, N_MODE
 
         DO SPC = 1, N_AEROSPC
@@ -466,8 +471,8 @@ C     into aerospc_conc in aero_data module
 
 C *** Calculate pseudo aerosol 3rd moment (ignore factors that cancel in the division)
 C ... M3NEW is in units of m3/kmol_air
-      M3NEW = 0.0
-      Dens_wmean_new = 0.0
+      M3NEW = 0.0d0
+      Dens_wmean_new = 0.0d0
       DO IMODE = 2, NMODES
 
         DO SPC = 1, N_AEROSPC

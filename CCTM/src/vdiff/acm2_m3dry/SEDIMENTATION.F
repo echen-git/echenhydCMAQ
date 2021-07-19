@@ -209,7 +209,7 @@ C subset all the layers and species in cgrid for this grid cell
             do l = 1, nlays
                cgrd( l,v ) = cgrid( c,r,l,v )
             end do
-         end do         
+         end do
 
          do l = 1, nlays
             rdl( l ) = alpha * Met_Data%rjacf( c,r,l ) * Grid_Data%rdx3f( l )
@@ -224,23 +224,8 @@ C subset all the layers and species in cgrid for this grid cell
 
          do while ( adts .lt. dtsec .and. iter .le. 10 )
             iter = iter + 1
-            
-C           if (r .eq. 15) then
-C        	if (c .eq. 15) then
-C        	write(*,*) 'cgrd, aclk before aero_sedv'
-C        	write(*,*) cgrd(1, 185)%x
-C        	endif
-C        	endif
 
             call aero_sedv( c, r, cgrd, vsed_ae )
-            
-C           if (r .eq. 15) then
-C        	if (c .eq. 15) then
-C        	write(*,*) 'cgrd, aclk after aero_sedv'
-C        	write(*,*) cgrd(1, 185)%x
-C        	endif
-C        	endif
-         	
             if ( vdiffdiag ) sumvsed = sumvsed + vsed_ae
 
             ! cgrd -> conc: from density units to mixing ratio units

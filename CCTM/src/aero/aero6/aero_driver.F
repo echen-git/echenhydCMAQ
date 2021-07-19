@@ -220,10 +220,10 @@ C *** atmospheric properties
       REAL AMU             ! atmospheric dynamic viscosity [ kg/m s ]
 
 C *** mass fraction of each mode less than Specified Aerodynamic Diameters
-      REAL( 8 ) fPM1 ( N_MODE )  ! PM1 fraction
-      REAL( 8 ) fPM25( N_MODE )  ! PM2.5 fraction
-      REAL( 8 ) fPM10( N_MODE )  ! PM10 fraction
-      REAL( 8 ) fAMS ( N_MODE )  ! AMS Transmission Fraction
+      TYPE(hyperdual) :: fPM1 ( N_MODE )  ! PM1 fraction
+      TYPE(hyperdual) :: fPM25( N_MODE )  ! PM2.5 fraction
+      TYPE(hyperdual) :: fPM10( N_MODE )  ! PM10 fraction
+      TYPE(hyperdual) :: fAMS ( N_MODE )  ! AMS Transmission Fraction
 
 C *** visual range information
       REAL BLKDCV1         ! block deciview (Mie)
@@ -240,8 +240,8 @@ C *** synchronization time step [ s ]
       REAL DT
 
 C *** variables to set up for "dry transport "
-      REAL M3_WET( N_MODE ), M3_DRY( N_MODE )   ! third moment with and without water
-      REAL M2_WET( N_MODE ), M2_DRY( N_MODE )   ! second moment with and without water
+      TYPE(hyperdual) :: M3_WET( N_MODE ), M3_DRY( N_MODE )   ! third moment with and without water
+      TYPE(hyperdual) :: M2_WET( N_MODE ), M2_DRY( N_MODE )   ! second moment with and without water
 
 C *** variables aerosol diagnostic file flag
       INTEGER      STATUS            ! ENV... status
@@ -438,7 +438,6 @@ C     convert M2 to wet
 C *** Aerosol process routines
                CALL AEROPROC( DT, C, R, L )
                			   
-			   
 C *** Update aerosol variables conc back into CGRID (set minimum) 
 C     and convert M2 to dry and save as surface area
 #ifdef sens
@@ -490,15 +489,15 @@ C     diagnostic array (lowest vertical layer only)
                   TEMP_DATA( 16 ) = MOMENT3_CONC( 1 )     ! wet i-mode 3rd moment
                   TEMP_DATA( 17 ) = MOMENT3_CONC( 2 )     ! wet j-mode 3rd moment
                   TEMP_DATA( 18 ) = MOMENT3_CONC( 3 )     ! wet k-mode 3rd moment
-                  TEMP_DATA( 20 ) = real( fPM1( 1 ), 8 )             ! i-mode PM1 fraction
-                  TEMP_DATA( 21 ) = real( fPM1( 2 ), 8 )             ! j-mode PM1 fraction
-                  TEMP_DATA( 22 ) = real( fPM1( 3 ), 8 )             ! k-mode PM1 fraction
-                  TEMP_DATA( 23 ) = real (fPM25( 1 ), 8 )            ! i-mode fine fraction
-                  TEMP_DATA( 24 ) = real( fPM25( 2 ), 8 )            ! j-mode fine fraction
-                  TEMP_DATA( 25 ) = real( fPM25( 3 ), 8 )            ! k-mode fine fraction
-                  TEMP_DATA( 26 ) = real( fPM10( 1 ), 8 )            ! i-mode PM10 fraction
-                  TEMP_DATA( 27 ) = real( fPM10( 2 ), 8 )            ! j-mode PM10 fraction
-                  TEMP_DATA( 28 ) = real( fPM10( 3 ), 8 )            ! k-mode PM10 fraction
+                  TEMP_DATA( 20 ) = fPM1( 1 )             ! i-mode PM1 fraction
+                  TEMP_DATA( 21 ) = fPM1( 2 )             ! j-mode PM1 fraction
+                  TEMP_DATA( 22 ) = fPM1( 3 )             ! k-mode PM1 fraction
+                  TEMP_DATA( 23 ) = fPM25( 1 )            ! i-mode fine fraction
+                  TEMP_DATA( 24 ) = fPM25( 2 )            ! j-mode fine fraction
+                  TEMP_DATA( 25 ) = fPM25( 3 )            ! k-mode fine fraction
+                  TEMP_DATA( 26 ) = fPM10( 1 )            ! i-mode PM10 fraction
+                  TEMP_DATA( 27 ) = fPM10( 2 )            ! j-mode PM10 fraction
+                  TEMP_DATA( 28 ) = fPM10( 3 )            ! k-mode PM10 fraction
                   TEMP_DATA( 29 ) = fAMS( 1 )             ! i-mode fraction transmitted through AMS
                   TEMP_DATA( 30 ) = fAMS( 2 )             ! j-mode fraction transmitted through AMS
                   TEMP_DATA( 31 ) = fAMS( 3 )             ! k-mode fraction transmitted through AMS
@@ -510,7 +509,7 @@ C     diagnostic array (lowest vertical layer only)
                      TEMP_DATA( 35 ) = YCLNO2K( C,R,L )      ! coarse CLNO2 heterorxn yield
                      TEMP_DATA( 36 ) = GAMMA_IEPOX( C,R,L )  ! IEPOX heterorxn uptake coeff
                   ELSE
-                     TEMP_DATA( 32:36 ) = 0.0d0 
+                     TEMP_DATA( 32:36 ) = 0.0d0
                   END IF
                   TEMP_DATA( 37 ) = AEROMODE_DENS( 1 )    ! Aitken Mode Density [kg m-3]
                   TEMP_DATA( 38 ) = AEROMODE_DENS( 2 )    ! Accumulation Mode Density [kg m-3]
@@ -537,7 +536,7 @@ C     diagnostic array (lowest vertical layer only)
                   TEMP_DATA( 13 ) = MOMENT3_CONC( 1 )    ! dry i-mode 3rd moment
                   TEMP_DATA( 14 ) = MOMENT3_CONC( 2 )    ! dry j-mode 3rd moment
                   TEMP_DATA( 15 ) = MOMENT3_CONC( 3 )    ! dry k-mode 3rd moment
-                  TEMP_DATA( 19 ) = REAL ( AIRRH , 8 )                ! relative humidity
+                  TEMP_DATA( 19 ) = REAL ( AIRRH , 8 )   ! relative humidity
                END IF
 
 C *** Accumulate wet diameters, 2nd, and 3rd moments to average aerosol diagnostic array
@@ -553,10 +552,10 @@ C *** Accumulate wet diameters, 2nd, and 3rd moments to average aerosol diagnost
                IF ( WRITETIME .AND. PMDIAG ) PMDIAG_SPC( C,R,L,: ) = TEMP_DATA
 
 ! *** Collect Aerosol Sub-Process Rates in shared arrays
-               AERO_COND  ( C,R,L,: ) =  COND_BUDGET( : )
-               AERO_COAG  ( C,R,L,:,: )= COAG_BUDGET( :,: )
-               AERO_NPF   ( C,R,L,: ) =  NPF_BUDGET( : )
-               AERO_GROWTH( C,R,L,: ) =  GROWTH_BUDGET( : )
+               AERO_COND  ( C,R,L,: ) = COND_BUDGET( : )
+               AERO_COAG  ( C,R,L,:,: )=COAG_BUDGET( :,: )
+               AERO_NPF   ( C,R,L,: ) = NPF_BUDGET( : )
+               AERO_GROWTH( C,R,L,: ) = GROWTH_BUDGET( : )
 
 #ifdef twoway
                IF ( CMAQ_WRF_FEEDBACK ) THEN

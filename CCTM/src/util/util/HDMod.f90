@@ -182,7 +182,7 @@ Module HDMod
         end interface
         
         interface sign
-          module procedure sign_hdual_hdual, sign_hdual_dble, sign_dble_hdual
+          module procedure sign_hdual_hdual, sign_hdual_dble, sign_hdual_dble_SPR, sign_dble_hdual, sign_dble_hdual_SPR
         end interface
   
         interface max
@@ -194,7 +194,7 @@ Module HDMod
   
         interface min
           module procedure min_hdual_hdual, min_hdual_dble, min_hdual_dble_SPRhyd, min_dble_hdual, min_dble_hdual_SPRhyd, &
-            min_hdual_four, min_hdual_five
+            min_hdual_three, min_hdual_four, min_hdual_five
         end interface
   
         interface maxval
@@ -657,7 +657,7 @@ Module HDMod
   
           implicit none
           TYPE(hyperdual), dimension(:,:,:,:), intent(out) :: qleft
-          REAL(SPRhyd), dimension(:,:,:,:), intent(in)         :: xright
+          REAL(SPRhyd), dimension(:,:,:,:), intent(in)     :: xright
           qleft%x = REAL(xright, PRhyd)
           qleft%dx1 = 0.0_PRhyd
           qleft%dx2 = 0.0_PRhyd
@@ -5159,7 +5159,24 @@ Module HDMod
   
           end function sign_hdual_dble
   
+
+          function sign_hdual_dble_SPR(val_in, sign_in) result(val_out)
+            
+            implicit none
+            TYPE(hyperdual), intent(in)   :: val_in
+            real(SPRhyd),intent(in)       :: sign_in
+            TYPE(hyperdual)               :: val_out
   
+            if (sign_in .GE. 0.0) then
+              val_out = abs(val_in)
+            else
+              val_out = abs(val_in) * (-1.0_PRhyd)
+            endif
+  
+          end function sign_hdual_dble_SPR
+          
+          
+            
           function sign_dble_hdual(val_in, sign_in) result(val_out)
             
             implicit none
@@ -5175,7 +5192,21 @@ Module HDMod
   
           end function sign_dble_hdual
   
+
+          function sign_dble_hdual_SPR(val_in, sign_in) result(val_out)
+            
+            implicit none
+            TYPE(hyperdual), intent(in)      :: sign_in
+            real(SPRhyd), intent(in)         :: val_in
+            real(SPRhyd)                     :: val_out
   
+            if (REAL(sign_in%x,PRhyd).GE.(0.0_PRhyd)) then
+              val_out = abs(val_in)
+            else
+              val_out = abs(val_in) * (-1.0)
+            endif
+  
+          end function sign_dble_hdual_SPR  
           
   
   
@@ -5692,7 +5723,29 @@ Module HDMod
           end function min_dble_hdual_SPRhyd
   
       
-      function min_hdual_four(q1, q2, q3, q4) result(q_out)
+         function min_hdual_three(q1, q2, q3) result(q_out)
+  
+            implicit none
+            TYPE(hyperdual), intent(in)   :: q1,q2,q3
+            integer                       :: I
+            TYPE(hyperdual), dimension(2) :: qlst
+            TYPE(hyperdual)               :: q_out
+          
+          q_out = q1
+          qlst(1) = q2
+          qlst(2) = q3
+          
+          do I = 1, 2
+            if (qlst(I) .LE. q_out) then
+              q_out = qlst(I)
+            endif
+          enddo 
+          
+          end function min_hdual_three
+      
+      
+          
+         function min_hdual_four(q1, q2, q3, q4) result(q_out)
   
             implicit none
             TYPE(hyperdual), intent(in)   :: q1,q2,q3,q4

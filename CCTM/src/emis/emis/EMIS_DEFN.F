@@ -306,11 +306,10 @@ C Local Variables:
          INTEGER          C, R, L, N, S, V, ISTR, ISRM, NL ! loop induction variables
          INTEGER          S_STRT, S_END ! substitute loop induction variables
          
-         REAL, ALLOCATABLE, SAVE :: VDEMIS_READ  ( :,:,:,: ) ! Emissions as they are provided by each stream
-         REAL, ALLOCATABLE, SAVE :: VDEMIS_SCALED( :,:,:,: ) ! Emissions after user scaling, and spatial scaling
-         REAL, ALLOCATABLE, SAVE :: VDEMIS_CONV  ( :,:,:,: ) ! Emissions after converting to units for VDIFF
-         
-
+         TYPE(hyperdual), ALLOCATABLE, SAVE :: VDEMIS_READ (:,:,:,:) ! Emissions as they are provided by each stream
+         TYPE(hyperdual), ALLOCATABLE, SAVE :: VDEMIS_SCALED( :,:,:,: ) ! Emissions after user scaling, and spatial scaling         
+         TYPE(hyperdual), ALLOCATABLE, SAVE :: VDEMIS_CONV  ( :,:,:,: ) ! Emissions after converting to units for VDIFF
+		 
          CHARACTER( 16 ) :: VNAME
          CHARACTER( 16 ) :: PNAME = 'GET_EMIS'
          CHARACTER( 120 ):: XMSG = ' '
@@ -481,7 +480,7 @@ C Map the user specified ISAM regions to available CMAQ regions
          END IF  ! First Time
 
 C Initialize Emissions Array
-         VDEMIS_DIFF = 0.0
+         VDEMIS_DIFF = 0.0d0
 
          WRTIME = .FALSE.
          WSTEP  = WSTEP + TIME2SEC( TSTEP( 2 ) )
@@ -502,7 +501,7 @@ C Initialize Emissions Array
 C Retrieve Emissions from All Stream Types
          IF ( N_EM_SRM .GT. 0 ) THEN
          DO ISRM = 1,N_EM_SRM
-           VDEMIS_READ = 0.0
+           VDEMIS_READ = 0.0d0
 
            SELECT CASE ( EM_FILE_ITYPE( ISRM ) )
              
@@ -513,7 +512,7 @@ C Retrieve Emissions from All Stream Types
      &                        NL, ISRM, VDEMIS_READ )
                CALL EMISS_SCALING( VDEMIS_READ, ISRM, NL, VDEMIS_SCALED )
                CALL EMISS_SIZE_DIST( ISRM, VDEMIS_SCALED, NL )
-
+ 
              ! Retrieve Point Source Emissions Streams
              CASE ( 2 )
                NL = 1
@@ -531,8 +530,7 @@ C Retrieve Emissions from All Stream Types
                   VDEMIS_READ( ISTR,1,:,: )%dx1x2 = VDEMIS_BI( MAP_EMtoSURR( ISTR,ISRM ),:,: )%dx1x2                                                      
                END FORALL
                CALL EMISS_SCALING( VDEMIS_READ, ISRM, NL, VDEMIS_SCALED )
-             
-            
+ 
              ! Retrieve Marine Gas Emissions
              CASE ( 5 )
                NL = 1
@@ -544,7 +542,7 @@ C Retrieve Emissions from All Stream Types
                   VDEMIS_READ( ISTR,1,:,: )%dx1x2 = VDEMIS_MG( MAP_EMtoSURR( ISTR,ISRM ),:,: )%dx1x2                                                       
                END FORALL
                CALL EMISS_SCALING( VDEMIS_READ, ISRM, NL, VDEMIS_SCALED )
-                                
+ 
              ! Retrieve Lightning NO Emissions
              CASE ( 6 )
                NL = EMLAYS
@@ -554,8 +552,8 @@ C Retrieve Emissions from All Stream Types
                      VDEMIS_READ( ISTR,L,:,: )%x = REAL ( VDEMIS_LT( :,:,L ) , 8 )   
                   END FORALL
                END DO
-               CALL EMISS_SCALING( VDEMIS_READ, ISRM, NL, VDEMIS_SCALED )             
-               
+               CALL EMISS_SCALING( VDEMIS_READ, ISRM, NL, VDEMIS_SCALED )
+ 
              ! Retrieve Sea Spray Aerosol Emissions 
              CASE ( 7 )
                NL = 1
@@ -568,7 +566,7 @@ C Retrieve Emissions from All Stream Types
                END FORALL
                CALL EMISS_SCALING( VDEMIS_READ, ISRM, NL, VDEMIS_SCALED )
                CALL EMISS_SIZE_DIST( ISRM, VDEMIS_SCALED, NL )
-
+ 
              ! Retrieve Wind-Blown Dust Emissions 
              CASE ( 8 )
                NL = 1
@@ -581,7 +579,7 @@ C Retrieve Emissions from All Stream Types
                END FORALL
                CALL EMISS_SCALING( VDEMIS_READ, ISRM, NL, VDEMIS_SCALED )
                CALL EMISS_SIZE_DIST( ISRM, VDEMIS_SCALED, NL )
-
+ 
            END SELECT
            
            ! Convert All Emissions to VDIFF Units, Check for negative
@@ -589,8 +587,8 @@ C Retrieve Emissions from All Stream Types
            ! emissions to output array
            CALL EMISS_CONV_DIFF( VDEMIS_SCALED, NL, VDEMIS_CONV )
            IF ( EM_FILE_LDIAG( ISRM ) .NE. 'FALSE' .AND. WRTIME ) 
-     &                     CALL WRITE_EMISS_DIAG_HD( MDATE, MTIME, VDEMIS_CONV, ISRM, NL )
-
+     &              CALL WRITE_EMISS_DIAG_HD( MDATE, MTIME, VDEMIS_CONV, ISRM, NL )
+C
            IF ( EM_FILE_LAPPLY( ISRM ) ) 
      &          VDEMIS_DIFF( :,1:NL,:,: ) = VDEMIS_DIFF( :,1:NL,:,: ) + VDEMIS_CONV( :,1:NL,:,: )
 				
@@ -765,7 +763,6 @@ C#endif
          ! Write Out the Sum of All Emissions to Gridded Diagnostic File
          IF ( EM_FILE_LDIAG( N_EM_SRM+1 ) .NE. 'FALSE' .AND. WRTIME ) 
      &         CALL WRITE_EMISS_DIAG_HD( MDATE, MTIME, VDEMIS_DIFF, N_EM_SRM+1, EMLAYS )
-
          END IF
 
          RETURN
@@ -1075,65 +1072,100 @@ C-----------------------------------------------------------------------
       !MAKE SURE TO APPLY RELEVANT UNIT CONVERSION TO EACH
       !TYPE OF VARIABLE (GAS, AEROSOL MASS, AEROSOL NUMBER,
       !AND AEROSOL SURFACE AREA)
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoGAS( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%x = CNVTC( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%x
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoGAS( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%dx1 = CNVTC( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoGAS( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%dx2 = CNVTC( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx2
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoGAS( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%dx1x2 = CNVTC( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1x2
-                       
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoAERO( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%x = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%x
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoAERO( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%dx1 = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoAERO( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%dx2 = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx2
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoAERO( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%dx1x2 = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1x2
-                           
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoSRF( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%x = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%x
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoSRF( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%dx1 = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoSRF( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%dx2 = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx2
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoSRF( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%dx1x2 = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1x2
-                          
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoNUM( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%x = CONVN( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%x
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoNUM( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%dx1 = CONVN( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoNUM( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%dx2 = CONVN( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx2
-      FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoNUM( ISTR ) .NE. 0 )
-     &    VDEMIS0( ISTR,1:NL,:,: )%dx1x2 = CONVN( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1x2          
+      
+      DO C = 1, NCOLS
+      	DO R = 1, NROWS
+      	  DO L = 1, EMLAYS
+      	  	DO ISTR = 1, N_EMIS_ISTR
+      	  	   IF ( MAP_EMtoGAS( ISTR ) .NE. 0 ) THEN
+      	  	   	  VDEMIS0(ISTR, L, C, R) = CNVTC(L, C, R) * VDEMIS0(ISTR, L, C, R) 
+      	  	   ENDIF
+      	  	   IF ( MAP_EMtoAERO( ISTR ) .NE. 0 ) THEN
+      	  	   	  VDEMIS0(ISTR, L, C, R) = CONVM(L, C, R) * VDEMIS0(ISTR, L, C, R) 
+      	  	   ENDIF
+      	  	   IF ( MAP_EMtoSRF( ISTR ) .NE. 0 ) THEN
+      	  	   	  VDEMIS0(ISTR, L, C, R) = CONVM(L, C, R) * VDEMIS0(ISTR, L, C, R) 
+      	  	   ENDIF
+      	  	   IF ( MAP_EMtoNUM( ISTR ) .NE. 0 ) THEN
+      	  	   	  VDEMIS0(ISTR, L, C, R) = CONVN(L, C, R) * VDEMIS0(ISTR, L, C, R) 
+      	  	   ENDIF
+      	  	ENDDO
+      	  ENDDO
+      	 ENDDO
+       ENDDO      	  	         	  	         			
+      
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoGAS( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%x = CNVTC( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%x
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoGAS( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%dx1 = CNVTC( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoGAS( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%dx2 = CNVTC( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx2
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoGAS( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%dx1x2 = CNVTC( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1x2
+C                      
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoAERO( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%x = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%x
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoAERO( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%dx1 = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoAERO( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%dx2 = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx2
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoAERO( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%dx1x2 = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1x2
+C                          
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoSRF( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%x = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%x
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoSRF( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%dx1 = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoSRF( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%dx2 = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx2
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoSRF( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%dx1x2 = CONVM( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1x2
+C                         
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoNUM( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%x = CONVN( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%x
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoNUM( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%dx1 = CONVN( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoNUM( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%dx2 = CONVN( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx2
+C     FORALL ( ISTR = 1:N_EMIS_ISTR, MAP_EMtoNUM( ISTR ) .NE. 0 )
+C    &    VDEMIS0( ISTR,1:NL,:,: )%dx1x2 = CONVN( 1:NL,:,: ) * VDEMIS0( ISTR,1:NL,:,: )%dx1x2          
       
       ! zero out emissions values for diffused species not included in emissions list.
       ! ...accounts for emissions species names as a subset of the vert. diffused species list
       VDEMIS( :,1:NL,:,: ) = 0.0d0
       
-      FORALL( ISTR = 1:N_EMIS_ISTR, MAP_EMtoDIFF( ISTR ) .NE. 0 ) 
-     &        VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%x = 
-     &                VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%x + 
-     &                VDEMIS0( ISTR,1:NL,:,: )%x
-      
-      FORALL( ISTR = 1:N_EMIS_ISTR, MAP_EMtoDIFF( ISTR ) .NE. 0 ) 
-     &        VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%dx1 = 
-     &                VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%dx1 + 
-     &                VDEMIS0( ISTR,1:NL,:,: )%dx1
-      
-      FORALL( ISTR = 1:N_EMIS_ISTR, MAP_EMtoDIFF( ISTR ) .NE. 0 ) 
-     &        VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%dx2 = 
-     &                VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%dx2 + 
-     &                VDEMIS0( ISTR,1:NL,:,: )%dx2
-      
-      FORALL( ISTR = 1:N_EMIS_ISTR, MAP_EMtoDIFF( ISTR ) .NE. 0 ) 
-     &        VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%dx1x2 = 
-     &                VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%dx1x2 + 
-     &                VDEMIS0( ISTR,1:NL,:,: )%dx1x2               
+      DO C = 1, NCOLS
+      	DO R = 1, NROWS
+      	  DO L = 1, EMLAYS
+      	  	DO ISTR = 1, N_EMIS_ISTR
+      	  	   IF ( MAP_EMtoDIFF( ISTR ) .NE. 0 ) THEN
+      	  	   	  VDEMIS( MAP_EMtoDIFF(ISTR),L,C,R) = VDEMIS(MAP_EMtoDIFF(ISTR),L,C,R) + VDEMIS0(ISTR,L,C,R) 
+      	  	   ENDIF
+      	  	ENDDO
+      	  ENDDO
+      	 ENDDO
+       ENDDO 
+       
+             
+C     FORALL( ISTR = 1:N_EMIS_ISTR, MAP_EMtoDIFF( ISTR ) .NE. 0 ) 
+C    &        VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%x = 
+C    &                VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%x + 
+C    &                VDEMIS0( ISTR,1:NL,:,: )%x
+C     
+C     FORALL( ISTR = 1:N_EMIS_ISTR, MAP_EMtoDIFF( ISTR ) .NE. 0 ) 
+C    &        VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%dx1 = 
+C    &                VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%dx1 + 
+C    &                VDEMIS0( ISTR,1:NL,:,: )%dx1
+C     
+C     FORALL( ISTR = 1:N_EMIS_ISTR, MAP_EMtoDIFF( ISTR ) .NE. 0 ) 
+C    &        VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%dx2 = 
+C    &                VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%dx2 + 
+C    &                VDEMIS0( ISTR,1:NL,:,: )%dx2
+C     
+C     FORALL( ISTR = 1:N_EMIS_ISTR, MAP_EMtoDIFF( ISTR ) .NE. 0 ) 
+C    &        VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%dx1x2 = 
+C    &                VDEMIS( MAP_EMtoDIFF( ISTR ),1:NL,:,: )%dx1x2 + 
+C    &                VDEMIS0( ISTR,1:NL,:,: )%dx1x2               
 	  
       RETURN
       END SUBROUTINE EMISS_CONV_DIFF

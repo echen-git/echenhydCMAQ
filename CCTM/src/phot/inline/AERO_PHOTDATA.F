@@ -17,30 +17,33 @@
 !  subject to their copyright restrictions.                              !
 !------------------------------------------------------------------------!
       MODULE AERO_PHOTDATA
+      
+      use HDMod
+      use HDMod_cplx
 
       IMPLICIT NONE
 
-      REAL( 8 ), ALLOCATABLE :: SHELL_MOMENT3( :,: )  ! modal shell third moment conc.
-      REAL( 8 ), ALLOCATABLE :: CORE_MOMENT3 ( :,: )  ! model core third moment conc.
+      TYPE(hyperdual), ALLOCATABLE :: SHELL_MOMENT3( :,: )  ! modal shell third moment conc.
+      TYPE(hyperdual), ALLOCATABLE :: CORE_MOMENT3 ( :,: )  ! model core third moment conc.
 
-      REAL, ALLOCATABLE :: BLK_AE_VOL  ( :,: )     ! aerosol modal volumes [ m**3/m**3 ]
-      REAL, ALLOCATABLE :: BLK_AE_LSG  ( :,: )     ! aerosol modal log of geo. stand. dev
-      REAL, ALLOCATABLE :: BLK_AE_DGN  ( :,: )     ! aerosol modal mean geometeric diam. [ m ]
-      REAL, ALLOCATABLE :: AE_DGN_CORE ( :,: )   ! inner core modal mean geometeric diam. [ m ]
-      REAL, ALLOCATABLE :: AE_DGN_SHELL( :,: )   ! modal mean geometeric diam. [ m ]
-      REAL, ALLOCATABLE :: BLK_AE_CONC ( :,:,: ) ! aerosol species concentrations [ ug/m**3]
+      TYPE(hyperdual), ALLOCATABLE :: BLK_AE_VOL  ( :,: )     ! aerosol modal volumes [ m**3/m**3 ]
+      TYPE(hyperdual), ALLOCATABLE :: BLK_AE_LSG  ( :,: )     ! aerosol modal log of geo. stand. dev
+      TYPE(hyperdual), ALLOCATABLE :: BLK_AE_DGN  ( :,: )     ! aerosol modal mean geometeric diam. [ m ]
+      TYPE(hyperdual), ALLOCATABLE :: AE_DGN_CORE ( :,: )   ! inner core modal mean geometeric diam. [ m ]
+      TYPE(hyperdual), ALLOCATABLE :: AE_DGN_SHELL( :,: )   ! modal mean geometeric diam. [ m ]
+      TYPE(hyperdual), ALLOCATABLE :: BLK_AE_CONC ( :,:,: ) ! aerosol species concentrations [ ug/m**3]
 
-      REAL, ALLOCATABLE :: AE_NR_SHELL ( :,:,: ) ! real part of refractive index for outer shell
-      REAL, ALLOCATABLE :: AE_NI_SHELL ( :,:,: ) ! imaginary part of refractive index for outer shell
-      REAL, ALLOCATABLE :: AE_NR_CORE  ( :,:,: ) ! real part of refractive index for inner core
-      REAL, ALLOCATABLE :: AE_NI_CORE  ( :,:,: ) ! imaginary part of refractive index for inner core
+      TYPE(hyperdual), ALLOCATABLE :: AE_NR_SHELL ( :,:,: ) ! real part of refractive index for outer shell
+      TYPE(hyperdual), ALLOCATABLE :: AE_NI_SHELL ( :,:,: ) ! imaginary part of refractive index for outer shell
+      TYPE(hyperdual), ALLOCATABLE :: AE_NR_CORE  ( :,:,: ) ! real part of refractive index for inner core
+      TYPE(hyperdual), ALLOCATABLE :: AE_NI_CORE  ( :,:,: ) ! imaginary part of refractive index for inner core
       REAL, ALLOCATABLE :: BLK_AE_NR   ( :,:,: ) ! mean aerosol real part of refractive index
       REAL, ALLOCATABLE :: BLK_AE_NI   ( :,:,: ) ! mean aerosol imaginary part of refractive index
 
-      REAL, ALLOCATABLE :: AERO_ASYM_FAC ( :,: ) ! aerosol modal averaged asymmetry factor
-      REAL, ALLOCATABLE :: AERO_EXTI_COEF( :,: ) ! aerosol modal averaged extinction coeff., 1/m
-      REAL, ALLOCATABLE :: AERO_SCAT_COEF( :,: ) ! aerosol modal averaged scattering coeff., 1/m
-      REAL, ALLOCATABLE :: AERO_EXTI_550  ( : )  ! aerosol modal averaged extinction coeff. at 550nm, 1/m
+      TYPE(hyperdual), ALLOCATABLE :: AERO_ASYM_FAC ( :,: ) ! aerosol modal averaged asymmetry factor
+      TYPE(hyperdual), ALLOCATABLE :: AERO_EXTI_COEF( :,: ) ! aerosol modal averaged extinction coeff., 1/m
+      TYPE(hyperdual), ALLOCATABLE :: AERO_SCAT_COEF( :,: ) ! aerosol modal averaged scattering coeff., 1/m
+      TYPE(hyperdual), ALLOCATABLE :: AERO_EXTI_550  ( : )  ! aerosol modal averaged extinction coeff. at 550nm, 1/m
  
       PUBLIC            :: AERO_ASYM_FAC, AERO_EXTI_COEF, AERO_SCAT_COEF,
      &                     INIT_AERO_DATA, GET_AERO_DATA, AERO_OPTICS_INTERNAL
@@ -61,8 +64,8 @@
       REAL( 8 ) :: ANGSTROM_RATIO      = 1.0D0   ! wavelength less than 550 nm divided by 550 nm
       REAL( 8 ) :: LOG_ANGSTROM_RATIO  = 0.0D0    
       REAL( 8 ) :: ANGSTROM_SPAN       = 1.0D0   ! reciprocal of log ((wavelength < 550 nm)/(wavelength > 550 nm)
-      REAL( 8 ) :: ANGSTROM_EXPONENT   = 1.0D0   ! Angstrom exponent used to interpolate extinction at 550 nm
-          
+C *** REAL( 8 ) :: ANGSTROM_EXPONENT   = 1.0D0   ! Angstrom exponent used to interpolate extinction at 550 nm
+      TYPE(hyperdual)  :: ANGSTROM_EXPONENT
 C *** Species in aerosol core
 
       CHARACTER( 16 ), PARAMETER, PRIVATE :: CORE_SPCS( NUMB_COR_SPCS ) =
@@ -186,9 +189,9 @@ C...Allocate needed arrays
             CALL M3EXIT ( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
          END IF
 
-         AERO_SCAT_COEF = 0.0
-         AERO_EXTI_COEF = 0.0
-         AERO_ASYM_FAC  = 0.0
+         AERO_SCAT_COEF = 0.0d0
+         AERO_EXTI_COEF = 0.0d0
+         AERO_ASYM_FAC  = 0.0d0
 
          IF( CALCULATE_EXT_550 )THEN
             ALLOCATE ( AERO_EXTI_550( NLAYS ), STAT = ALLOCSTAT )
@@ -196,7 +199,7 @@ C...Allocate needed arrays
                XMSG = 'Failure allocating AERO_EXTI_550'
                CALL M3EXIT ( PNAME, JDATE, JTIME, XMSG, XSTAT1 )
             END IF
-            AERO_EXTI_550  = 0.0
+            AERO_EXTI_550  = 0.0d0
          END IF   
 
          CALL MAP_AERO()
@@ -405,7 +408,8 @@ C-----------------------------------------------------------------------
      &                       WAVELENGTH => EFFWL_REF
 
       USE CMAQ_RRTMG_AERO_OPTICAL_UTIL_MODULE, ONLY : AERO_OPTICAL2, AERO_OPTICAL_CS
-
+	  USE HDMod
+	  
       IMPLICIT NONE
 
 C Includes:
@@ -415,7 +419,7 @@ C Arguments:
       INTEGER, INTENT( IN ) :: COL               ! specified column index
       INTEGER, INTENT( IN ) :: ROW               ! specified row index
       INTEGER, INTENT( IN ) :: NLAYS             ! # of vertical layers
-      REAL,    POINTER      :: CGRID( :,:,:,: )
+      TYPE(hyperdual),    POINTER      :: CGRID( :,:,:,: )
 
 C Parameters:
 
@@ -433,39 +437,39 @@ C Local variables:
       CHARACTER( 16 ) :: VNAME            ! varable name
       CHARACTER( 96 ) :: XMSG = ' '
 
-      REAL( 8 ) :: FACTOR
-      REAL( 8 ) :: FRACTION_CORE
-      REAL( 8 ) :: FRACTION_SHELL
-      REAL( 8 ) :: MOMENT3_PORTION
-      REAL( 8 ) :: SUMRI_R_SHELL
-      REAL( 8 ) :: SUMRI_I_SHELL
-      REAL( 8 ) :: SUMRI_R_CORE
-      REAL( 8 ) :: SUMRI_I_CORE
-      REAL( 8 ) :: SUMRI_R
-      REAL( 8 ) :: SUMRI_I
+      TYPE(hyperdual) :: FACTOR
+      TYPE(hyperdual) :: FRACTION_CORE
+      TYPE(hyperdual) :: FRACTION_SHELL
+      TYPE(hyperdual) :: MOMENT3_PORTION
+      TYPE(hyperdual) :: SUMRI_R_SHELL
+      TYPE(hyperdual) :: SUMRI_I_SHELL
+      TYPE(hyperdual) :: SUMRI_R_CORE
+      TYPE(hyperdual) :: SUMRI_I_CORE
+      TYPE(hyperdual) :: SUMRI_R
+      TYPE(hyperdual) :: SUMRI_I
 
-      REAL DGN_CORE       ! geometric mean diameters of aerosol core
-      REAL VOL            ! Total Modal aerosol volume
-      REAL VOL_CORE       ! Modal aerosol volume of aerosol core
-      REAL DGN_SHELL      ! geometric mean diameters of aerosol core
-      REAL VOL_SHELL      ! Modal aerosol volume of aerosol core
-      REAL XXLSG          ! geometric standard deviation
+      TYPE(hyperdual) DGN_CORE       ! geometric mean diameters of aerosol core
+      TYPE(hyperdual) VOL            ! Total Modal aerosol volume
+      TYPE(hyperdual) VOL_CORE       ! Modal aerosol volume of aerosol core
+      TYPE(hyperdual) DGN_SHELL      ! geometric mean diameters of aerosol core
+      TYPE(hyperdual) VOL_SHELL      ! Modal aerosol volume of aerosol core
+      TYPE(hyperdual) XXLSG          ! geometric standard deviation
       REAL MIE_PARAMETER  ! Modal Mie parameter
 
 C***  variables for calculating modal averaged properties per layer and lambda
 
-      COMPLEX NR_SHELL
-      COMPLEX NI_SHELL
-      COMPLEX NR_CORE
-      COMPLEX NI_CORE
+      TYPE(hyperdual_cplx) NR_SHELL
+      TYPE(hyperdual_cplx) NI_SHELL
+      TYPE(hyperdual_cplx) NR_CORE
+      TYPE(hyperdual_cplx) NI_CORE
 
-      REAL BEXT_MODE  ! total aerosol extinction coefficient [ 1/m ]
-      REAL BSCAT_MODE ! total aerosol scattering coefficient [ 1/m ]
-      REAL GBAR_MODE  ! total aerosol asymmetry factor
-      REAL BEXT       ! total aerosol extinction coefficient [ 1/m ]
-      REAL VFAC, BSC  ! unit correction factors
-      REAL BSCAT      ! total aerosol scattering coefficient [ 1/m ]
-      REAL G_BAR      ! total aerosol asymmetry factor
+      TYPE(hyperdual) BEXT_MODE  ! total aerosol extinction coefficient [ 1/m ]
+      TYPE(hyperdual) BSCAT_MODE ! total aerosol scattering coefficient [ 1/m ]
+      TYPE(hyperdual) GBAR_MODE  ! total aerosol asymmetry factor
+      TYPE(hyperdual) BEXT       ! total aerosol extinction coefficient [ 1/m ]
+      TYPE(hyperdual) VFAC, BSC  ! unit correction factors
+      TYPE(hyperdual) BSCAT      ! total aerosol scattering coefficient [ 1/m ]
+      TYPE(hyperdual) G_BAR      ! total aerosol asymmetry factor
       REAL INV_LAMBDA ! reciprocal of wavelength [ 1/m ]
       REAL LAMDA_UM   ! wavelength  [ um ]
 
@@ -492,10 +496,10 @@ C *** initialize internal and external dimensions of aerosols
 
       CORE_MOMENT3  = 0.0D+0
       SHELL_MOMENT3 = 0.0D+0
-      BLK_AE_VOL    = 0.0
-      BLK_AE_CONC   = 0.0
-      AE_DGN_SHELL  = 0.0
-      AE_DGN_CORE   = 0.0
+      BLK_AE_VOL    = 0.0d0
+      BLK_AE_CONC   = 0.0d0
+      AE_DGN_SHELL  = 0.0d0
+      AE_DGN_CORE   = 0.0d0
       SUCCESS       = .TRUE.
 
 
@@ -537,7 +541,7 @@ C *** Calculate geometric mean diameters and standard deviations of "wet" size d
                IF ( AERO_MISSING( SPC,MODE ) ) CYCLE   ! skip undefined species
                BLK_AE_CONC( SPC,MODE,L ) = AEROSPC_CONC( SPC,MODE )
 
-               MOMENT3_PORTION = M3_FACTOR( SPC ) * REAL( AEROSPC_CONC( SPC,MODE ), 8 )
+               MOMENT3_PORTION = M3_FACTOR( SPC ) * AEROSPC_CONC( SPC,MODE ) 
                IF ( IS_CORE_SPCS( SPC,MODE ) ) THEN  
                   CORE_MOMENT3( MODE,L )  = CORE_MOMENT3( MODE,L )  + MOMENT3_PORTION
 #ifdef verbose_phot
@@ -560,17 +564,17 @@ C *** Calculate geometric mean diameters and standard deviations of "wet" size d
             END DO SPC_LOOP1
 
 
-            FRACTION_CORE  = CORE_MOMENT3(  MODE,L ) / REAL( MOMENT3_CONC( MODE ), 8 )
-            FRACTION_SHELL = SHELL_MOMENT3( MODE,L ) / REAL( MOMENT3_CONC( MODE ), 8 )
+            FRACTION_CORE  = CORE_MOMENT3(  MODE,L ) / MOMENT3_CONC( MODE )
+            FRACTION_SHELL = SHELL_MOMENT3( MODE,L ) / MOMENT3_CONC( MODE ) 
 
             BLK_AE_LSG  ( MODE,L ) = AEROMODE_LNSG( MODE )
             AE_DGN_SHELL( MODE,L ) = AEROMODE_DIAM( MODE )
 
             IF ( FRACTION_CORE .LT. NEGLECT_FRAC ) THEN
-               AE_DGN_CORE( MODE,L ) = 0.0
+               AE_DGN_CORE( MODE,L ) = 0.0d0
             ELSE
                FACTOR = FRACTION_CORE ** ONE_THIRD
-               AE_DGN_CORE( MODE,L ) = REAL( FACTOR * AEROMODE_DIAM( MODE ) )
+               AE_DGN_CORE( MODE,L ) = FACTOR * AEROMODE_DIAM( MODE ) 
             END IF
 
             IF ( MOMENT3_CONC( MODE ) .GT. AEROMODE( MODE )%MIN_M3CONC ) THEN
@@ -592,10 +596,10 @@ C *** Calculate geometric mean diameters and standard deviations of "wet" size d
 
 C *** Initialize refractive indices then compute
 
-      AE_NR_SHELL = 0.0
-      AE_NI_SHELL = 0.0
-      AE_NR_CORE  = 0.0
-      AE_NI_CORE  = 0.0
+      AE_NR_SHELL = 0.0d0
+      AE_NI_SHELL = 0.0d0
+      AE_NR_CORE  = 0.0d0
+      AE_NI_CORE  = 0.0d0
 
       LOOP_WAVE: DO V = 1, NWL
 
@@ -617,7 +621,7 @@ C *** Initialize refractive indices then compute
 
                   M = REFRACT_INDX_MAP( SPC )
 
-                  MOMENT3_PORTION = M3_FACTOR( SPC ) * REAL( BLK_AE_CONC( SPC,MODE,L ), 8)
+                  MOMENT3_PORTION = M3_FACTOR( SPC ) * BLK_AE_CONC( SPC,MODE,L ) 
      
                   IF ( IS_CORE_SPCS( SPC, MODE ) ) THEN  
                   
@@ -640,22 +644,22 @@ C *** Initialize refractive indices then compute
 C ***       Update output array values
                
                IF ( CORE_MOMENT3( MODE,L ) .GT. 0.0D0 ) THEN
-                   AE_NR_CORE ( MODE,L,V ) = REAL( SUMRI_R_CORE / CORE_MOMENT3( MODE,L ) )
-                   AE_NI_CORE ( MODE,L,V ) = REAL( SUMRI_I_CORE / CORE_MOMENT3( MODE,L ) )
+                   AE_NR_CORE ( MODE,L,V ) =  SUMRI_R_CORE / CORE_MOMENT3( MODE,L ) 
+                   AE_NI_CORE ( MODE,L,V ) =  SUMRI_I_CORE / CORE_MOMENT3( MODE,L ) 
                END IF
                
                IF ( SHELL_MOMENT3( MODE,L ) .GT. 0.0D0 ) THEN
-                   AE_NR_SHELL ( MODE,L,V ) = REAL( SUMRI_R_SHELL / SHELL_MOMENT3( MODE,L ) )
-                   AE_NI_SHELL ( MODE,L,V ) = REAL( SUMRI_I_SHELL / SHELL_MOMENT3( MODE,L ) )
+                   AE_NR_SHELL ( MODE,L,V ) = SUMRI_R_SHELL / SHELL_MOMENT3( MODE,L ) 
+                   AE_NI_SHELL ( MODE,L,V ) = SUMRI_I_SHELL / SHELL_MOMENT3( MODE,L )
                END IF
                
             END DO REFRAC_LOOP
 
 C***loop over mode again for mean modal extinction and scattering properties
         
-            G_BAR = 0.0
-            BEXT  = 0.0
-            BSCAT = 0.0
+            G_BAR = 0.0d0
+            BEXT  = 0.0d0
+            BSCAT = 0.0d0
 
 #ifdef verbose_phot_extra
             if ( L .eq. 1 .and. V .eq. 1 ) then
@@ -691,8 +695,8 @@ C*** factor for aerosols.
 
                IF ( DGN_CORE .GT. 0.0 .AND. DGN_CORE / DGN_SHELL .LT. 0.999 ) THEN
 
-                  VOL_CORE  = PI6 * REAL( CORE_MOMENT3( MODE,L ), 4 )
-                  VOL_SHELL = PI6 * REAL( SHELL_MOMENT3( MODE,L ), 4 )
+                  VOL_CORE  = PI6 * CORE_MOMENT3( MODE,L )
+                  VOL_SHELL = PI6 * SHELL_MOMENT3( MODE,L ) 
 
                   NR_CORE  = CMPLX( AE_NR_CORE( MODE,L,V ), AE_NI_CORE( MODE,L,V ) )
 
@@ -717,7 +721,7 @@ C *** Core-Shell case for optics
      &                                   DGN_SHELL, XXLSG,
      &                                   BEXT_MODE, BSCAT_MODE, GBAR_MODE, SUCCESS )
 
-                  VFAC  = 1.0 ! correction factor 
+                  VFAC  = 1.0d0 ! correction factor 
 
                   IF ( .NOT. SUCCESS ) THEN
      
@@ -746,7 +750,7 @@ C***  and contribution to the overall asymmetry factor
                      IF ( SUCCESS ) CALL AERO_OPTICAL2( LAMDA_UM, NR_SHELL, VOL, 
      &                                   DGN_SHELL, XXLSG,
      &                                   BEXT_MODE, BSCAT_MODE, GBAR_MODE, SUCCESS )
-                     VFAC  = 1.0 ! correction factor 
+                     VFAC  = 1.0d0 ! correction factor 
                   ELSE 
 ! use old fast optics method
                      IF ( SUCCESS ) CALL FAST_OPTICS( AE_NR_SHELL( MODE, L, V ),  
@@ -832,8 +836,8 @@ C***  and contribution to the overall asymmetry factor
             END DO OPTICS_LOOP
 
             AERO_SCAT_COEF( L,V ) = BSCAT
-            AERO_EXTI_COEF( L,V ) = MAX( BEXT, 1.0E-30 )
-            AERO_ASYM_FAC ( L,V ) = G_BAR / MAX( BSCAT, 1.0E-30 )
+            AERO_EXTI_COEF( L,V ) = MAX( BEXT, 1.0D-30 )
+            AERO_ASYM_FAC ( L,V ) = G_BAR / MAX( BSCAT, 1.0D-30 )
 
 #ifdef verbose_phot_extra
             if( l .eq. 1 .and. v .eq. 1)then
@@ -859,14 +863,16 @@ C***  and contribution to the overall asymmetry factor
 !         END IF
          LOOP_550NM: DO L = 1, NLAYS
               IF( USE_ANGSTROM_INTERP )THEN
-                 ANGSTROM_EXPONENT  =  - REAL( LOG( AERO_EXTI_COEF( L,IWL_ANGSTROM_LOWER ) 
-     &                                         / AERO_EXTI_COEF( L,IWL_ANGSTROM_UPPER ) ), 8 )
+C ***            Added by J.E.L., modified initial assignment for ANGSTROM_EXPONENT
+                 ANGSTROM_EXPONENT  = 1.0D0
+                 ANGSTROM_EXPONENT  =  - LOG( AERO_EXTI_COEF( L,IWL_ANGSTROM_LOWER ) 
+     &                                         / AERO_EXTI_COEF( L,IWL_ANGSTROM_UPPER ) )
      &                              *  ANGSTROM_SPAN
 !                AERO_EXTI_550( L ) = LOG( AERO_EXTI_COEF( L,IWL_ANGSTROM_LOWER ) )
 !    &                              + REAL( ANGSTROM_EXPONENT * LOG_ANGSTROM_RATIO, 4 )
 !                AERO_EXTI_550( L ) =  EXP( AERO_EXTI_550( L ) )
                  AERO_EXTI_550( L ) =  AERO_EXTI_COEF( L,IWL_ANGSTROM_LOWER ) 
-     &                              *  REAL( ANGSTROM_RATIO ** ANGSTROM_EXPONENT, 4 )
+     &                              *  ANGSTROM_RATIO ** ANGSTROM_EXPONENT 
 !                 IF ( FIRSTCALL ) THEN
 !                     WRITE( LOGDEV,'(I3,A,7(ES12.4,1X))')L,
 !     &              ' AERO_EXT_LOWER,AERO_EXT_UPPER,EXPONENT,EXPONENT*LOG(RATIO),EXT_550_1,EXT_550_2: ',
@@ -961,6 +967,8 @@ C-----------------------------------------------------------------------
      &                       WAVELENGTH => EFFWL_REF
 
       USE CMAQ_RRTMG_AERO_OPTICAL_UTIL_MODULE, ONLY : AERO_OPTICAL2, AERO_OPTICAL_CS
+      USE HDMod
+      
 
       IMPLICIT NONE
 
@@ -971,7 +979,7 @@ C Arguments:
       INTEGER, INTENT( IN ) :: COL               ! specified column index
       INTEGER, INTENT( IN ) :: ROW               ! specified row index
       INTEGER, INTENT( IN ) :: NLAYS             ! # of vertical layers
-      REAL,    POINTER      :: CGRID( :,:,:,: )
+      TYPE(hyperdual),    POINTER      :: CGRID( :,:,:,: )
 
 C Parameters:
 
@@ -989,31 +997,31 @@ C Local variables:
       CHARACTER( 16 ) :: VNAME            ! varable name
       CHARACTER( 96 ) :: XMSG = ' '
 
-      REAL( 8 ) :: FACTOR
-      REAL( 8 ) :: SUMRI_R
-      REAL( 8 ) :: SUMRI_I
+      TYPE(hyperdual) :: FACTOR
+      TYPE(hyperdual) :: SUMRI_R
+      TYPE(hyperdual) :: SUMRI_I
 
-      REAL VOL            ! Total Modal aerosol volume
-      REAL DGN_SHELL      ! geometric mean diameters of aerosol core
+      TYPE(hyperdual) VOL            ! Total Modal aerosol volume
+      TYPE(hyperdual) DGN_SHELL      ! geometric mean diameters of aerosol core
       REAL VOL_SHELL      ! Modal aerosol volume of aerosol core
-      REAL XXLSG          ! geometric standard deviation
+      TYPE(hyperdual) XXLSG          ! geometric standard deviation
       REAL MIE_PARAMETER  ! Modal Mie parameter
-      REAL SUMRI_R_SHELL
-      REAL SUMRI_I_SHELL
-      REAL MOMENT3_PORTION
+      TYPE(hyperdual) SUMRI_R_SHELL
+      TYPE(hyperdual) SUMRI_I_SHELL
+      TYPE(hyperdual) MOMENT3_PORTION
 
 C***  variables for calculating modal averaged properties per layer and lambda
 
-      COMPLEX NR_SHELL
-      COMPLEX NI_SHELL
+      TYPE(hyperdual_cplx) NR_SHELL
+      TYPE(hyperdual_cplx) NI_SHELL
 
-      REAL BEXT_MODE  ! total aerosol extinction coefficient [ 1/m ]
-      REAL BSCAT_MODE ! total aerosol scattering coefficient [ 1/m ]
-      REAL GBAR_MODE  ! total aerosol asymmetry factor
-      REAL BEXT       ! total aerosol extinction coefficient [ 1/m ]
-      REAL VFAC, BSC  ! unit correction factors
-      REAL BSCAT      ! total aerosol scattering coefficient [ 1/m ]
-      REAL G_BAR      ! total aerosol asymmetry factor
+      TYPE(hyperdual) BEXT_MODE  ! total aerosol extinction coefficient [ 1/m ]
+      TYPE(hyperdual) BSCAT_MODE ! total aerosol scattering coefficient [ 1/m ]
+      TYPE(hyperdual) GBAR_MODE  ! total aerosol asymmetry factor
+      TYPE(hyperdual) BEXT       ! total aerosol extinction coefficient [ 1/m ]
+      TYPE(hyperdual) VFAC, BSC  ! unit correction factors
+      TYPE(hyperdual) BSCAT      ! total aerosol scattering coefficient [ 1/m ]
+      TYPE(hyperdual) G_BAR      ! total aerosol asymmetry factor
       REAL INV_LAMBDA ! reciprocal of wavelength [ 1/m ]
       REAL LAMDA_UM   ! wavelength  [ um ]
 
@@ -1039,10 +1047,10 @@ C *** initialize internal and external dimensions of aerosols
 
       CORE_MOMENT3  = 0.0D+0
       SHELL_MOMENT3 = 0.0D+0
-      BLK_AE_VOL    = 0.0
-      BLK_AE_CONC   = 0.0
-      AE_DGN_SHELL  = 0.0
-      AE_DGN_CORE   = 0.0
+      BLK_AE_VOL    = 0.0D0
+      BLK_AE_CONC   = 0.0D0
+      AE_DGN_SHELL  = 0.0D0
+      AE_DGN_CORE   = 0.0D0
       SUCCESS       = .TRUE.
 
       LAY_LOOP1: DO L = 1, NLAYS
@@ -1080,7 +1088,7 @@ C *** Calculate geometric mean diameters and standard deviations of "wet" size d
                BLK_AE_CONC( SPC,MODE,L ) = AEROSPC_CONC( SPC,MODE )
 
                MOMENT3_PORTION          = REAL( M3_FACTOR( SPC ) ) * AEROSPC_CONC( SPC,MODE )
-               SHELL_MOMENT3( MODE,L ) = SHELL_MOMENT3( MODE,L ) + REAL( MOMENT3_PORTION, 8 )
+               SHELL_MOMENT3( MODE,L ) = SHELL_MOMENT3( MODE,L ) + MOMENT3_PORTION
 #ifdef verbose_phot
                if ( col .eq. 1 .and. row .eq. 1 .and. l .eq. 1 ) then
                   write(logdev,5008)aerospc( spc )%name( mode ),moment3_portion, shell_moment3( mode, l )
@@ -1109,8 +1117,8 @@ C *** Calculate geometric mean diameters and standard deviations of "wet" size d
       END DO LAY_LOOP1
 
 C *** Initialize refractive indices then compute
-      AE_NR_SHELL = 0.0
-      AE_NI_SHELL = 0.0
+      AE_NR_SHELL = 0.0d0
+      AE_NI_SHELL = 0.0d0
          
       LOOP_WAVE: DO V = 1, NWL
          LAMDA_UM   = 1.0E-3 * WAVELENGTH( V ) ! convert to micro-meters
@@ -1137,16 +1145,16 @@ C *** Initialize refractive indices then compute
 
                END DO SPC_LOOP2
 C ***       Update output array values
-               VFAC = REAL( 1.0D0 / SHELL_MOMENT3( MODE,L ) ) 
+               VFAC = 1.0D0 / SHELL_MOMENT3( MODE,L ) 
                AE_NR_SHELL ( MODE,L,V ) = SUMRI_R_SHELL * VFAC 
                AE_NI_SHELL ( MODE,L,V ) = SUMRI_I_SHELL * VFAC
             END DO REFRAC_LOOP
 
 C***loop over mode again for mean modal extinction and scattering properties
 
-            G_BAR = 0.0
-            BEXT  = 0.0
-            BSCAT = 0.0
+            G_BAR = 0.0d0
+            BEXT  = 0.0d0
+            BSCAT = 0.0d0
 
 #ifdef verbose_phot_extra
             if ( L .eq. 1 .and. V .eq. 1 ) then
@@ -1183,7 +1191,7 @@ C*** factor for aerosols.
                      IF( SUCCESS ) CALL AERO_OPTICAL2( LAMDA_UM, NR_SHELL, VOL, 
      &                                   DGN_SHELL, XXLSG,
      &                                   BEXT_MODE, BSCAT_MODE, GBAR_MODE, SUCCESS )
-                     VFAC  = 1.0 ! correction factor 
+                     VFAC  = 1.0d0 ! correction factor 
                   ELSE 
 ! use old fast optics method
                      IF ( SUCCESS ) CALL FAST_OPTICS( AE_NR_SHELL( MODE,L,V ),  
@@ -1270,483 +1278,484 @@ C***  and contribution to the overall asymmetry factor
       RETURN
       END SUBROUTINE AERO_OPTICS_INTERNAL 
 
+C COMMENTED OUT BY J.E.L., NOT USED AT ALL
 C:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-      SUBROUTINE FASTER_OPTICS ( NR, NI, ALPHV, XLNSIG, BETA_EXT, BETA_SCAT, G )
-C-----------------------------------------------------------------------
-C  A parameterization of the aerosol extinction and scattering code
-C     Coded by Dr. Francis S. Binkowski
-C     CEMP, The Institute for the Environment
-C     The University of North Carolina at Chapel Hill
-C     email: frank_binkowski@unc.edu
-C     Code dates. Began February 25, 2005, current March 18, 2005
-C     modified by FSB May 10, 2005 to calculate asymmetry factor by the
-C     semi-empirical method of Hanna and Mathur. Note that
-C     the normalized scattering coefficient (non-dimensional) is
-C     interpreted as an average of  scattering efficiency over the
-C     size distribution
-C     Modified 05/25/2005 to ensure that if ni = 0.0, that
-C     beta_scat = beta_ext.
-C     Modified 03/17/2008 to ensure match with reference calculation for
-C     all cases of sigma_g.
-C     Modified 10/25/2009 to be consistent with research version of code.
-C     The modifications include better representation of the
-C     asymmetry factor.
-C     The form of the mathematical expression for extinction
-C     and scattering is based upon that of
-C     Heintzenberg & Baker (1976), and further inspired by the work
-C     of Willeke and Brockmann(1977) who showed the basic shape of
-C     the extinction resulting from an integration of the Mie extinction
-C     efficiency over a log normal particle size distribution.
-C     This current code has been developed from a direct calculation of
-C     extinction and scattering using a Mie code integrated over
-C     a log normal distribution. The results of that calculation
-C     replicate the Willee and Brockmann (1977) results.
-C     The parameterization is based upon a fit to the standard CMAQ
-C     radiative transfer code for visibility. to which a module for
-C     absorption was added so that absorption and scattering would also be
-C     available.
+C     SUBROUTINE FASTER_OPTICS ( NR, NI, ALPHV, XLNSIG, BETA_EXT, BETA_SCAT, G )
+CC-----------------------------------------------------------------------
+CC  A parameterization of the aerosol extinction and scattering code
+CC     Coded by Dr. Francis S. Binkowski
+CC     CEMP, The Institute for the Environment
+CC     The University of North Carolina at Chapel Hill
+CC     email: frank_binkowski@unc.edu
+CC     Code dates. Began February 25, 2005, current March 18, 2005
+CC     modified by FSB May 10, 2005 to calculate asymmetry factor by the
+CC     semi-empirical method of Hanna and Mathur. Note that
+CC     the normalized scattering coefficient (non-dimensional) is
+CC     interpreted as an average of  scattering efficiency over the
+CC     size distribution
+CC     Modified 05/25/2005 to ensure that if ni = 0.0, that
+CC     beta_scat = beta_ext.
+CC     Modified 03/17/2008 to ensure match with reference calculation for
+CC     all cases of sigma_g.
+CC     Modified 10/25/2009 to be consistent with research version of code.
+CC     The modifications include better representation of the
+CC     asymmetry factor.
+CC     The form of the mathematical expression for extinction
+CC     and scattering is based upon that of
+CC     Heintzenberg & Baker (1976), and further inspired by the work
+CC     of Willeke and Brockmann(1977) who showed the basic shape of
+CC     the extinction resulting from an integration of the Mie extinction
+CC     efficiency over a log normal particle size distribution.
+CC     This current code has been developed from a direct calculation of
+CC     extinction and scattering using a Mie code integrated over
+CC     a log normal distribution. The results of that calculation
+CC     replicate the Willee and Brockmann (1977) results.
+CC     The parameterization is based upon a fit to the standard CMAQ
+CC     radiative transfer code for visibility. to which a module for
+CC     absorption was added so that absorption and scattering would also be
+CC     available.
+CC
+CC     The  shape has been modified for absorption by small particles
+CC     by using the formulae of Penndorf (1962). For large particles,
+CC     the shape has been altered by using the large sphere values from
+CC     Table I of  Irvine (1965)
+CC
+CC     Results are consistent with those of Willeke and Brockmann (1977).
+CC
+CC     The asymmetry factor is calculated by a new algorithm FSB - 04/04/2008
+CC     Sept 2014: J.Young-change arguments and usage of Mie Paramater attempting
+CC                to optimize runtimes or efficiency
+CC     Oct  2014: B.Hutzell-Added mininum values for scatttering efficiency for small
+CC                highly absorbing particles such as Aitken particle that
+CC                are mostly composed of elemental carbon
+CC
+CC  References:
+CC
+CC     Heintzenberg, J. and M. Baker, Spherical particle populations:
+CC     approximate analytic relationship between size distribution
+CC     parameters and integral optical properties, Applied Optics,
+CC     Volume 15, Number 5 pp 1178-1181, May 1976.
+CC
+CC     Irvine, W. M. Light Scattering by spherical particles: Radiation
+CC     pressure, asymmetry factor, and extinction cross section,
+CC     Journal of eh Optical Society of Amerioca, Vol. 55, NO. 1,
+CC     January ,1965
+CC
+CC     Penndorf, R. Scattering and Extinction Coefficeints for small
+CC     spherical particles, J. Atmospheric Sciences, Volume 19, p 193,
+CC     March 1962.
+CC
+CC     Willeke, K. and  J. E. Brockmann, Extinction coefficients for
+CC     multmodal atmospheric particle size distributions, Atmospheric
+CC     Environment, vol. 11, pp 95-999, 1977.
+CC-----------------------------------------------------------------------
+C     use HDMod
+C     IMPLICIT NONE
 C
-C     The  shape has been modified for absorption by small particles
-C     by using the formulae of Penndorf (1962). For large particles,
-C     the shape has been altered by using the large sphere values from
-C     Table I of  Irvine (1965)
+C     INCLUDE SUBST_CONST      ! physical constants
 C
-C     Results are consistent with those of Willeke and Brockmann (1977).
+CC***arguments
 C
-C     The asymmetry factor is calculated by a new algorithm FSB - 04/04/2008
-C     Sept 2014: J.Young-change arguments and usage of Mie Paramater attempting
-C                to optimize runtimes or efficiency
-C     Oct  2014: B.Hutzell-Added mininum values for scatttering efficiency for small
-C                highly absorbing particles such as Aitken particle that
-C                are mostly composed of elemental carbon
+C     REAL, INTENT( IN )  :: NR, NI     ! indices of refraction
+C     REAL, INTENT( IN )  :: ALPHV      ! Mie parameter for dgv
+C     REAL, INTENT( IN )  :: XLNSIG     ! log of geometric standard deviation
 C
-C  References:
+C     TYPE(hyperdual), INTENT( OUT ) :: BETA_EXT   ! normalized extinction coefficient
+C     TYPE(hyperdual), INTENT( OUT ) :: BETA_SCAT  ! normalized scattering coefficient
+C     REAL, INTENT( OUT ) :: G          ! asymmetry factor
 C
-C     Heintzenberg, J. and M. Baker, Spherical particle populations:
-C     approximate analytic relationship between size distribution
-C     parameters and integral optical properties, Applied Optics,
-C     Volume 15, Number 5 pp 1178-1181, May 1976.
+CC***internal variables
 C
-C     Irvine, W. M. Light Scattering by spherical particles: Radiation
-C     pressure, asymmetry factor, and extinction cross section,
-C     Journal of eh Optical Society of Amerioca, Vol. 55, NO. 1,
-C     January ,1965
+C     REAL NR1, NR2, TAU
+C     REAL C, CEXT, CSCAT
+C     TYPE(hyperdual) B, BEXT, BSCAT
+C     TYPE(hyperdual) BBFAC
+C     TYPE(hyperdual) ALPHA_I
+C     TYPE(hyperdual) A, LOGX2, XLNSIG2, MM1
 C
-C     Penndorf, R. Scattering and Extinction Coefficeints for small
-C     spherical particles, J. Atmospheric Sciences, Volume 19, p 193,
-C     March 1962.
+C     REAL, PARAMETER :: SIGMA_G_TWO = 2.0
+C     REAL, PARAMETER :: LOGSIG_TWO = 0.693147
+C     REAL, PARAMETER :: LOGSIG_TWO_SQD = LOGSIG_TWO * LOGSIG_TWO
+C     REAL, PARAMETER :: LOGSIG_105 = 1.102500
+C     REAL, PARAMETER :: DIFFSIG = SIGMA_G_TWO - 1.05
+C     REAL, PARAMETER :: A_TWO = 0.5 / LOGSIG_TWO_SQD
+C     REAL LARGESCAT  ! large sphere limit for scattering
+C     REAL LARGEEXT   ! large sphere limit for extinction
+C     REAL SMALL_G, LARGE_G
 C
-C     Willeke, K. and  J. E. Brockmann, Extinction coefficients for
-C     multmodal atmospheric particle size distributions, Atmospheric
-C     Environment, vol. 11, pp 95-999, 1977.
-C-----------------------------------------------------------------------
-
-      IMPLICIT NONE
-
-      INCLUDE SUBST_CONST      ! physical constants
-
-C***arguments
-
-      REAL, INTENT( IN )  :: NR, NI     ! indices of refraction
-      REAL, INTENT( IN )  :: ALPHV      ! Mie parameter for dgv
-      REAL, INTENT( IN )  :: XLNSIG     ! log of geometric standard deviation
-
-      REAL, INTENT( OUT ) :: BETA_EXT   ! normalized extinction coefficient
-      REAL, INTENT( OUT ) :: BETA_SCAT  ! normalized scattering coefficient
-      REAL, INTENT( OUT ) :: G          ! asymmetry factor
-
-C***internal variables
-
-      REAL NR1, NR2, TAU
-      REAL C, CEXT, CSCAT
-      REAL B, BEXT, BSCAT
-      REAL BBFAC
-      REAL ALPHA_I
-      REAL A, LOGX2, XLNSIG2, MM1
-
-      REAL, PARAMETER :: SIGMA_G_TWO = 2.0
-      REAL, PARAMETER :: LOGSIG_TWO = 0.693147
-      REAL, PARAMETER :: LOGSIG_TWO_SQD = LOGSIG_TWO * LOGSIG_TWO
-      REAL, PARAMETER :: LOGSIG_105 = 1.102500
-      REAL, PARAMETER :: DIFFSIG = SIGMA_G_TWO - 1.05
-      REAL, PARAMETER :: A_TWO = 0.5 / LOGSIG_TWO_SQD
-      REAL LARGESCAT  ! large sphere limit for scattering
-      REAL LARGEEXT   ! large sphere limit for extinction
-      REAL SMALL_G, LARGE_G
-
-      REAL ALPHV2, ALPHV3
-      REAL X_ALPHA, X_ALPHA2, X_ALPHA3
-      REAL SIGMA_G, FCORR
-      REAL EXPFAC2, EXPFAC3
-      REAL EFAC, EFAC_EXT, EFAC_SCAT
-      REAL DEN1, FAC1, FAC2
-      REAL F1, F2, F3
-      REAL G1, G2, G3, G4, G5
-      REAL NN, TT
-
-      REAL T1F1, T2F1, T1F2, T2F2, T1F3, T2F3
-      REAL T1G1, T2G1, T1G2, T2G2, T1G3, T2G3, T1G4, T2G4
-      REAL T1G5, T2G5, T1P1, T2P1
-
-C***the following are for calculating the Penndorff Coefficients
-
-      REAL PENN1, A1, A2, A3, PENN2
-      REAL XNR, XNI, XNR2, XNI2, XNRI, XNRI2, XNRMI
-      REAL XRI, XRI2, XRI36, XNX, XNX2
-      REAL Z1, Z12, Z2, XC1
-
-C***coefficients for polynomials
-
-      REAL, PARAMETER :: F1A0 = -1.309193E-1
-      REAL, PARAMETER :: F1A1 =  2.565668E+0
-
-      REAL, PARAMETER :: F2A0 =  1.489233E+1
-      REAL, PARAMETER :: F2A1 = -5.311351E+1
-      REAL, PARAMETER :: F2A2 =  8.180334E+1
-      REAL, PARAMETER :: F2A3 = -4.549854E+1
-
-      REAL, PARAMETER :: F3A0 =  5.549359E-1
-      REAL, PARAMETER :: F3A1 =  2.571002E-1
-      REAL, PARAMETER :: F3A2 =  9.212703E-1
-      REAL, PARAMETER :: F3A3 =  5.155047E-2
-
-      REAL, PARAMETER :: G1A0 =  1.000000E+0
-      REAL, PARAMETER :: G1A1 = -7.636121E-1
-      REAL, PARAMETER :: G1A2 =  1.285532E+0
-      REAL, PARAMETER :: G1A3 =  1.629161E-2
-
-      REAL, PARAMETER :: G2A0 =  1.000000E+0
-      REAL, PARAMETER :: G2A1 = -2.507954E+0
-      REAL, PARAMETER :: G2A2 =  5.170246E+0
-      REAL, PARAMETER :: G2A3 = -4.945515E+0
-
-      REAL, PARAMETER :: G3A0 =  1.000000E+0
-      REAL, PARAMETER :: G3A1 = -2.650134E+0
-      REAL, PARAMETER :: G3A2 =  4.515327E+0
-      REAL, PARAMETER :: G3A3 = -4.027442E+0
-
-      REAL, PARAMETER :: G4A0 =  1.000000E+0
-      REAL, PARAMETER :: G4A1 = -8.532647E-1
-      REAL, PARAMETER :: G4A2 =  6.766073E-1
-
-      REAL, PARAMETER :: G5A0 =  1.0
-      REAL, PARAMETER :: G5A1 = -6.674946E-1
-      REAL, PARAMETER :: G5A2 = -5.426378E-1
-
-C *** Coefficients for quadratic fit for <cos> large particles
-C     from Irvine (1965) Table I
-      REAL, PARAMETER :: IRVA0 =  1.076232E+0
-      REAL, PARAMETER :: IRVA1 = -4.891972E-2
-      REAL, PARAMETER :: IRVA2 = -2.243449E-2
-
-
-C FSB Coefficients for SMALL_G  calculation
-      REAL, PARAMETER :: XXA0 =  3.392224E-2
-      REAL, PARAMETER :: XXA1 =  8.276532E-1
-      REAL, PARAMETER :: XXA2 = -3.784926E-1
-      REAL, PARAMETER :: XXA3 =  5.853108E-2
-      REAL, PARAMETER :: G_ALPHA_I = XXA0 + XXA1 + XXA2 + XXA3
-
-C FSB Coefficients for LARGE_G calculation
-      REAL, PARAMETER :: YYA0 =  6.776173E-1
-      REAL, PARAMETER :: YYA1 =  2.385339E-2
-      REAL, PARAMETER :: YYA2 = -7.952263E-4
-      REAL, PARAMETER :: YYA3 =  9.410370E-6
-
-C FSB Coefficientf for adjusting asymmetry factor calculation
-      REAL, PARAMETER :: CXG0 = -5.845196E-2
-      REAL, PARAMETER :: CXG1 =  3.229183E-1
-      REAL, PARAMETER :: CXG2 =  2.764716E-1
-      REAL, PARAMETER :: CXG3 = -8.790411E-2
-
-C***FSB added for asymmetry factor calculation
-
-      REAL QSCAT_AVG
-
-      REAL, PARAMETER :: AA0 =  88.466
-      REAL, PARAMETER :: AA1 = -61.628
-      REAL, PARAMETER :: AA2 =  34.483
-      REAL, PARAMETER :: AA3 =  -8.543
-      REAL, PARAMETER :: AA4 =   0.77435
-
-      REAL GMAX
-      REAL QANGLE
-      REAL QQ, QF1, QF2, QF3
-      REAL QQSUM, QQF1,QQF2, QQF3, QQCORR
-
-      REAL, PARAMETER :: DEGTORAD = PI180
-      REAL, PARAMETER :: THREE_PI_TWO = 3.0 * PI / 2.0
-
-C***FSB start calculation
-      SIGMA_G = EXP( XLNSIG )
-C FSB check range of SIGMA_G
-C *** Maximum value of SIGMA_G allowed is 2.0
-      SIGMA_G = MIN( 2.0, SIGMA_G )
-C *** Minimum allowed value fo SIGMA_F is 1.05
-      SIGMA_G = MAX( 1.05, SIGMA_G )
-
-      XLNSIG2 = XLNSIG * XLNSIG
-      A = 0.5 / XLNSIG2
-
-      NR1 = NR - 1.0
-      NR2 = NR * NR
-
-C***evaluate polynomials
-C***  optimize for piplined microprocessor
-C***  appproach recommended by Dr. Carlie Coats
-
-      NN = NR1 * NR1
-
-      T1F1 = F1A0 + F1A1 * NR1
-      T1F2 = F2A0 + F2A1 * NR1
-      T2F2 = F2A2 + F2A3 * NR1
-      T1F3 = F3A0 + F3A1 * NR1
-      T2F3 = F3A2 + F3A3 * NR1
-
-      F1 = T1F1                 ! linear
-      F2 = T1F2 + T2F2 * NN     ! cubic
-      F3 = T1F3 + T2F3 * NN     ! cubic
-
-      C = F1
-
-C FSB correct for values of SIGMA_ less than 2.0.
-C     The smallest value of SIGMA_G allowed is 1.05
-C     2.0 - 1.05 = 0.95
-C      FCORR   = (1.0 - 0.13 * (SIGMA_G - 1.05)  / 0.95 )
-C     1.0 / 0.95 = 1.052632.  1.0 / 0.95 * 0.13 = 0.136842
-
-      FCORR   = 1.0 - 0.136842 * ( SIGMA_G - 1.05 )
-
-      CEXT    = C * FCORR
-      CSCAT   = CEXT
-      B       = F3 * A_TWO
-      ALPHA_I = F2
-      BEXT    = B
-      BSCAT   = B
-      PENN1   = 0.0
-      PENN2   = 0.0
-
-      ALPHV2 = ALPHV * ALPHV
-      ALPHV3 = ALPHV2 * ALPHV
-
-      IF ( NI .GT. 0.0 ) THEN
-
-         TAU = NI / NR1
-
-C***evaluate more polynomials
-C***  optimize for piplined microprocessor
-C***  appproach recommended by Dr. Carlie Coats
-
-         TT = TAU * TAU
-         T1G1 = G1A0 + G1A1 * TAU
-         T2G1 = G1A2 + G1A3 * TAU
-         T1G2 = G2A0 + G2A1 * TAU
-         T2G2 = G2A2 + G2A3 * TAU
-         T1G3 = G3A0 + G3A1 * TAU
-         T2G3 = G3A2 + G3A3 * TAU
-         T1G4 = G4A0 + G4A1 * TAU
-         T2G4 = G4A2            ! quadratic
-         T1G5 = G5A0 + G5A1 * TAU
-         T2G5 = G5A2            ! quadratic
-         G1   = T1G1 + T2G1 * TT
-         G2   = T1G2 + T2G2 * TT
-         G3   = T1G3 + T2G3 * TT
-         G4   = T1G4 + T2G4 * TT
-         G5   = T1G5 + T2G5 * TT
-
-C *** adjust the variables
-
-         CEXT    = CEXT    * G1
-         CSCAT   = CSCAT   * G2
-         BEXT    = BEXT    * G3
-         BSCAT   = BSCAT   * G4
-         ALPHA_I = ALPHA_I * G5
-
-C*** Calculate the Penndorf Coefficients for the small particle limit
-
-         XNR   = NR
-         XNI   = NI
-         XNR2  = XNR   * XNR
-         XNI2  = XNI   * XNI
-         XNRI  = XNR2  + XNI2
-         XNRI2 = XNRI  * XNRI
-         XNRMI = XNR2  - XNI2
-         XRI   = XNR   * XNI
-         XRI2  = XRI   * XRI
-         XRI36 = 36.0  * XRI2
-         XNX   = XNRI2 + XNRMI - 2.0
-         XNX2  = XNX   * XNX
-
-         Z1    = XNRI2 + 4.0 * XNRMI + 4.0
-         Z12   = Z1    * Z1
-         Z2    = 4.0   * XNRI2 + 12.0 * XNRMI + 9.0
-         XC1   = 8.0   / ( 3.0 * Z12 )
-         A1    = 24.0  * XRI / Z1
-
-         A2    = 4.0   * XRI / 15.0 + 20.0 * XRI / ( 3.0 * Z2 ) +
-     &           4.8   * XRI * (  7.0 * XNRI2 +
-     &           4.0   * ( XNRMI - 5.0 ) ) / Z12
-
-         A3    = XC1   * ( XNX2 - XRI36 )
-
-!        ALPHV2 = ALPHV * ALPHV
-!        ALPHV3 = ALPHV2 * ALPHV
-         EXPFAC2 = EXP( 2.0 * XLNSIG2 )
-         EXPFAC3 = EXP( 4.5 * XLNSIG2 )
-
-         T1P1 = A1 + A2 * ALPHV2 * EXPFAC2
-         T2P1 = A3 * ALPHV3 * EXPFAC3
-
-C***PENN1 is the analytic integral of the Pendorff formulae over
-C***   a log normal particle size distribution.
-
-         PENN1 = THREE_PI_TWO * ( T1P1 + T2P1 )
-         PENN2 = THREE_PI_TWO * T2P1
-
-      END IF   ! test for ni > 0.0
-
-      X_ALPHA  = ALPHV / ALPHA_I
-
-!     LOGX2    = LOG( X_ALPHA )** 2
-      LOGX2    = LOG( X_ALPHA )
-      LOGX2    = LOGX2 * LOGX2
-
-      BBFAC    = BEXT * A  / ( BEXT + A )
-
-      EFAC_EXT = EXP( -BBFAC * LOGX2 )
-
-C***FSB calculate normalized extinction and scattering coefficients
-
-      BETA_EXT = THREE_PI_TWO * CEXT
-     &         * SQRT( A / ( BEXT + A ) ) * EFAC_EXT
-
-      BETA_SCAT = BETA_EXT      ! NI = 0.0 case
-
-C *** Check for NI > 0.0
-
-      IF ( NI .GT. 0.0 ) THEN
-
-!        BBFAC = 1.5 * BBFAC ! reset BBFAC for scattering
-         BBFAC = 1.1 * BBFAC ! reset BBFAC for scattering
-
-         EFAC_SCAT = EXP( -BBFAC * LOGX2 )
-
-C *** recalculate the normalized scattering coefficient
-
-         BETA_SCAT = THREE_PI_TWO * CSCAT
-     &             * SQRT( A / ( BSCAT + A ) ) * EFAC_SCAT
-
-C *** Adjust beta_ext for small particle absorption:
-
-         IF ( X_ALPHA .LT. 0.13 ) THEN
-
-            FAC1 = ALPHV + 0.6 * ALPHV2
-
-            BETA_EXT = MAX( BETA_EXT,
-     &                    ( BETA_EXT  * FAC1 + ( 1.0 - FAC1 ) * PENN1 ) )
-
-            BETA_SCAT = MAX( BETA_SCAT,
-     &                     ( BETA_SCAT * FAC1 + ( 1.0 - FAC1 ) * PENN2 ) )
-
-         END IF ! test for   XALPHA < 0.13
-
-! small highly absorbing  particles such as a Tyndall scatterers such as
-! described in Jacobson (1999) in Fundmentals of Atmospheric Modeling. This
-! is approximately consistent with Penndorf (1962).
-
-        BETA_SCAT = MAX( 0.001 * BETA_EXT, BETA_SCAT )
-
-      END IF  ! test for NI > 0.0
-
-C *** Calculate large sphere limits(Irvine, 1965)
-
-      MM1 = EXP( 0.5 * XLNSIG2 ) / ALPHV
-
-C FSB large sphere limit - scattering
-
-      LARGESCAT = THREE_PI_TWO * ( 8.652439E-01 + 1.501772E-01 * NR ) * MM1
-
-C FSB large spnere limit for extinction ( no edge effects )
-
-      LARGEEXT = THREE_PI_TWO * ( 2.0 * MM1 )
-
-C FSB Adjust for large sphere limits
-
-      IF ( ALPHV .GE. 10.0 ) THEN
-
-         BETA_EXT  = MAX( BETA_EXT, LARGEEXT )
-
-         BETA_SCAT = MAX( BETA_SCAT, LARGESCAT )
-
-      END IF ! test for 10.0 < ALPHV
-
-C***FSB now calculate the asymmetry factor
-C***  using the Hanna-Mathur quasi-empirical method
-!     GMAX = 0.0
-
-!     QSCAT_AVG = BETA_SCAT
-!     QANGLE = AA0
-
-!     IF ( QSCAT_AVG .GT. 1.0E-4 ) THEN
-!        QQ  = QSCAT_AVG * QSCAT_AVG
-!        QF1 = AA0 + AA1 * QSCAT_AVG
-!        QF2 = AA2 + AA3 * QSCAT_AVG
-!        QF3 = AA4 * QSCAT_AVG * QSCAT_AVG
-!        QANGLE = QF1 + QF2 * QQ + QF3 * QQ
-!     END IF
-
-!     QANGLE = DEGTORAD * QANGLE
-!     G      = COS( QANGLE)     ! asymmetry factor
-
-C***FSB now calculate the asymmetry factor
-C***   using a parametric fit to Mie calculations
-
-      X_ALPHA2 = X_ALPHA * X_ALPHA
-      X_ALPHA3 = X_ALPHA2 * X_ALPHA
-
-      SMALL_G = 0.0
-      LARGE_G = 0.0
-
-      IF ( ALPHV .LT. 2.6 ) THEN
-
-C FSB Calculate SMALL_G for sigma_g = 2.0
-
-         QF1 = XXA0 + XXA1 * ALPHV
-         QF2 = XXA2 * ALPHV2
-         QF3 = XXA3 * ALPHV3
-         SMALL_G = QF1 + QF2 + QF3 ! valid at sigma_g = 2.0
-
-C FSB adjust SMALL_G for values less than 2.0
-C     The smallest sigma_g allowed is 1.05
-
-         QQF1 = CXG0 + CXG1 * ALPHV
-         QQF2 = CXG2 * ALPHV2
-         QQF3 = CXG3 * ALPHV3
-         QQSUM = QQF1 + QQF2 + QQF3
-         FAC1 = 1.052632 * ( 2.0 - SIGMA_G )
-         QQSUM = MAX( 0.0, QQSUM )
-         QQCORR = ( 1.0 - FAC1 ) + FAC1 * QQSUM
-         SMALL_G = SMALL_G * QQCORR
-         G = SMALL_G
-
-      ELSE IF ( ALPHV .LT. 100.0 ) THEN
-
-         QF1 = YYA0 + YYA1 * X_ALPHA
-         QF2 = YYA2 * X_ALPHA2
-         QF3 = YYA3 * X_ALPHA3
-         LARGE_G = QF1 + QF2 + QF3
-         G = LARGE_G
-
-      ELSE
-
-C     Very large sphere limit from fit to Irvine (1965).
-
-         G = 1.124484 - 1.153869E-01 * NR
-
-      END IF
-
-      RETURN
-      END SUBROUTINE FASTER_OPTICS
+C     TYPE(hyperdual) ALPHV2, ALPHV3
+C     TYPE(hyperdual) X_ALPHA, X_ALPHA2, X_ALPHA3
+C     TYPE(hyperdual) SIGMA_G, FCORR
+C     TYPE(hyperdual) EXPFAC2, EXPFAC3
+C     TYPE(hyperdual) EFAC, EFAC_EXT, EFAC_SCAT
+C     TYPE(hyperdual) DEN1, FAC1, FAC2
+C     TYPE(hyperdual) F1, F2, F3
+C     TYPE(hyperdual) G1, G2, G3, G4, G5
+C     TYPE(hyperdual) NN, TT
+C
+C     TYPE(hyperdual) T1F1, T2F1, T1F2, T2F2, T1F3, T2F3
+C     TYPE(hyperdual) T1G1, T2G1, T1G2, T2G2, T1G3, T2G3, T1G4, T2G4
+C     TYPE(hyperdual) T1G5, T2G5, T1P1, T2P1
+C
+CC***the following are for calculating the Penndorff Coefficients
+C
+C     TYPE(hyperdual) PENN1, A1, A2, A3, PENN2
+C     TYPE(hyperdual) XNR, XNI, XNR2, XNI2, XNRI, XNRI2, XNRMI
+C     TYPE(hyperdual) XRI, XRI2, XRI36, XNX, XNX2
+C     TYPE(hyperdual) Z1, Z12, Z2, XC1
+C
+CC***coefficients for polynomials
+C
+C     REAL, PARAMETER :: F1A0 = -1.309193E-1
+C     REAL, PARAMETER :: F1A1 =  2.565668E+0
+C
+C     REAL, PARAMETER :: F2A0 =  1.489233E+1
+C     REAL, PARAMETER :: F2A1 = -5.311351E+1
+C     REAL, PARAMETER :: F2A2 =  8.180334E+1
+C     REAL, PARAMETER :: F2A3 = -4.549854E+1
+C
+C     REAL, PARAMETER :: F3A0 =  5.549359E-1
+C     REAL, PARAMETER :: F3A1 =  2.571002E-1
+C     REAL, PARAMETER :: F3A2 =  9.212703E-1
+C     REAL, PARAMETER :: F3A3 =  5.155047E-2
+C
+C     REAL, PARAMETER :: G1A0 =  1.000000E+0
+C     REAL, PARAMETER :: G1A1 = -7.636121E-1
+C     REAL, PARAMETER :: G1A2 =  1.285532E+0
+C     REAL, PARAMETER :: G1A3 =  1.629161E-2
+C
+C     REAL, PARAMETER :: G2A0 =  1.000000E+0
+C     REAL, PARAMETER :: G2A1 = -2.507954E+0
+C     REAL, PARAMETER :: G2A2 =  5.170246E+0
+C     REAL, PARAMETER :: G2A3 = -4.945515E+0
+C
+C     REAL, PARAMETER :: G3A0 =  1.000000E+0
+C     REAL, PARAMETER :: G3A1 = -2.650134E+0
+C     REAL, PARAMETER :: G3A2 =  4.515327E+0
+C     REAL, PARAMETER :: G3A3 = -4.027442E+0
+C
+C     REAL, PARAMETER :: G4A0 =  1.000000E+0
+C     REAL, PARAMETER :: G4A1 = -8.532647E-1
+C     REAL, PARAMETER :: G4A2 =  6.766073E-1
+C
+C     REAL, PARAMETER :: G5A0 =  1.0
+C     REAL, PARAMETER :: G5A1 = -6.674946E-1
+C     REAL, PARAMETER :: G5A2 = -5.426378E-1
+C
+CC *** Coefficients for quadratic fit for <cos> large particles
+CC     from Irvine (1965) Table I
+C     REAL, PARAMETER :: IRVA0 =  1.076232E+0
+C     REAL, PARAMETER :: IRVA1 = -4.891972E-2
+C     REAL, PARAMETER :: IRVA2 = -2.243449E-2
+C
+C
+CC FSB Coefficients for SMALL_G  calculation
+C     REAL, PARAMETER :: XXA0 =  3.392224E-2
+C     REAL, PARAMETER :: XXA1 =  8.276532E-1
+C     REAL, PARAMETER :: XXA2 = -3.784926E-1
+C     REAL, PARAMETER :: XXA3 =  5.853108E-2
+C     REAL, PARAMETER :: G_ALPHA_I = XXA0 + XXA1 + XXA2 + XXA3
+C
+CC FSB Coefficients for LARGE_G calculation
+C     REAL, PARAMETER :: YYA0 =  6.776173E-1
+C     REAL, PARAMETER :: YYA1 =  2.385339E-2
+C     REAL, PARAMETER :: YYA2 = -7.952263E-4
+C     REAL, PARAMETER :: YYA3 =  9.410370E-6
+C
+CC FSB Coefficientf for adjusting asymmetry factor calculation
+C     REAL, PARAMETER :: CXG0 = -5.845196E-2
+C     REAL, PARAMETER :: CXG1 =  3.229183E-1
+C     REAL, PARAMETER :: CXG2 =  2.764716E-1
+C     REAL, PARAMETER :: CXG3 = -8.790411E-2
+C
+CC***FSB added for asymmetry factor calculation
+C
+C     REAL QSCAT_AVG
+C
+C     REAL, PARAMETER :: AA0 =  88.466
+C     REAL, PARAMETER :: AA1 = -61.628
+C     REAL, PARAMETER :: AA2 =  34.483
+C     REAL, PARAMETER :: AA3 =  -8.543
+C     REAL, PARAMETER :: AA4 =   0.77435
+C
+C     TYPE(hyperdual) GMAX
+C     TYPE(hyperdual) QANGLE
+C     TYPE(hyperdual) QQ, QF1, QF2, QF3
+C     TYPE(hyperdual) QQSUM, QQF1,QQF2, QQF3, QQCORR
+C
+C     REAL, PARAMETER :: DEGTORAD = PI180
+C     REAL, PARAMETER :: THREE_PI_TWO = 3.0 * PI / 2.0
+C
+CC***FSB start calculation
+C     SIGMA_G = EXP( XLNSIG )
+CC FSB check range of SIGMA_G
+CC *** Maximum value of SIGMA_G allowed is 2.0
+C     SIGMA_G = MIN( 2.0, SIGMA_G )
+CC *** Minimum allowed value fo SIGMA_F is 1.05
+C     SIGMA_G = MAX( 1.05, SIGMA_G )
+C
+C     XLNSIG2 = XLNSIG * XLNSIG
+C     A = 0.5 / XLNSIG2
+C
+C     NR1 = NR - 1.0
+C     NR2 = NR * NR
+C
+CC***evaluate polynomials
+CC***  optimize for piplined microprocessor
+CC***  appproach recommended by Dr. Carlie Coats
+C
+C     NN = NR1 * NR1
+C
+C     T1F1 = F1A0 + F1A1 * NR1
+C     T1F2 = F2A0 + F2A1 * NR1
+C     T2F2 = F2A2 + F2A3 * NR1
+C     T1F3 = F3A0 + F3A1 * NR1
+C     T2F3 = F3A2 + F3A3 * NR1
+C
+C     F1 = T1F1                 ! linear
+C     F2 = T1F2 + T2F2 * NN     ! cubic
+C     F3 = T1F3 + T2F3 * NN     ! cubic
+C
+C     C = F1
+C
+CC FSB correct for values of SIGMA_ less than 2.0.
+CC     The smallest value of SIGMA_G allowed is 1.05
+CC     2.0 - 1.05 = 0.95
+CC      FCORR   = (1.0 - 0.13 * (SIGMA_G - 1.05)  / 0.95 )
+CC     1.0 / 0.95 = 1.052632.  1.0 / 0.95 * 0.13 = 0.136842
+C
+C     FCORR   = 1.0 - 0.136842 * ( SIGMA_G - 1.05 )
+C
+C     CEXT    = C * FCORR
+C     CSCAT   = CEXT
+C     B       = F3 * A_TWO
+C     ALPHA_I = F2
+C     BEXT    = B
+C     BSCAT   = B
+C     PENN1   = 0.0
+C     PENN2   = 0.0
+C
+C     ALPHV2 = ALPHV * ALPHV
+C     ALPHV3 = ALPHV2 * ALPHV
+C
+C     IF ( NI .GT. 0.0 ) THEN
+C
+C        TAU = NI / NR1
+C
+CC***evaluate more polynomials
+CC***  optimize for piplined microprocessor
+CC***  appproach recommended by Dr. Carlie Coats
+C
+C        TT = TAU * TAU
+C        T1G1 = G1A0 + G1A1 * TAU
+C        T2G1 = G1A2 + G1A3 * TAU
+C        T1G2 = G2A0 + G2A1 * TAU
+C        T2G2 = G2A2 + G2A3 * TAU
+C        T1G3 = G3A0 + G3A1 * TAU
+C        T2G3 = G3A2 + G3A3 * TAU
+C        T1G4 = G4A0 + G4A1 * TAU
+C        T2G4 = G4A2            ! quadratic
+C        T1G5 = G5A0 + G5A1 * TAU
+C        T2G5 = G5A2            ! quadratic
+C        G1   = T1G1 + T2G1 * TT
+C        G2   = T1G2 + T2G2 * TT
+C        G3   = T1G3 + T2G3 * TT
+C        G4   = T1G4 + T2G4 * TT
+C        G5   = T1G5 + T2G5 * TT
+C
+CC *** adjust the variables
+C
+C        CEXT    = CEXT    * G1
+C        CSCAT   = CSCAT   * G2
+C        BEXT    = BEXT    * G3
+C        BSCAT   = BSCAT   * G4
+C        ALPHA_I = ALPHA_I * G5
+C
+CC*** Calculate the Penndorf Coefficients for the small particle limit
+C
+C        XNR   = NR
+C        XNI   = NI
+C        XNR2  = XNR   * XNR
+C        XNI2  = XNI   * XNI
+C        XNRI  = XNR2  + XNI2
+C        XNRI2 = XNRI  * XNRI
+C        XNRMI = XNR2  - XNI2
+C        XRI   = XNR   * XNI
+C        XRI2  = XRI   * XRI
+C        XRI36 = 36.0  * XRI2
+C        XNX   = XNRI2 + XNRMI - 2.0
+C        XNX2  = XNX   * XNX
+C
+C        Z1    = XNRI2 + 4.0 * XNRMI + 4.0
+C        Z12   = Z1    * Z1
+C        Z2    = 4.0   * XNRI2 + 12.0 * XNRMI + 9.0
+C        XC1   = 8.0   / ( 3.0 * Z12 )
+C        A1    = 24.0  * XRI / Z1
+C
+C        A2    = 4.0   * XRI / 15.0 + 20.0 * XRI / ( 3.0 * Z2 ) +
+C    &           4.8   * XRI * (  7.0 * XNRI2 +
+C    &           4.0   * ( XNRMI - 5.0 ) ) / Z12
+C
+C        A3    = XC1   * ( XNX2 - XRI36 )
+C
+C!        ALPHV2 = ALPHV * ALPHV
+C!        ALPHV3 = ALPHV2 * ALPHV
+C        EXPFAC2 = EXP( 2.0 * XLNSIG2 )
+C        EXPFAC3 = EXP( 4.5 * XLNSIG2 )
+C
+C        T1P1 = A1 + A2 * ALPHV2 * EXPFAC2
+C        T2P1 = A3 * ALPHV3 * EXPFAC3
+C
+CC***PENN1 is the analytic integral of the Pendorff formulae over
+CC***   a log normal particle size distribution.
+C
+C        PENN1 = THREE_PI_TWO * ( T1P1 + T2P1 )
+C        PENN2 = THREE_PI_TWO * T2P1
+C
+C     END IF   ! test for ni > 0.0
+C
+C     X_ALPHA  = ALPHV / ALPHA_I
+C
+C!     LOGX2    = LOG( X_ALPHA )** 2
+C     LOGX2    = LOG( X_ALPHA )
+C     LOGX2    = LOGX2 * LOGX2
+C
+C     BBFAC    = BEXT * A  / ( BEXT + A )
+C
+C     EFAC_EXT = EXP( -BBFAC * LOGX2 )
+C
+CC***FSB calculate normalized extinction and scattering coefficients
+C
+C     BETA_EXT = THREE_PI_TWO * CEXT
+C    &         * SQRT( A / ( BEXT + A ) ) * EFAC_EXT
+C
+C     BETA_SCAT = BETA_EXT      ! NI = 0.0 case
+C
+CC *** Check for NI > 0.0
+C
+C     IF ( NI .GT. 0.0 ) THEN
+C
+C!        BBFAC = 1.5 * BBFAC ! reset BBFAC for scattering
+C        BBFAC = 1.1 * BBFAC ! reset BBFAC for scattering
+C
+C        EFAC_SCAT = EXP( -BBFAC * LOGX2 )
+C
+CC *** recalculate the normalized scattering coefficient
+C
+C        BETA_SCAT = THREE_PI_TWO * CSCAT
+C    &             * SQRT( A / ( BSCAT + A ) ) * EFAC_SCAT
+C
+CC *** Adjust beta_ext for small particle absorption:
+C
+C        IF ( X_ALPHA .LT. 0.13 ) THEN
+C
+C           FAC1 = ALPHV + 0.6 * ALPHV2
+C
+C           BETA_EXT = MAX( BETA_EXT,
+C    &                    ( BETA_EXT  * FAC1 + ( 1.0 - FAC1 ) * PENN1 ) )
+C
+C           BETA_SCAT = MAX( BETA_SCAT,
+C    &                     ( BETA_SCAT * FAC1 + ( 1.0 - FAC1 ) * PENN2 ) )
+C
+C        END IF ! test for   XALPHA < 0.13
+C
+C! small highly absorbing  particles such as a Tyndall scatterers such as
+C! described in Jacobson (1999) in Fundmentals of Atmospheric Modeling. This
+C! is approximately consistent with Penndorf (1962).
+C
+C       BETA_SCAT = MAX( 0.001 * BETA_EXT, BETA_SCAT )
+C
+C     END IF  ! test for NI > 0.0
+C
+CC *** Calculate large sphere limits(Irvine, 1965)
+C
+C     MM1 = EXP( 0.5 * XLNSIG2 ) / ALPHV
+C
+CC FSB large sphere limit - scattering
+C
+C     LARGESCAT = THREE_PI_TWO * ( 8.652439E-01 + 1.501772E-01 * NR ) * MM1
+C
+CC FSB large spnere limit for extinction ( no edge effects )
+C
+C     LARGEEXT = THREE_PI_TWO * ( 2.0 * MM1 )
+C
+CC FSB Adjust for large sphere limits
+C
+C     IF ( ALPHV .GE. 10.0 ) THEN
+C
+C        BETA_EXT  = MAX( BETA_EXT, LARGEEXT )
+C
+C        BETA_SCAT = MAX( BETA_SCAT, LARGESCAT )
+C
+C     END IF ! test for 10.0 < ALPHV
+C
+CC***FSB now calculate the asymmetry factor
+CC***  using the Hanna-Mathur quasi-empirical method
+C!     GMAX = 0.0
+C
+C!     QSCAT_AVG = BETA_SCAT
+C!     QANGLE = AA0
+C
+C!     IF ( QSCAT_AVG .GT. 1.0E-4 ) THEN
+C!        QQ  = QSCAT_AVG * QSCAT_AVG
+C!        QF1 = AA0 + AA1 * QSCAT_AVG
+C!        QF2 = AA2 + AA3 * QSCAT_AVG
+C!        QF3 = AA4 * QSCAT_AVG * QSCAT_AVG
+C!        QANGLE = QF1 + QF2 * QQ + QF3 * QQ
+C!     END IF
+C
+C!     QANGLE = DEGTORAD * QANGLE
+C!     G      = COS( QANGLE)     ! asymmetry factor
+C
+CC***FSB now calculate the asymmetry factor
+CC***   using a parametric fit to Mie calculations
+C
+C     X_ALPHA2 = X_ALPHA * X_ALPHA
+C     X_ALPHA3 = X_ALPHA2 * X_ALPHA
+C
+C     SMALL_G = 0.0
+C     LARGE_G = 0.0
+C
+C     IF ( ALPHV .LT. 2.6 ) THEN
+C
+CC FSB Calculate SMALL_G for sigma_g = 2.0
+C
+C        QF1 = XXA0 + XXA1 * ALPHV
+C        QF2 = XXA2 * ALPHV2
+C        QF3 = XXA3 * ALPHV3
+C        SMALL_G = QF1 + QF2 + QF3 ! valid at sigma_g = 2.0
+C
+CC FSB adjust SMALL_G for values less than 2.0
+CC     The smallest sigma_g allowed is 1.05
+C
+C        QQF1 = CXG0 + CXG1 * ALPHV
+C        QQF2 = CXG2 * ALPHV2
+C        QQF3 = CXG3 * ALPHV3
+C        QQSUM = QQF1 + QQF2 + QQF3
+C        FAC1 = 1.052632 * ( 2.0 - SIGMA_G )
+C        QQSUM = MAX( 0.0, QQSUM )
+C        QQCORR = ( 1.0 - FAC1 ) + FAC1 * QQSUM
+C        SMALL_G = SMALL_G * QQCORR
+C        G = SMALL_G
+C
+C     ELSE IF ( ALPHV .LT. 100.0 ) THEN
+C
+C        QF1 = YYA0 + YYA1 * X_ALPHA
+C        QF2 = YYA2 * X_ALPHA2
+C        QF3 = YYA3 * X_ALPHA3
+C        LARGE_G = QF1 + QF2 + QF3
+C        G = LARGE_G
+C
+C     ELSE
+C
+CC     Very large sphere limit from fit to Irvine (1965).
+C
+C        G = 1.124484 - 1.153869E-01 * NR
+C
+C     END IF
+C
+C     RETURN
+C     END SUBROUTINE FASTER_OPTICS
 
 C:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
       SUBROUTINE FAST_OPTICS( NR, NI, LAMBDA, DGN, SIGMA_G, BETA_EXT, BETA_SCAT, G )
@@ -1826,24 +1835,24 @@ C***include files
 
 C***arguments
 
-      REAL, INTENT( IN )     :: NR, NI     ! indices of refraction
+      TYPE(hyperdual), INTENT( IN )     :: NR, NI     ! indices of refraction
       REAL, INTENT( IN )     :: LAMBDA     ! wavelength, nm
-      REAL, INTENT( IN )     :: DGN        ! geometric mean diameter, m
-      REAL, INTENT( INOUT )  :: SIGMA_G     ! geometric standard deviation
+      TYPE(hyperdual), INTENT( IN )     :: DGN        ! geometric mean diameter, m
+      TYPE(hyperdual), INTENT( INOUT )  :: SIGMA_G     ! geometric standard deviation
 
-      REAL, INTENT( OUT )    :: BETA_EXT   ! normalized extinction coefficient
-      REAL, INTENT( OUT )    :: BETA_SCAT  ! normalized scattering coefficient
-      REAL, INTENT( OUT )    :: G          ! asymmetry factor
+      TYPE(hyperdual), INTENT( OUT )    :: BETA_EXT   ! normalized extinction coefficient
+      TYPE(hyperdual), INTENT( OUT )    :: BETA_SCAT  ! normalized scattering coefficient
+      TYPE(hyperdual), INTENT( OUT )    :: G          ! asymmetry factor
 
 C***internal variables
 
-      REAL NR1, NR2, TAU
-      REAL C, CEXT, CSCAT
-      REAL B, BEXT, BSCAT
-      REAL BBFAC
-      REAL ALPHV
-      REAL ALPHA_I
-      REAL A, LOGX2, XLNSIG, XLNSIG2, MM1
+      TYPE(hyperdual) NR1, NR2, TAU
+      TYPE(hyperdual) C, CEXT, CSCAT
+      TYPE(hyperdual) B, BEXT, BSCAT
+      TYPE(hyperdual) BBFAC
+      TYPE(hyperdual) ALPHV
+      TYPE(hyperdual) ALPHA_I
+      TYPE(hyperdual) A, LOGX2, XLNSIG, XLNSIG2, MM1
 
       REAL, PARAMETER :: SIGMA_G_TWO = 2.0
       REAL, PARAMETER :: LOGSIG_TWO = 0.693147
@@ -1851,30 +1860,31 @@ C***internal variables
       REAL, PARAMETER :: LOGSIG_105 = 1.102500
       REAL, PARAMETER :: DIFFSIG = SIGMA_G_TWO - 1.05
       REAL, PARAMETER :: A_TWO = 0.5 / LOGSIG_TWO_SQD
-      REAL LARGESCAT  ! large sphere limit for scattering
-      REAL LARGEEXT   ! large sphere limit for extinction
-      REAL SMALL_G, LARGE_G
+      TYPE(hyperdual) LARGESCAT  ! large sphere limit for scattering
+      TYPE(hyperdual) LARGEEXT   ! large sphere limit for extinction
+      TYPE(hyperdual) SMALL_G, LARGE_G
 
-      REAL ALPHV2, ALPHV3
-      REAL X_ALPHA, X_ALPHA2, X_ALPHA3
-      REAL FCORR
-      REAL EXPFAC2, EXPFAC3
-      REAL EFAC, EFAC_EXT, EFAC_SCAT
-      REAL DEN1, FAC1, FAC2
-      REAL F1, F2, F3
-      REAL G1, G2, G3, G4, G5
-      REAL NN, TT
+      TYPE(hyperdual) ALPHV2, ALPHV3
+      TYPE(hyperdual) X_ALPHA, X_ALPHA2, X_ALPHA3
+      TYPE(hyperdual) FCORR
+      TYPE(hyperdual) EXPFAC2, EXPFAC3
+      TYPE(hyperdual) EFAC, EFAC_EXT, EFAC_SCAT
+      TYPE(hyperdual) DEN1, FAC1, FAC2
+      TYPE(hyperdual) F1, F2, F3
+      TYPE(hyperdual) G1, G2, G3, G4, G5
+      TYPE(hyperdual) NN, TT
 
-      REAL T1F1, T2F1, T1F2, T2F2, T1F3, T2F3
-      REAL T1G1, T2G1, T1G2, T2G2, T1G3, T2G3, T1G4, T2G4
-      REAL T1G5, T2G5, T1P1, T2P1
+      TYPE(hyperdual) T1F1, T2F1, T1F2, T2F2, T1F3, T2F3
+      TYPE(hyperdual) T1G1, T2G1, T1G2, T2G2, T1G3, T2G3, T1G4
+      TYPE(hyperdual) T1G5, T1P1, T2P1
+      REAL T2G4, T2G5
 
 C***the following are for calculating the Penndorff Coefficients
 
-      REAL PENN1, A1, A2, A3, PENN2
-      REAL XNR, XNI, XNR2, XNI2, XNRI, XNRI2, XNRMI
-      REAL XRI, XRI2, XRI36, XNX, XNX2
-      REAL Z1, Z12, Z2, XC1
+      TYPE(hyperdual) PENN1, A1, A2, A3, PENN2
+      TYPE(hyperdual) XNR, XNI, XNR2, XNI2, XNRI, XNRI2, XNRMI
+      TYPE(hyperdual) XRI, XRI2, XRI36, XNX, XNX2
+      TYPE(hyperdual) Z1, Z12, Z2, XC1
 
 C***coefficients for polynomials
 
@@ -1942,7 +1952,7 @@ C FSB Coefficientf for adjusting asymmetry factor calculation
 
 C***FSB added for asymmetry factor calculation
 
-      REAL QSCAT_AVG
+      TYPE(hyperdual) QSCAT_AVG
 
       REAL, PARAMETER :: AA0 =  88.466
       REAL, PARAMETER :: AA1 = -61.628
@@ -1950,10 +1960,10 @@ C***FSB added for asymmetry factor calculation
       REAL, PARAMETER :: AA3 =  -8.543
       REAL, PARAMETER :: AA4 =   0.77435
 
-      REAL GMAX
-      REAL QANGLE
-      REAL QQ, QF1, QF2, QF3
-      REAL QQSUM, QQF1,QQF2, QQF3, QQCORR
+      TYPE(hyperdual) GMAX
+      TYPE(hyperdual) QANGLE
+      TYPE(hyperdual) QQ, QF1, QF2, QF3
+      TYPE(hyperdual) QQSUM, QQF1,QQF2, QQF3, QQCORR
 
       REAL, PARAMETER :: DEGTORAD = PI180
       REAL, PARAMETER :: THREE_PI_TWO = 3.0 * PI / 2.0
@@ -1963,9 +1973,9 @@ C***FSB added for asymmetry factor calculation
 
 C FSB check range of SIGMA_G
 C *** Maximum value of SIGMA_G allowed is 2.0
-      SIGMA_G = MIN( 2.0, SIGMA_G )
+      SIGMA_G = MIN( 2.0d0, SIGMA_G )
 C *** Minimum allowed value fo SIGMA_F is 1.05
-      SIGMA_G = MAX( 1.05, SIGMA_G )
+      SIGMA_G = MAX( 1.05d0, SIGMA_G )
 C***FSB start calculation
       XLNSIG = LOG( SIGMA_G ) 
 
@@ -2011,8 +2021,8 @@ C     1.0 / 0.95 = 1.052632.  1.0 / 0.95 * 0.13 = 0.136842
       ALPHA_I = F2
       BEXT    = B
       BSCAT   = B
-      PENN1   = 0.0
-      PENN2   = 0.0
+      PENN1   = 0.0d0
+      PENN2   = 0.0d0
 
       IF ( NI .GT. 0.0 ) THEN
 
@@ -2184,8 +2194,8 @@ C***   using a parametric fit to Mie calculations
       X_ALPHA2 = X_ALPHA * X_ALPHA
       X_ALPHA3 = X_ALPHA * X_ALPHA * X_ALPHA
 
-      SMALL_G = 0.0
-      LARGE_G = 0.0
+      SMALL_G = 0.0D0
+      LARGE_G = 0.0D0
 
       IF ( ALPHV .LT. 2.6 ) THEN
 
@@ -2204,7 +2214,7 @@ C     The smallest sigma_g allowed is 1.05
          QQF3 = CXG3 * ALPHV3
          QQSUM = QQF1 + QQF2 + QQF3
          FAC1 = 1.052632 * ( 2.0 - SIGMA_G)
-         QQSUM = MAX( 0.0, QQSUM )
+         QQSUM = MAX( 0.0D0, QQSUM )
          QQCORR =   ( 1.0 - FAC1 ) + FAC1 * QQSUM
          SMALL_G = SMALL_G * QQCORR
          G = SMALL_G
@@ -2225,7 +2235,7 @@ C     Very large sphere limit from fit to Irvine (1965).
 
       END IF
 C Simple and gross fix if appromation exceed realistic bounds
-      G = MAX( -0.9999, MIN( G, 0.9999))
+      G = MAX( -0.9999D0, MIN( G, 0.9999D0))
       RETURN
       END SUBROUTINE FAST_OPTICS
 

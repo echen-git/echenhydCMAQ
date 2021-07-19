@@ -83,7 +83,7 @@ c these are allocated in pa_setpadefn.F
       INTEGER, ALLOCATABLE, SAVE :: IPR2GRD( :,: )  ! ( N_IPR_SPC,MXCGRID )
       INTEGER, ALLOCATABLE, SAVE :: IPR2SAV( :,: )  ! ( N_IPR_SPC,MXCGRID )
 
-      REAL,    ALLOCATABLE, SAVE :: SPCOEF ( :,: )  ! ( N_IPR_SPC,MXCGRID )
+      REAL( 8 ),    ALLOCATABLE, SAVE :: SPCOEF ( :,: )  ! ( N_IPR_SPC,MXCGRID )
 
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c  The following variables are used in the integrated reaction rate

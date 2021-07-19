@@ -111,6 +111,7 @@ C----------------------------------------------------------------------
       
       USE CGRID_SPCS            ! CGRID mechanism species
       USE UTILIO_DEFN
+      USE HDMod
 #ifdef isam
       USE SA_DEFN
 #elif sens
@@ -127,10 +128,10 @@ C Arguments:
  
       INTEGER, INTENT(  IN )   :: NI          ! number of zones (cells)
       REAL,    INTENT(  IN )   :: DS ( NI )   ! distance between zone (cell) boundaries
-      REAL,    INTENT(  IN )   :: FLX( NI+1 ) ! fluxes at zone (cell) boundaries
+      TYPE(hyperdual),    INTENT(  IN )   :: FLX( NI+1 ) ! fluxes at zone (cell) boundaries
       REAL,    INTENT(  IN )   :: DT          ! time step
-      REAL,    INTENT( INOUT ) :: VEL( NI+1 ) ! velocities at zone (cell) boundaries
-      REAL,    INTENT( INOUT ) :: CON( :,: ) ! concs in a vertical column
+      TYPE(hyperdual),    INTENT( INOUT ) :: VEL( NI+1 ) ! velocities at zone (cell) boundaries
+      TYPE(hyperdual),    INTENT( INOUT ) :: CON( :,: ) ! concs in a vertical column
 #ifdef isam
 Ckrt
       REAL,    INTENT( INOUT ) :: SA_CON( NI,N_SPCTAG )
@@ -149,17 +150,17 @@ C Local variables:
       LOGICAL, SAVE :: FIRSTIME = .TRUE.
       CHARACTER( 120 ) :: XMSG = ' '
 
-      REAL    :: FM ( 1:NI+1 ) ! outflux from left or bottom of cell
-      REAL    :: FP ( 0:NI )   ! outflux from right or top of cell
-      REAL    :: CR ( 1:NI )   ! zone R.H. intercept
-      REAL    :: CL ( 1:NI )   ! zone L.H. intercept
-      REAL    :: DC ( 1:NI )   ! CR - CL
-      REAL    :: C6 ( 1:NI )   ! coefficient of second-order term
-      REAL    :: CN ( 1:NI )   ! local con
+      TYPE(hyperdual)    :: FM ( 1:NI+1 ) ! outflux from left or bottom of cell
+      TYPE(hyperdual)    :: FP ( 0:NI )   ! outflux from right or top of cell
+      TYPE(hyperdual)    :: CR ( 1:NI )   ! zone R.H. intercept
+      TYPE(hyperdual)    :: CL ( 1:NI )   ! zone L.H. intercept
+      TYPE(hyperdual)    :: DC ( 1:NI )   ! CR - CL
+      TYPE(hyperdual)    :: C6 ( 1:NI )   ! coefficient of second-order term
+      TYPE(hyperdual)    :: CN ( 1:NI )   ! local con
 
-      REAL X                   ! Courant number
-      REAL Y                   ! removed zone slab
-      REAL FDN, FUP            ! upstream donor cell versions of fm, fp
+      TYPE(hyperdual) X                   ! Courant number
+      TYPE(hyperdual) Y                   ! removed zone slab
+      TYPE(hyperdual) FDN, FUP            ! upstream donor cell versions of fm, fp
       INTEGER ICNT             ! no. of times fdn, fup exceeds fm, fp error range
       
       INTEGER I, S             ! loop index
@@ -194,8 +195,8 @@ c = length of segment leaving * integral average concentration in that segment:
 c   length of segment leaving = y = v(i+1)dt
 c   segment integral ave. conc. = cr(i) + 1/2[c6(i)-dc(i)]dx -1/3[c6(i)]dx**2
 
-      FM( 1:NI+1 ) = 0.0
-      FP( 0:NI ) = 0.0     
+      FM( 1:NI+1 ) = 0.0d0
+      FP( 0:NI ) = 0.0d0    
 
       DO I = 1, NI
          IF ( VEL( I ) .LT. 0.0 ) THEN
@@ -253,8 +254,8 @@ c   segment integral ave. conc. = cr(i) + 1/2[c6(i)-dc(i)]dx -1/3[c6(i)]dx**2
 
          CALL PPM ( NI, DT, DS, CN, CR, CL, DC, C6 )
 
-         FM( 1:NI+1 ) = 0.0
-         FP( 0:NI ) = 0.0
+         FM( 1:NI+1 ) = 0.0d0
+         FP( 0:NI ) = 0.0d0
 
          DO I = 1, NI
 
@@ -299,8 +300,8 @@ Ckrt Back up the SA_CON.....
 
          CALL PPM ( NI, DT, DS, CN, CR, CL, DC, C6 )
 
-         FM( 1:NI+1 ) = 0.0
-         FP( 0:NI ) = 0.0
+         FM( 1:NI+1 ) = 0.0d0
+         FP( 0:NI ) = 0.0d0
 
          DO I = 1, NI
 
@@ -348,8 +349,8 @@ Ckrt... Advect the apportioning tags ......
 
             CALL PPM ( NI, DT, DS, CN, CR, CL, DC, C6 )
 
-            FM( 1:NI+1 ) = 0.0
-            FP( 0:NI ) = 0.0
+            FM( 1:NI+1 ) = 0.0d0
+            FP( 0:NI ) = 0.0d0
 
             DO I = 1, NI
 
@@ -398,6 +399,7 @@ C:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 C get ppm coefficients CR, CL, DC, and C6
 
       USE UTILIO_DEFN
+      USE HDMod
 
       IMPLICIT NONE
 
@@ -406,11 +408,11 @@ C arguments:
       INTEGER, INTENT(    IN ) :: NI       ! number of zones (cells)
       REAL,    INTENT(    IN ) :: DT       ! time step
       REAL,    INTENT(    IN ) :: DS( NI ) ! distance between zone (cell) boundaries
-      REAL,    INTENT(    IN ) :: CN( NI ) ! concentrations in a vertical column
-      REAL,    INTENT( INOUT ) :: CR( NI ) ! zone r.h. intercept
-      REAL,    INTENT( INOUT ) :: CL( NI ) ! zone l.h. intercept
-      REAL,    INTENT( INOUT ) :: DC( NI ) ! CR - CL
-      REAL,    INTENT( INOUT ) :: C6( NI ) ! coefficient of second-order term
+      TYPE(hyperdual),    INTENT(    IN ) :: CN( NI ) ! concentrations in a vertical column
+      TYPE(hyperdual),    INTENT( INOUT ) :: CR( NI ) ! zone r.h. intercept
+      TYPE(hyperdual),    INTENT( INOUT ) :: CL( NI ) ! zone l.h. intercept
+      TYPE(hyperdual),    INTENT( INOUT ) :: DC( NI ) ! CR - CL
+      TYPE(hyperdual),    INTENT( INOUT ) :: C6( NI ) ! coefficient of second-order term
 
 C local variables:
 
@@ -427,7 +429,7 @@ C local variables:
       REAL, ALLOCATABLE, SAVE :: MU    ( : )  ! lattice var. for cm
       REAL, ALLOCATABLE, SAVE :: NU    ( : )  ! lattice var. for cm
       REAL, ALLOCATABLE, SAVE :: LAMBDA( : )  ! lattice var. for cm
-      REAL, ALLOCATABLE, SAVE :: CM    ( : )  ! zone r.h. trial intercept
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: CM    ( : )  ! zone r.h. trial intercept
 
       INTEGER I
 
@@ -496,7 +498,7 @@ C guarantee that cm lies between con(i) and con(i+1) - monotonicity constraint
      &                                2.0 * ABS( CN( I+1 ) - CN( I ) ),
      &                                2.0 * ABS( CN( I ) - CN( I-1 ) ) )
          ELSE
-            DC( I ) = 0.0
+            DC( I ) = 0.0D0
          END IF                                    ! equation (1.8)
 
 101   CONTINUE

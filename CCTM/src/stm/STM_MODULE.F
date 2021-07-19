@@ -29,11 +29,13 @@ C SR 12/13/2018 Initial version
 
 C----------------------------------------------------------------------
 
+      use HDMod
+	 
       Implicit None
 
       Logical, Private, Save :: stm_mapped = .False.
 
-      Real, Allocatable :: aero_conc( :,: ) ! aero species concentration [ ug/m^3 ]
+      TYPE(hyperdual), Allocatable :: aero_conc( :,: ) ! aero species concentration [ ug/m^3 ]
 
       Contains
 
@@ -61,12 +63,13 @@ C-----------------------------------------------------------------------
      &                      n_mode, ae6isoa,
      &                      findAero
       Use stm_vars, Only: organosulf
-
+      Use HDMod
+ 
       Implicit None
 
 C Arguments
 
-      Real, Pointer :: cgrid( :,:,:,: )
+      TYPE(hyperdual), Pointer :: cgrid( :,:,:,: )
 
       Integer, Intent( In ) :: jdate
       Integer, Intent( In ) :: jtime
@@ -75,8 +78,8 @@ C Local variables
 
       Integer c, r, l, m
 
-      Real aso4tot, oso4tot
-      Real mscor
+      TYPE(hyperdual) :: aso4tot, oso4tot
+      TYPE(hyperdual) :: mscor
 
       Do c = 1, ncols
          Do r = 1, nrows
@@ -96,7 +99,7 @@ C extract aerosol species from CGRID
 
 C normalize tracked sulfate species to total modeled sulfate
 
-               If ( adj_stmspc ) Then
+                If ( adj_stmspc ) Then
 
                   Do m = 1, n_mode
 
@@ -119,7 +122,7 @@ C...  for the accumulation mode, add aqueous tracked species
 
 C...  normalize sulfur tracking species
 
-                     If ( aso4tot .Gt. 0.0 ) Then
+                     If ( aso4tot .Gt. 0.0d0 ) Then
 
                         aso4tot = Max( aso4tot,
      &                                 aerospc( aso4_idx )%min_conc( m ) )
@@ -174,7 +177,7 @@ C...    only the accumulation mode sulfate can be converted to organosulfate
      &                             + aero_conc( oso4aqmhp_idx, m )
      &                             + aero_conc( oso4aqpaa_idx, m )
 
-                           If ( oso4tot .Gt. 0.0 ) Then
+                           If ( oso4tot .Gt. 0.0d0 ) Then
 
                               oso4tot = Max( oso4tot,
      &                                       aerospc( oso4_idx )%min_conc( m ) )
@@ -249,11 +252,12 @@ C-----------------------------------------------------------------------
      &                      aerospc, n_mode, ae6isoa
       Use stm_vars, Only: organosulf
 
+	 use HDMod 
       Implicit None
 
 C Arguments
 
-      Real, Pointer :: cgrid( :,:,:,: )
+      TYPE(hyperdual), Pointer :: cgrid( :,:,:,: )
 
       Integer, Intent( In ) :: jdate
       Integer, Intent( In ) :: jtime
@@ -269,8 +273,8 @@ C local variables
       Integer c, r, l, m
       Integer allocstat
 
-      Real fso4, omfso4
-      Real, Save, Allocatable :: so4b4( :,:,:,: )
+      TYPE(hyperdual) fso4, omfso4
+      TYPE(hyperdual), Save, Allocatable :: so4b4( :,:,:,: )
 
 C-----------------------------------------------------------------------
 C  begin body of subroutine stm_wrap_gas
@@ -322,13 +326,13 @@ C extract aerosol species from CGRID
                   Call stm_extract_aero ( cgrid( c,r,l,: ) )
 
                   If ( ( aero_conc( aso4_idx, m ) .Ne. so4b4( c,r,l,m ) ) .And.
-     &                 ( so4b4( c,r,l,m ) .Gt. 0.0 ) ) Then
+     &                 ( so4b4( c,r,l,m ) .Gt. 0.0d0 ) ) Then
 
 C fractional change in ASO4J
                      fso4 = Max( aero_conc( aso4_idx, m ),
      &                           aerospc( aso4_idx )%min_conc( m ) )
      &                    / so4b4( c,r,l,m )
-                     omfso4 = 1.0 - fso4
+                     omfso4 = 1.0d0 - fso4
 
                      aero_conc( oso4_idx, m ) =
      &                  Max( ( aero_conc( oso4_idx, m )
@@ -422,10 +426,11 @@ C-----------------------------------------------------------------------
 
       Use aero_data, Only : n_aerospc, aerospc_map, n_mode
 
+	  use HDMod 
       Implicit None
 
 C Arguments:
-      Real,    Intent( In ) :: conc( : )
+      TYPE(hyperdual),    Intent( In ) :: conc( : )
 
 C Local Variables:
       Logical, Save :: firstime = .True.
@@ -437,7 +442,7 @@ C Local Variables:
       End If
 
 C Copy grid cell concentrations of aero species to aero_conc
-      aero_conc = 0.0
+      aero_conc = 0.0d0
       Do m = 1, n_mode
          Do spc = 1, n_aerospc
             n = aerospc_map( spc,m )
@@ -468,10 +473,11 @@ C-----------------------------------------------------------------------
 
       Use utilio_defn
 
+	  use HDMod 
       Implicit None
 
 C Arguments:
-      Real, Intent( Out ) :: conc( : )
+      TYPE(hyperdual), Intent( Out ) :: conc( : )
 
 C Local variables:
 
@@ -511,7 +517,7 @@ C     6/25/19 streamlined version of map_aero borrowed from AERO_DATA
 C-----------------------------------------------------------------------
 
       Use aero_data, Only : n_aerospc, map_aero, n_mode
-
+ 
       Implicit None
 
       If ( stm_mapped ) Return

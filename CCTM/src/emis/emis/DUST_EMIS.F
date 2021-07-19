@@ -109,7 +109,7 @@ C of Binkowski & Roselle (2003)
       real, save :: factsrfj ! = pi * factm2j
       real, save :: factsrfk ! = pi * factm2k
 
-      real       :: sumsplit, sumfrac
+      real  :: sumsplit, sumfrac
       integer    :: n, idx
 
 C Number of soil types: For WRF there are 16 types;
@@ -118,8 +118,8 @@ C Number of soil types: For WRF there are 16 types;
 C Variables for the windblown dust diagnostic file:
       integer, parameter :: fndust_diag = 19 ! number of fixed diagnostic output vars
       integer, save      :: ndust_diag       ! number of diagnostic output vars
-      real, allocatable, save :: diagv( : )  ! diagnostic output variables
-      real, allocatable, save :: dustbf( :,:,: ) ! diagnostic accumulate buffer
+      TYPE(hyperdual), allocatable, save :: diagv( : )  ! diagnostic output variables
+      TYPE(hyperdual), allocatable, save :: dustbf( :,:,: ) ! diagnostic accumulate buffer
 
 #ifdef verbose_wbdust
       TYPE(hyperdual), allocatable, save :: sdiagv( : )  ! global sum of each diag output var
@@ -171,7 +171,7 @@ C Module shared variables:
       real, allocatable, save :: sd_ep ( :,: )   ! soil->dust erodiblity potential
       real, allocatable, save :: tfb   ( :,: )   ! transport fraction in and below canopy
 
-      real :: eropot( 3 ) =     ! erodible potential of soil components
+      REAL :: eropot( 3 ) =     ! erodible potential of soil components
      &        (/ 0.08,   ! clay
      &           1.00,   ! silt
      &           0.12 /) ! sand
@@ -219,12 +219,12 @@ C Local variables:
 
          interface
             subroutine cropcal ( jdate, jtime, agland )
-            integer, intent( in )  :: jdate, jtime
-            real,    intent( out ) :: agland( :,: )
+            	integer, intent( in )  :: jdate, jtime
+            	real,    intent( out ) :: agland( :,: )
             end subroutine cropcal
             subroutine tfbelow ( jdate, jtime, tfb )
-            integer, intent( in )  :: jdate, jtime
-            real,    intent( out ) :: tfb( :,: )
+            	integer, intent( in )  :: jdate, jtime
+           		real,    intent( out ) :: tfb( :,: )
             end subroutine tfbelow
          end interface
 
@@ -489,8 +489,8 @@ C of Binkowski & Roselle (2003)
          factnumk = 1.0e18 * exp( 4.5 * l2sgk ) / dgvk ** 3
          factm2j  = 1.0e06 * exp( 0.5 * l2sgj ) / dgvj
          factm2k  = 1.0e06 * exp( 0.5 * l2sgk ) / dgvk
-         factsrfj = pi * factm2j
-         factsrfk = pi * factm2k
+         factsrfj =  pi * factm2j
+         factsrfk =  pi * factm2k  
 
 #ifdef verbose_wbdust
          write( logdev,* ) ' '
@@ -680,7 +680,7 @@ C Parameters:
          integer    :: emap( n_dlcat+1 )
 
 C---Height for veg elements
-         real :: hv( 4 )
+         Real :: hv( 4 )
 
 C---Roughness density for solid elements
 C from Darmenova et al. [JGR,2009] and Xi and Sokolik [JGR,2015]
@@ -749,8 +749,8 @@ C   Chatenet et al. [Sedimentology,1996] and Menut et al. [JGR,2013]
      &                2.0E-6 /)   ! Clay
 
          interface
-            subroutine tfabove ( tfa )
-               real,    intent( out ) :: tfa( :,: )
+            subroutine tfabove ( tfa ) 
+               real, intent( out ) :: tfa( :,: )
             end subroutine tfabove
          end interface
 
@@ -810,7 +810,7 @@ C   following the idea of Xi and Sokolik [JGR,2015]
 
 C Initialize windblown dust diagnostics output buffer
          if ( dustem_diag .and. wstep .eq. 0 ) then
-            dustbf = 0.0   ! array assignment
+            dustbf = 0.0d0   ! array assignment
 #ifdef verbose_wbdust
             sdiagv = 0.0d0   ! array assignment
 #endif
@@ -1231,6 +1231,7 @@ C                           ustr( c,r,m ),
 C                           sd_ep( c,r ),
 C                           dens( c,r ) )
 
+	        use HDMod 
             implicit none
 
             include SUBST_CONST   ! for grav

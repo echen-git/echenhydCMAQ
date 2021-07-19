@@ -70,10 +70,11 @@ C**********************************************************************
 #endif
       USE HRDATA
       USE PHOT_MOD, Only: INIT_PHOT_SHARED, RJ     ! photolysis rate, in-line module
-      USE PA_DEFN, Only: LIRR                      ! Process Analysis control and data variable
-      USE PA_IRR_CLT
+C     USE PA_DEFN, Only: LIRR                      ! Process Analysis control and data variable
+C     USE PA_IRR_CLT
       USE DEGRADE_SETUP_TOX, ONLY : N_REACT, RXTANT_MAP
       USE CENTRALIZED_IO_MODULE, ONLY : INTERPOLATE_VAR, OCEAN, SZONE
+      USE HDMod
 
       IMPLICIT NONE
 
@@ -84,7 +85,8 @@ C..Includes:
       INCLUDE SUBST_EMISPRM   ! Emissions processing control parameters
 
 C..Arguments:
-      REAL, POINTER :: CGRID( :,:,:,: )  ! Species concentrations
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )  ! Species concentrations
+      
       INTEGER JDATE           ! Current date (YYYYDDD)
       INTEGER JTIME           ! Current time (HHMMSS)
       INTEGER TSTEP( 3 )      ! Time step vector (HHMMSS)
@@ -148,7 +150,8 @@ C..Scratch Local Variables:
            LOGICAL, INTENT( OUT ) :: CALL_DEGRADE ! whether to call degradation routines
          END SUBROUTINE FIND_DEGRADED
          SUBROUTINE INIT_DEGRADE( CBLK, TCELL, DCELL, PHOTO_CELL, JDATE, JTIME )
-           REAL( 8 ), INTENT( IN ) :: CBLK( : )       !  species concentration in cell
+           USE HDMod
+           TYPE(hyperdual), INTENT( IN ) :: CBLK( : )       !  species concentration in cell
            REAL,      INTENT( IN ) :: TCELL           !  cell temperature  [ k ]
            REAL,      INTENT( IN ) :: DCELL           !  cell air density  [ kg/m^3 ]
            REAL( 8 ), INTENT( IN ) :: PHOTO_CELL( : ) !  Photolysis table for cell [1/s]
@@ -156,10 +159,12 @@ C..Scratch Local Variables:
            INTEGER,   INTENT( IN ) :: JTIME  ! current model time , coded HHMMSS
          END SUBROUTINE INIT_DEGRADE
          SUBROUTINE FINAL_DEGRADE( CBLK )
-           REAL( 8 ), INTENT( INOUT ) :: CBLK( : )    !  species concentration in cell
+           USE HDMod
+           TYPE(hyperdual), INTENT( INOUT ) :: CBLK( : )    !  species concentration in cell
          END SUBROUTINE FINAL_DEGRADE
         SUBROUTINE HETCHEM_UPDATE_AERO( CGRID )
-           REAL, POINTER :: CGRID( :,:,:,: )  !  species concentration in cell
+           USE HDMod
+           TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )  !  species concentration in cell
         END SUBROUTINE HETCHEM_UPDATE_AERO
       END INTERFACE
 
@@ -196,11 +201,11 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
            L_AQ_VRSN = .FALSE.
          END IF
 
-         IF( LIRR ) THEN
-            CALL_IRR = .TRUE.
-         ELSE
+C        IF( LIRR ) THEN
+C           CALL_IRR = .TRUE.
+C        ELSE
             CALL_IRR = .FALSE.
-         END IF
+C        END IF
 
          MODEL_SPECIES = NSPCSD    ! WTH: find number of model species
 
@@ -270,7 +275,7 @@ C..Initialize shared photolysis data
 
 C..Determine which cells need IRR
          ALLOCATE( LFLAGIRR ( NCOLS, NROWS, NLAYS ) )
-         CALL      PA_IRR_CKCELLS ( LFLAGIRR )
+C        CALL      PA_IRR_CKCELLS ( LFLAGIRR )
 
 #ifdef isam
         NUMB_ISAM_CELLS = 1.0D0 / ( NCOLS * NROWS * NLAYS )
@@ -351,10 +356,10 @@ c..Load ICs
                DO SPC = 1, NUMB_MECH_SPC
                   S = CGRID_INDEX( SPC )
                   IF( CONVERT_CONC( SPC ) )THEN
-                      YC( SPC ) = REAL( MAX( CONCMIN,
-     &                            INV_DENS*FORWARD_CONV( SPC )*CGRID( C,R,L,S )), 8 )
+                      YC( SPC ) = MAX( DCONMIN,
+     &                            INV_DENS*FORWARD_CONV( SPC )*CGRID( C,R,L,S ))
                   ELSE
-                      YC( SPC ) = REAL( MAX( CGRID( C,R,L,S ), CONCMIN), 8 )
+                      YC( SPC ) = MAX( CGRID( C,R,L,S ), DCONMIN)
                   END IF
                END DO
 
@@ -362,7 +367,7 @@ c..Load ICs
 
                   YCCELL = 0.0D0
                   DO S = 1, MODEL_SPECIES
-                     YCCELL( S ) = REAL( CGRID(C,R,L,S), 8)
+                     YCCELL( S ) = CGRID(C,R,L,S) 
                   END DO
                   CALL INIT_DEGRADE(YCCELL,TA(C,R,L),DENS(C,R,L),RJIN(NCELL,:),
      &                              JDATE, JTIME)
@@ -386,9 +391,12 @@ c..Get rate constants
                FORALL( NPH = 1:NPHOTAB ) RJIN( NCELL,NPH ) = REAL( RJ( C,R,L,NPH ), 8)
                IF( MAXVAL(RJIN) .GT. 0.0D0 ) LSUNLIGHT = .TRUE.
 
-               FORALL ( NPH = 1:NHETERO )HET( NCELL,NPH ) = REAL( KHETERO( NPH,C,R,L ), 8)
-
-               CALL CALC_RCONST( TEMP, ATMPRES, H2O, RJIN, HET, LSUNLIGHT, LAND, RKI_SAV, NCELL )
+               FORALL ( NPH = 1:NHETERO )HET( NCELL,NPH )%x = KHETERO( NPH,C,R,L )%x
+               FORALL ( NPH = 1:NHETERO )HET( NCELL,NPH )%dx1 = KHETERO( NPH,C,R,L )%dx1
+               FORALL ( NPH = 1:NHETERO )HET( NCELL,NPH )%dx2 = KHETERO( NPH,C,R,L )%dx2
+               FORALL ( NPH = 1:NHETERO )HET( NCELL,NPH )%dx1x2 = KHETERO( NPH,C,R,L )%dx1x2
+                                             
+               CALL CALC_RCONST( TEMP, ATMPRES, H2O, RJIN, REAL_HDUAL_MATRIX(HET), LSUNLIGHT, LAND, RKI_SAV, NCELL )
                FORALL( NPH = 1:NRXNS )RKI( NPH ) = RKI_SAV( NCELL, NPH )
 
 #ifdef isam
@@ -423,10 +431,10 @@ c..Update concentration array
                DO SPC = 1, NUMB_MECH_SPC
                   S = CGRID_INDEX( SPC )
                   IF( CONVERT_CONC( SPC ) )THEN
-                      CGRID( C,R,L,S ) = REAL( REVERSE_CONV( SPC ) * DENS( C,R,L )
-     &                                 * MAX( YC( SPC ), DCONMIN), 4)
+                      CGRID( C,R,L,S ) = REVERSE_CONV( SPC ) * DENS( C,R,L )
+     &                                 * MAX( YC( SPC ), DCONMIN)
                   ELSE
-                      CGRID( C,R,L,S ) = REAL( MAX( YC( SPC ), DCONMIN), 4)
+                      CGRID( C,R,L,S ) = MAX( YC( SPC ), DCONMIN)
                   END IF
                END DO
 
@@ -438,7 +446,7 @@ c..Update concentration array
                      DO S = 1, NUMB_MECH_SPC
                         IF(  CGRID_INDEX( S ) .EQ. ISP )CYCLE UPDATE_DEGRADED
                      END DO
-                     CGRID(C,R,L,ISP) = REAL( YCCELL(ISP), 4)
+                     CGRID(C,R,L,ISP) = YCCELL(ISP) 
                   END DO UPDATE_DEGRADED
                END IF
 
@@ -447,7 +455,7 @@ c..Update concentration array
 #endif
 
 c..update irrout arrays if needed
-               IF ( LFLAGIRR( C,R,L ) )CALL PA_IRR_CELLENDF( C, R, L )
+C              IF ( LFLAGIRR( C,R,L ) )CALL PA_IRR_CELLENDF( C, R, L )
 
             END DO
          END DO

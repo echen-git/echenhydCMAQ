@@ -817,8 +817,6 @@ C Set MATRIX1 elements A (col 1), B (diag.), E (superdiag.) and D (RHS)
      &                    -   MDWN( L ) * CONC( V,L )
      &                    +   MFAC( L ) * CONC( V,L+1 )
                      DD( V,L ) = CONC( V,L ) + DFACQ * DELC
-
-                  	
 #ifdef sens    
                      DO NP = 1, NPMAX
                         S_DELC = MBARKS( L ) * SENS( V,1,NP )
@@ -856,8 +854,6 @@ C update conc
                DO L = 1, LCBL
                   DO V = 1, N_SPC_DIFF
                      CONC( V,L ) = UU( V,L )
-               		                    
-                     
 #ifdef sens
                      DO NP = 1, NPMAX
                         SENS( V,L,NP ) = S_UU( V,L,NP )
@@ -898,7 +894,6 @@ C reinitialize for TRI solver
                DD( V,L ) = CONC( V,L )
      &                   + LFAC3( L ) * ( CONC( V,L+1 ) - CONC( V,L ) )
      &                   + EMIS( V,L )
-  
 #ifdef sens
                DO NP = 1, NPMAX
                   S_DD( V,L,NP ) = SENS( V,L,NP )
@@ -922,7 +917,6 @@ C reinitialize for TRI solver
      &                      + LFAC3( L ) * ( CONC( V,L+1 ) - CONC( V,L ) )
      &                      - LFAC4( L ) * ( CONC( V,L ) - CONC( V,L-1 ) )
      &                      + EMIS( V,L )
-    
 #ifdef sens 
                   DO NP = 1, NPMAX
                      S_DD( V,L,NP ) = SENS( V,L,NP )
@@ -975,7 +969,7 @@ C reinitialize for TRI solver
 C Load into CGRID
             DO L = 1, NLAYS
                DO V = 1, N_SPC_DIFF
-                  CONC( V,L ) = UU( V,L )    
+                  CONC( V,L ) = UU( V,L )
 #ifdef sens
                   DO NP = 1, NPMAX
                      SENS( V,L,NP ) = S_UU( V,L,NP )

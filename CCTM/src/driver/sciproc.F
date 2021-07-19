@@ -248,7 +248,7 @@ C-----------------------------------------------------------------------
 
  	  IF (JTIME .EQ. 0) THEN
 c        Hyperdual perturbation at the very first
- 	    CGRID(:, :, :, 133) = CGRID(:, :, :, 133) + PERT_HYPERDUAL
+ 	    CGRID(:, :, :, 156) = CGRID(:, :, :, 156) + PERT_HYPERDUAL
  	    
 c       Hyperdual <-- CD
  	    DO V = 1, N_CSPCS
@@ -262,7 +262,7 @@ c       Hyperdual <-- CD
 	  
 	  
 C Synchronization Step Physical Processes Sequence
-
+      
       CALL VDIFF ( CGRID, JDATE, JTIME, TSTEP)
       IF ( CKSUM ) CALL CKSUMMER ( 'VDIFF', CGRID, JDATE, JTIME )
       ! IF ( LIPR ) CALL PA_UPDATE ( 'VDIF', CGRID, JDATE, JTIME, TSTEP )

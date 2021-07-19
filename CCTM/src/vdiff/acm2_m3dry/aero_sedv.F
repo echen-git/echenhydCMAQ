@@ -85,8 +85,8 @@ C follow the Namelist dep vel surrogate name table
 
       TYPE(hyperdual), allocatable, save :: vsed   ( :,: ) ! grav settling velocity [ m/s ]
 
-      real m2_wet, m2_dry
-      real m3_wet, m3subt, m3_dry
+      TYPE(hyperdual) m2_wet, m2_dry
+      TYPE(hyperdual) m3_wet, m3subt, m3_dry
 
       logical, save :: firstime = .true.
       character( 16 ), save :: pname = 'AERO_SEDI'
@@ -191,14 +191,12 @@ C Also converts dry surface area to wet 2nd moment
 #else
          call extract_aero( cgrd( l,: ), .true. )  ! set minimum floor
 #endif
-		 		 
-		 
+
 C Get the geometric mean diameters and standard deviations of the
 C "wet" size distribution
          call getpar( .false. )     
 C                        | do not fix stnd dev`s to existing value
 
-		 
 C Save getpar values to arrays
          xxlsgac( l ) = aeromode_lnsg( 2 )
          xxlsgco( l ) = aeromode_lnsg( 3 )
@@ -216,7 +214,7 @@ C Calculate dynamic viscosity [ kg/m/s ]:
          amu( l ) = 1.458e-6 * airtemp * sqrt( airtemp ) / ( airtemp + 110.4 )
 
       end do ! layer loop
-	  
+
 C get settling velocities:
       call get_sedv ( xlm, amu,
      &                dgacc, dgcor,
@@ -329,16 +327,14 @@ C-----------------------------------------------------------------------
 C Calculate Knudsen numbers * bhat
          bxlm = bhat * xlm( l )
          bknacc = bxlm / dgacc( l )
-         bkncor = bxlm / dgcor( l ) 
-       
+         bkncor = bxlm / dgcor( l )
+
 C Calculate functions of variable standard deviation.
          l2sgac = xxlsgac( l ) * xxlsgac( l )
          l2sgco = xxlsgco( l ) * xxlsgco( l )
-         
-         
+
          esac01  = exp( 0.5 * l2sgac )
          esco01  = exp( 0.5 * l2sgco )
-         
 
          esac02  = esac01 * esac01
          esco02  = esco01 * esco01
@@ -359,18 +355,19 @@ C Calculate functions of variable standard deviation.
          esco16  = esco12 * esco04
 
          dconst2  = grav / ( 18.0 * amu( l ) )
-         
          dconst3a = dconst2 * pdensac( l ) * dgacc( l ) * dgacc( l )
          dconst3c = dconst2 * pdensco( l ) * dgcor( l ) * dgcor( l )
 
 c acc mode
          vghat0a  = dconst3a * ( esac04  + bknacc * esac01 )
          vghat2a  = dconst3a * ( esac12  + bknacc * esac05 )
-         vghat3a  = dconst3a * ( esac16  + bknacc * esac07 ) 
+         vghat3a  = dconst3a * ( esac16  + bknacc * esac07 )
+
 c coarse mode
          vghat0c  = dconst3c * ( esco04  + bkncor * esco01 )
          vghat2c  = dconst3c * ( esco12  + bkncor * esco05 )
          vghat3c  = dconst3c * ( esco16  + bkncor * esco07 )
+
 C settling velocities
 
 C vsed of 0th moment for the number 

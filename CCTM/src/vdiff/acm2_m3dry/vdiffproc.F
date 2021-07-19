@@ -93,10 +93,7 @@ C-----------------------------------------------------------------------
       USE HDMod
 !      USE LSM_MOD, Only: n_lufrac
       USE SEDIMENTATION
-      USE AERO_DATA
       USE VDIFF_DIAG
-      
-
 !       USE PA_DEFN, Only: LIPR ! Process Anaylsis control and data variables
 
 #ifdef isam
@@ -384,6 +381,7 @@ C Set up for grav. settling
           END DO
         ENDIF
 #endif
+
       END IF   !  if Firstime
 
       MDATE = JDATE
@@ -394,7 +392,7 @@ C Set up for grav. settling
 
 C Convert non-molar mixing ratio species and re-order CGRID
       CALL CONV_CGRID ( CGRID, MDATE, MTIME, CNGRD )
-      
+
 #ifdef sens
       DO NP = 1, NPMAX
          DO L = 1, NLAYS
@@ -412,36 +410,20 @@ C Convert non-molar mixing ratio species and re-order CGRID
 
 C read & interpolate met data
       CALL GET_MET ( MDATE, MTIME, MSTEP )
-      
-C     write(*,*) 'AFTER GET_MET, CNGRD'
-C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 )
-C     write(*,*) 'AFTER GET_MET, CNGRD_DX1'
-C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )      
+
 C read & interpolate deposition velocities
- 	  
-      CALL GET_DEPV ( MDATE, MTIME, TSTEP, CGRID )  
-      
-C     write(*,*) 'AFTER GET_DEPV, CNGRD'
-C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 ) 
-C     write(*,*) 'AFTER GET_DEPV, CNGRD_DX1'
-C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )      	  
-       IF ( GRAV_SETL ) THEN
+      CALL GET_DEPV ( MDATE, MTIME, TSTEP, CGRID )      
+
+      IF ( GRAV_SETL ) THEN
 C Get gravitational settling velocity for the vsed aero species:
 C AERO_SEDV assumes that every aero species is dry deposited and is diffused (trns)
 C Calculate the changes in the layer J-,K-mode aerosol concentrations
          CALL SEDI( MDATE, MTIME, DTSEC, VSED_AE, CGRID, CNGRD )
-C        write(*,*) 'AFTER SEDI, CNGRD'
-C        write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 ) 
-C     	 write(*,*) 'AFTER SEDI, CNGRD_DX1'
-C        write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )         
       END IF
-      
+
 C read & interpolate emissions data => VDEMIS_DIFF from EMIS_DEFN module
        CALL GET_EMIS ( MDATE, MTIME, TSTEP, CGRID )       
-C      write(*,*) 'AFTER GET_EMIS, CNGRD'
-C      write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 ) 
-C      write(*,*) 'AFTER GET_EMIS, CNGRD_DX1'
-C      write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )   
+
 C     IF ( LIPR ) THEN
 C        DO S = 1, N_SPC_DIFF
 C           DO L = 1, EMLAYS
@@ -456,11 +438,7 @@ C        CALL PA_UPDATE_EMIS ( 'VDIF', EMIS_PA, JDATE, JTIME, TSTEP )
 C     END IF
 	  
  	  CALL EDDYX ( EDDYV )
-      
-C     write(*,*) 'AFTER EDDYX, CNGRD'
-C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 ) 	  
-C     write(*,*) 'AFTER EDDYX, CNGRD_DX1'
-C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )         
+             
 C EDDYV returned = Kz, where Kz is in m**2/sec
 
       DO R = 1, NROWS
@@ -484,12 +462,7 @@ C Calculate the change in concentration and dry dep from vertical diffusion and 
 C Note: cngrd is the argument keyword (from the INTERFACE); CNGRD is the actual argument
 
       CALL VDIFFACMX( DTSEC, SEDDY, DDEP, ICMP, CNGRD )
-      
-C     write(*,*) 'AFTER VDIFFACMX, CNGRD'
-C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 ) 
-C     write(*,*) 'AFTER VDIFFACMX, CNGRD_DX1'
-C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )      
-                
+
       IF ( VDIFFDIAG ) THEN
          NTICS = NTICS + 1
          NLPCR_SUM = NLPCR_SUM + NLPCR_MEAN    ! array assignment
@@ -512,13 +485,7 @@ C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )
 
 C Revert non-molar mixing ratio species and re-order CGRID
       CALL REV_CGRID ( CNGRD, MDATE, MTIME, CGRID )
-      
-C     write(*,*) 'AFTER REV_CGRID, CNGRD'
-C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%x , 4 ) 
-C     write(*,*) 'AFTER REV_CGRID, CNGRD_DX1'
-C     write(*,*) REAL ( CNGRD(156, 1, 15, 9)%dx1 , 4 )  
-      
-       
+
 #ifdef sens
       DO NP = 1, NPMAX
          CALL REV_CGRID ( SNGRD(:,:,:,:,NP), MDATE, MTIME, SENGRID_TEMP )

@@ -663,16 +663,16 @@ C-----------------------------------------------------------------------
                ! Modify both the emiss process and the calling process
                IF ( IPCOAG .NE. 0 )
      &            DELC( :,:,:,IPCOAG ) = DELC( :,:,:,IPCOAG )
-     &                              + SPCOEF( NPA,NGR ) * SUM( AERO_COAG( :,:,:,ICG,: ),4 )
+     &                              + SPCOEF( NPA,NGR ) * SUM( AERO_COAG( :,:,:,ICG,: )%x,4 )
                IF ( IPCOND .NE. 0 )
      &            DELC( :,:,:,IPCOND ) = DELC( :,:,:,IPCOND )
-     &                              + SPCOEF( NPA,NGR ) * AERO_COND( :,:,:,ICG )
+     &                              + SPCOEF( NPA,NGR ) * AERO_COND( :,:,:,ICG )%x
                IF ( IPNPF .NE. 0 )
      &            DELC( :,:,:,IPNPF  ) = DELC( :,:,:,IPNPF )
-     &                              + SPCOEF( NPA,NGR ) * AERO_NPF( :,:,:,ICG )
+     &                              + SPCOEF( NPA,NGR ) * AERO_NPF( :,:,:,ICG )%x
                IF ( IPGROWTH .NE. 0 ) 
      &            DELC( :,:,:,IPGROWTH)= DELC( :,:,:,IPGROWTH )
-     &                              + SPCOEF( NPA,NGR ) * AERO_GROWTH( :,:,:,ICG )
+     &                              + SPCOEF( NPA,NGR ) * AERO_GROWTH( :,:,:,ICG )%x
          END DO
       END DO
 

@@ -19,7 +19,7 @@
  # may, on the other hand, be outside the repository if the user has 
  # created a separate project directory where they wish to put build-
  # and run-scripts as well as executables.
- setenv CMAQ_HOME $cwd
+ setenv CMAQ_HOME $PWD
 
  # CMAQ_REPO - this is always the location of the CMAQ repository that
  # the user will pull from to create exectuables. If the user is building
@@ -75,29 +75,31 @@
 
 #> Compiler flags and settings
  switch ( $compiler )
-
+             
 #>  Intel fortran compiler......................................................
     case intel:
     
         #> I/O API, netCDF, and MPI library locations
-        setenv IOAPI_INCL_DIR   ioapi_inc_intel    #> I/O API include header files
-        setenv IOAPI_LIB_DIR    ioapi_lib_intel    #> I/O API libraries
-        setenv NETCDF_LIB_DIR   netcdf_lib_intel   #> netCDF C directory path
-        setenv NETCDF_INCL_DIR  netcdf_inc_intel   #> netCDF C directory path
-        setenv NETCDFF_LIB_DIR  netcdff_lib_intel  #> netCDF Fortran directory path
-        setenv NETCDFF_INCL_DIR netcdff_inc_intel  #> netCDF Fortran directory path
-        setenv MPI_LIB_DIR      mpi_lib_intel      #> MPI directory path
+        setenv IOAPI_INCL_DIR   /glade/work/edliu/libs/ioapi-3.2/ioapi/fixed_src    #> I/O API include header files
+        setenv IOAPI_LIB_DIR    /glade/work/edliu/libs/ioapi-3.2/Linux2_x86_64ifort_openmpi_4.0.5_intel19.0.5    #> I/O API libraries
+        setenv NETCDF_LIB_DIR   /glade/work/edliu/libs/netcdf-c-4.7.0/netcdf-c-4.7.0-intel19.0.5/lib  #> netCDF C directory path
+        setenv NETCDF_INCL_DIR  /glade/work/edliu/libs/netcdf-c-4.7.0/netcdf-c-4.7.0-intel19.0.5/include   #> netCDF C directory path
+        setenv NETCDFF_LIB_DIR  /glade/work/edliu/libs/netcdf-fortran-4.4.5/netcdf-fortran-4.4.5-intel19.0.5/lib  #> netCDF Fortran directory path
+        setenv NETCDFF_INCL_DIR /glade/work/edliu/libs/netcdf-fortran-4.4.5/netcdf-fortran-4.4.5-intel19.0.5/include  #> netCDF Fortran directory path
+        setenv MPI_LIB_DIR      /glade/u/apps/ch/opt/openmpi/4.0.5/intel/19.0.5     #> MPI directory path
     
         #> Compiler Aliases and Flags
         #> set the compiler flag -qopt-report=5 to get a model optimization report in the build directory with the optrpt extension
-        setenv myFC mpiifort
+        setenv myFC mpifort
         setenv myCC icc       
         setenv myFSTD "-O3 -fno-alias -mp1 -fp-model source -ftz -simd -align all -xHost -vec-guard-write -unroll-aggressive"
         setenv myDBG  "-O0 -g -check bounds -check uninit -fpe0 -fno-alias -ftrapuv -traceback"
-        setenv myLINK_FLAG #"-qopenmp-simd" openMP not supported w/ CMAQ
+        setenv myLINK_FLAG "-qopenmp" #"-qopenmp" # openMP not supported w/ CMAQ
         setenv myFFLAGS "-fixed -132"
+        #setenv myFRFLAGS "-free -O3 -xHost -qopenmp"
         setenv myFRFLAGS "-free"
         setenv myCFLAGS "-O2"
+        # setenv myCFLAGS "-O3 -xHost -qopenmp"
         setenv extra_lib "-lcurl"
         #setenv extra_lib ""
         setenv mpi_lib ""    #> No Library specification needed for mpiifort
@@ -181,7 +183,8 @@
 #===============================================================================
  
 #> I/O API, netCDF, and MPI libraries
- setenv netcdf_lib "-lnetcdf"  #> -lnetcdff -lnetcdf for netCDF v4.2.0 and later
+ #setenv netcdf_lib "-lnetcdff -lnetcdf -Wl,--unresolved-symbols=ignore-in-object-files"  #> -lnetcdff -lnetcdf for netCDF v4.2.0 and later
+ setenv netcdf_lib "-lnetcdff -lnetcdf"
  setenv netcdff_lib "-lnetcdff"
  setenv ioapi_lib "-lioapi"
  setenv pnetcdf_lib "-lpnetcdf"

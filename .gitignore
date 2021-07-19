@@ -70,4 +70,7 @@ UTIL/inline_phot_preproc/bldrun.log
 #unique to user; below section unlikely to add and commit to repository
 bldit_project.csh
 
-
+# Ignore the .o files (server log file)
+*.o*
+# Ignore the data folder (all the outputs)
+/data

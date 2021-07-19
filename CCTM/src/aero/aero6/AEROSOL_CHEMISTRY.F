@@ -1505,7 +1505,7 @@ C hydrolysis
 
 C ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-      type(hyperdual) FUNCTION PNCOM_LOSS( POC, PNCOM )
+      FUNCTION PNCOM_LOSS( POC, PNCOM ) RESULT(PNCOM_LOSS_RESULT)
 ! Calculates rate constant in cm3 molec-1 sec-1 for PNCOM loss by reacting 
 ! with OH, derived from the reactions in the below POA aging scheme 
 ! in CMAQ v5.0-v5.02:
@@ -1599,25 +1599,26 @@ C ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
        REAL( 8 ), PARAMETER :: MAX_RATE    = 15.0D0/16.0D0 * KOHEFF ! max rate constant for PNCOM loss
 ! Local    
        TYPE(hyperdual)            :: RATIO   ! the hydrogen to oxygen ratio in organic matter
+       TYPE(hyperdual)            :: PNCOM_LOSS_RESULT
        
-        PNCOM_LOSS = 0.0D0
+        PNCOM_LOSS_RESULT = 0.0D0
 
         IF (  POC .LE. 1.0D-30 ) RETURN
               
         RATIO =  ( POC + PNCOM ) / POC
 
         IF ( RATIO .GT. LOWER_LIMIT .AND. RATIO .LT. UPPER_LIMIT ) THEN
-           PNCOM_LOSS = 15.0D0 * KOHEFF
+           PNCOM_LOSS_RESULT = 15.0D0 * KOHEFF
      &                / ( 16.0D0 + (UPPER_LIMIT - RATIO) / (RATIO - LOWER_LIMIT) )
         ELSE IF ( RATIO .GE. UPPER_LIMIT ) THEN 
-           PNCOM_LOSS = MAX_RATE
+           PNCOM_LOSS_RESULT = MAX_RATE
         END IF
         
         RETURN   
       END FUNCTION PNCOM_LOSS
 
 C:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-      TYPE(hyperdual) FUNCTION N2O5_GAMMA( TEMP, RH, GPARAM )
+      FUNCTION N2O5_GAMMA( TEMP, RH, GPARAM ) RESULT(N2O5_GAMMA_RESULT)
 
 C  Calculates the N2O5 heterogeneous reaction probability, which is the
 C  fraction of collisions between a gaseous N2O5 molecule and a particle
@@ -1784,7 +1785,7 @@ C *** variables for parameterization based on Bertram and Thornton (2009)
       REAL( 8 ), PARAMETER :: K3OK2B = 6.0D-02  ! Unit [ ] - Table 2  
       REAL( 8 ), PARAMETER :: K4OK2B = 29.0D0     ! Unit [ ] - Table 2  
       TYPE(hyperdual) K2FP                            ! varible in eqn 10
-                 
+      TYPE(hyperdual) :: N2O5_GAMMA_RESULT           
 C *** statement function for inverting the logit transformation given
 C     in Eq 7 by Davis et al (2008)
 C     TYPE(hyperdual)      LOGITINV  ! statement function
@@ -1819,7 +1820,7 @@ C     estimate of N2O5_GAMMA so it should not be used for routine
 C     simulations.  It is included here only to facilitate sensitivity
 C     studies by CMAQ model users.
 
-            N2O5_GAMMA = 0.1D0
+            N2O5_GAMMA_RESULT = 0.1D0
             RETURN
             
          CASE( 2, 3 )
@@ -1868,7 +1869,7 @@ C        sign of BETA has been switched in this code.
             END IF
 
             GAMMA2 = 0.1d0 * GAMMA1
-            N2O5_GAMMA = ( GAMMA2 + FRACSO4 * ( GAMMA1 - GAMMA2 ) ) 
+            N2O5_GAMMA_RESULT = ( GAMMA2 + FRACSO4 * ( GAMMA1 - GAMMA2 ) ) 
    
             RETURN
 
@@ -1891,7 +1892,7 @@ C *** It calculates N2O5_GAMMA based on Bertran and Thornton, 2009
 
             DEN  = DEN1 + 1.0d0 + DEN2
          
-            N2O5_GAMMA = A * K2FP * (1.0d0 - 1.0d0 / DEN)
+            N2O5_GAMMA_RESULT = A * K2FP * (1.0d0 - 1.0d0 / DEN)
                    
             RETURN
 
@@ -1914,7 +1915,7 @@ C     It calculates N2O5_GAMMA based on Bertran and Thornton, 2009
 
             DEN  = DEN1 + 1.0D0 + DEN2      
 
-            N2O5_GAMMA = A * K2FP * (1.0D0 - 1.0D0 / DEN)
+            N2O5_GAMMA_RESULT = A * K2FP * (1.0D0 - 1.0D0 / DEN)
                                                          
             RETURN
     
@@ -1951,7 +1952,7 @@ C *** Check whether the ambient RH exceeds the RH of ice formation.
 C *** Set N2O5_GAMMA to constant value if particles contain ice, based on
 C     Eq 14 by Davis et al (2008).
 
-               N2O5_GAMMA = 0.02D0                               ! Eq 14
+               N2O5_GAMMA_RESULT = 0.02D0                               ! Eq 14
 
             ELSE
 C *** Compute mole-fractional-composition of particles based on Eq 11 by
@@ -1977,7 +1978,7 @@ C     Davis et al (2008).
                   LAMD     = -6.13376d0 + 3.592d0 * RH      ! Eq 9
      &                     - 0.19688d0 * T293
                   GAMD     = MIN( 1.0D0 / ( 1.0D0 + EXP( -LAMD )), 0.0124D0 )      ! Eq 10
-                  N2O5_GAMMA =  ( X1 + X2 ) * GAMD           ! Eq 13
+                  N2O5_GAMMA_RESULT =  ( X1 + X2 ) * GAMD           ! Eq 13
      &                       +    X3 * MIN( GAMD, GAM3 )
 
 C *** Compute N2O5_GAMMA on aqeuous particles using Eqs A1, A2, 8, and 12
@@ -2001,7 +2002,7 @@ C     Davis et al. (2008) for a discussion of these options.
 
                   GAM1     = MIN( 1.0D0 / ( 1.0D0 + EXP( -LAM1 )), 0.08585d0 ) ! Eq 8
                   GAM2     = MIN( 1.0D0 / ( 1.0D0 + EXP( -LAM2 )), 0.053d0   )   ! Eq 9
-                  N2O5_GAMMA =  ( X1 * GAM1 )            ! Eq 12
+                  N2O5_GAMMA_RESULT =  ( X1 * GAM1 )            ! Eq 12
      &                       +  ( X2 * GAM2 )
      &                       +  ( X3 * GAM3 )
 

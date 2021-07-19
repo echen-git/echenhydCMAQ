@@ -175,7 +175,7 @@ C..Loop over each reactant
 
          NET_LIFE = 1.0D0 / NET_RATE         
          
-         TRANS = CURR_CONC( I_RXT ) * ( 1.0D0 - DEXP( -NET_RATE * DT ) )
+         TRANS = CURR_CONC( I_RXT ) * ( 1.0D0 - EXP( -NET_RATE * DT ) )
 
          IF ( TRANS <= CONMIN ) CYCLE LOOP_REACT
 

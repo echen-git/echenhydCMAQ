@@ -285,7 +285,7 @@ C *** Variables for mode merging
 
 C *** Comment this out, wrote overloading function for hyperdual
 C *** ERF and ERFC in util/util/HDMod.f90
-C *** REAL       ERF, ERFC 
+c  *** REAL       ERF, ERFC 
 
 
 C *** local variables
@@ -321,8 +321,10 @@ C     where beta = 1.458e-6 [ kg sec^-1 K**-0.5 ], s = 110.4 [ K ].
       AMU = 1.458E-6 * AIRTEMP * SQRT_TEMP / ( AIRTEMP + 110.4 )
 
 C *** Set minimums for coarse mode
+C     The MAX has problem?????
       MOMENT0_CONC( N_MODE ) = MAX( AEROMODE_MINNUM( N_MODE ),
      &                              MOMENT0_CONC( N_MODE ) )
+	  
 
 C *** Secondary Organics
 C     Update the secondary organic aerosol (SOA) mass concentrations
@@ -343,7 +345,7 @@ C *** Compute H2SO4 diffusivity, correct for temperature and pressure
       DV_SO4 = DIFFSULF * DIFFCORR
 
 C *** Update size parameters (distribution is wet from ORGAER)
-       CALL GETPAR( FIXED_sg )
+      CALL GETPAR( FIXED_sg )
 
 ! *** Mass transfer of inorganic constituents      
 ! *** Process Budget is calculated inside this routine because NPF and
@@ -358,20 +360,21 @@ C *** Update size parameters (distribution is wet from ORGAER)
 !     Gauss-Hermite numerical quadrature method is used.  See Section
 !     2.1 of Bhave et al. (2004) for further discussion.
 ! *** Initialize Budget Variables
-       CBUDGET0_NUM  = MOMENT0_CONC
-       CBUDGET0_SRF  = MOMENT2_CONC
-       CBUDGET0_MASS = AEROSPC_CONC
+      CBUDGET0_NUM  = MOMENT0_CONC
+      CBUDGET0_SRF  = MOMENT2_CONC
+      CBUDGET0_MASS = AEROSPC_CONC
  
 ! *** set atmospheric mean free path in double precision
-       LAMDA    = XLM
+      LAMDA    = XLM
 
 ! *** calculate term used in Equation A6 of Binkowski & Shankar (1995)
-       KNC      = TWOTHIRDS * BOLTZMANN *  AIRTEMP / AMU
+      KNC      = TWOTHIRDS * BOLTZMANN *  AIRTEMP / AMU
 
 ! *** calculate terms used in Equation A5 of Binkowski & Shankar (1995)
-       KFMAT    = SQRT( 3.0 * BOLTZMANN * AIRTEMP / AEROMODE_DENS( 1 ) )
-       KFMAC    = SQRT( 3.0 * BOLTZMANN * AIRTEMP / AEROMODE_DENS( 2 ) )
-       KFMATAC  = SQRT( 6.0 * BOLTZMANN * AIRTEMP / ( AEROMODE_DENS( 1 ) + AEROMODE_DENS( 2 ) ) )
+      KFMAT    = SQRT( 3.0 * BOLTZMANN * AIRTEMP / AEROMODE_DENS( 1 ) )
+      KFMAC    = SQRT( 3.0 * BOLTZMANN * AIRTEMP / AEROMODE_DENS( 2 ) )
+      KFMATAC  = SQRT( 6.0 * BOLTZMANN * AIRTEMP
+     &         / ( AEROMODE_DENS( 1 ) + AEROMODE_DENS( 2 ) ) )
 
 ! *** transfer of number to accumulation mode from Aitken mode is zero
        BACAT( 1 ) = 0.0d0
@@ -385,7 +388,7 @@ C     ln(GSD) in double precision
             SG_D( N ) = EXP( AEROMODE_LNSG( N ) )
             XXL_D( N ) = AEROMODE_LNSG( N )
          END DO
- 
+
 C *** calculate intermodal and intramodal coagulation coefficients
 C     for zeroth and second moments, and intermodal coagulation
 C     coefficient for third moment
@@ -394,31 +397,30 @@ C     coefficient for third moment
      &                  XXL_D(1),XXL_D(2),
      &                  BATAT( 2 ), BATAT( 1 ), BACAC( 2 ), BACAC( 1 ),
      &                  BATAC( 2 ), BACAT( 2 ), BATAC( 1 ), C3IJ )
- 
-        ELSE                 ! Use Gauss-Hermite numerical quadrature
- 
+
+      ELSE                 ! Use Gauss-Hermite numerical quadrature
+
 C *** calculate Aitken-mode intramodal coagulation coefficients
 C     for zeroth and second moments
          CALL INTRACOAG_GH( LAMDA, KFMAT, KNC, AEROMODE_DIAM( 1 ),
      &                      AEROMODE_LNSG( 1 ), BATAT( 2 ), BATAT( 1 ) )
-C
+
 C *** calculate accumulation-mode intramodal coagulation coefficients
 C     for zeroth and second moments
          CALL INTRACOAG_GH( LAMDA, KFMAC, KNC, AEROMODE_DIAM( 2 ),
      &                      AEROMODE_LNSG( 2 ), BACAC( 2 ), BACAC( 1 ) )
- 
+
 C *** calculate intermodal coagulation coefficients for zeroth, second,
 C     and third moments
          CALL INTERCOAG_GH( LAMDA, KFMATAC, KNC,
      &                      AEROMODE_DIAM( 1 ), AEROMODE_DIAM( 2 ),
      &                      AEROMODE_LNSG( 1 ), AEROMODE_LNSG( 2 ),
      &                      BATAC( 2 ), BACAT( 2 ), BATAC( 1 ), C3IJ )
- 
-        END IF   ! FASTCOAG_FLAG
+
+      END IF   ! FASTCOAG_FLAG
 
 C *** calculate 3rd moment intermodal transfer rate by coagulation
-	  
-        C30ATAC = C3IJ * MOMENT0_CONC( 1 ) * MOMENT0_CONC( 2 )
+      C30ATAC = C3IJ * MOMENT0_CONC( 1 ) * MOMENT0_CONC( 2 )
 
 C *** TAKE ONE FORWARD TIME STEP - Solve Modal Dynamics Equations
 C     This code implements Section 1.4 of Binkowski and Roselle (2003)
@@ -447,7 +449,7 @@ C     with solution
 C        M2(t) = M2(t0) + P2*dt
 
 C *** Aitken mode: initial value of M2
-        M20 = MOMENT2_CONC( 1 )
+      M20 = MOMENT2_CONC( 1 )
 
 C *** Loss of 2nd moment from Aitken mode is due to intermodal
 C     coagulation with accumulation mode and intramodal coagulation.
@@ -464,21 +466,21 @@ C     Note: LOSS is assumed to be non-negative.
          Y = M20 * EXP( -LOSS * DT )
       ELSE
          Y = M20
-       END IF ! test on loss
+      END IF ! test on loss
 
 C *** Transfer new value of M2_Aitken to the array
        MOMENT2_CONC( 1 ) = MAX( AEROMODE_MINM2( 1 ), Y )
 
 C *** Accumulation mode: initial value of M2
-       M20 = MOMENT2_CONC( 2 )
+      M20 = MOMENT2_CONC( 2 )
 
 C *** Production of 2nd moment in accumulation mode is due to
 C     intermodal coagulation Aitken mode
-       PROD = BACAT( 2 ) * MOMENT0_CONC( 1 ) * MOMENT0_CONC( 2 )
+      PROD = BACAT( 2 ) * MOMENT0_CONC( 1 ) * MOMENT0_CONC( 2 )
 
 C *** Loss of 2nd moment from accumulation mode is due only to
 C     intramodal coagulation
-       LOSS = ( BACAC( 2 ) * MOMENT0_CONC( 2 ) * MOMENT0_CONC( 2 ) ) / M20
+      LOSS = ( BACAC( 2 ) * MOMENT0_CONC( 2 ) * MOMENT0_CONC( 2 ) ) / M20
 
 C *** Solve for M2_accum based on PROD and LOSS during this time step
 C     Note: LOSS is assumed to be non-negative.
@@ -490,14 +492,14 @@ C     Note: LOSS is assumed to be non-negative.
       END IF ! test on loss
 
 C *** Transfer new value of M2_accum to moment array
-       MOMENT2_CONC( 2 ) = MAX( AEROMODE_MINM2( 2 ) , Y  )
+      MOMENT2_CONC( 2 ) = MAX( AEROMODE_MINM2( 2 ) , Y  )
 
 C *** Coarse mode: no change because coagulation of coarse particles
 C     is neglected in current model version.
 
 ! ** Update Budget Variable for Second Moment
-       COAG_BUDGET( AEROSRF_MAP( 1 ),1 ) = MOMENT2_CONC( 1 ) - CBUDGET0_SRF( 1 )
-       COAG_BUDGET( AEROSRF_MAP( 2 ),2 ) = MOMENT2_CONC( 2 ) - CBUDGET0_SRF( 2 )
+      COAG_BUDGET( AEROSRF_MAP( 1 ),1 ) = MOMENT2_CONC( 1 ) - CBUDGET0_SRF( 1 )
+      COAG_BUDGET( AEROSRF_MAP( 2 ),2 ) = MOMENT2_CONC( 2 ) - CBUDGET0_SRF( 2 )
 
 C *** end of update for second moment
 
@@ -505,14 +507,14 @@ C *** Update Zeroth Moment (i.e. number concentration)
 
 C *** Aitken mode: initial value of M0
 
-       Y0 = MOMENT0_CONC( 1 )
+      Y0 = MOMENT0_CONC( 1 )
 
 C *** The rate of change for M0_Aitken is described in Equation 8a of
 C     Binkowski & Roselle (2003), with the c_i term equal to 0.
 
       A = BATAT( 1 )                      ! intramodal coagulation
       B = BATAC( 1 ) * moment0_conc( 2 )  ! intermodal coagulation
- 
+
       EXPDT = EXP( - B * DT )
       IF ( EXPDT .LT. 1.0D0 ) THEN
          Y = B * Y0 * EXPDT / ( B + A * Y0 * ( 1.0D0 - EXPDT ) )
@@ -521,27 +523,27 @@ C     Binkowski & Roselle (2003), with the c_i term equal to 0.
       END IF
 
 C *** Transfer new value of M0_Aitken to the moment array
-       MOMENT0_CONC( 1 ) = MAX( AEROMODE_MINNUM( 1 ), Y )
+      MOMENT0_CONC( 1 ) = MAX( AEROMODE_MINNUM( 1 ), Y )
 
 C *** Accumulation mode: initial value of M0
-       Y0 = MOMENT0_CONC( 2 )
+      Y0 = MOMENT0_CONC( 2 )
 
 C *** The rate of change for M0_accum is described in Equation 8b of
 C     Binkowski & Roselle (2003), except the coefficient C is zero
 C     because emissions are treated outside the CMAQ aerosol module.
 C     The equation reduces to the form: dY/dt = -A * Y**2 , where
-       A = BACAC( 1 )                 ! intramodal coagulation
+      A = BACAC( 1 )                 ! intramodal coagulation
 
 C *** Solve for M0_accum using Smoluchowski`s solution
-       Y = Y0 / ( 1.0D0 + A * Y0 * DT )
+      Y = Y0 / ( 1.0D0 + A * Y0 * DT )
 
 C *** Transfer new value of M0_accum to the moment array
        MOMENT0_CONC( 2 ) = MAX( AEROMODE_MINNUM( 2 ), Y )
 
 ! ** Update Budget Variable for Second Moment
-        COAG_BUDGET( AERONUM_MAP( 1 ),1 ) = MOMENT0_CONC( 1 ) - CBUDGET0_NUM( 1 )
-        COAG_BUDGET( AERONUM_MAP( 2 ),2 ) = MOMENT0_CONC( 2 ) - CBUDGET0_NUM( 2 )
-       
+      COAG_BUDGET( AERONUM_MAP( 1 ),1 ) = MOMENT0_CONC( 1 ) - CBUDGET0_NUM( 1 )
+      COAG_BUDGET( AERONUM_MAP( 2 ),2 ) = MOMENT0_CONC( 2 ) - CBUDGET0_NUM( 2 )
+
 C *** end of update for zeroth moment - note that the coarse mode number does
 C     not change because coarse-mode coagulation is neglected in the model
 
@@ -582,16 +584,16 @@ C     intermodal coagulation.
  
          TMASS = AEROSPC_CONC( SPC,1 ) + AEROSPC_CONC( SPC,2 )
          IF( SPC .EQ. APHGJ_IDX  )THEN 
-! assumes all production adsorb onto accumulation mode
+ ! assumes all production adsorb onto accumulation mode
              TMASS = TMASS + PHG_RATE * DT
          END IF
- 
+
          AEROSPC_CONC( SPC,1 ) = MAX( AEROSPC( SPC )%MIN_CONC( 1 ),
      &                                AEROSPC_CONC( SPC,1 ) * EXPDT )
          AEROSPC_CONC( SPC,2 ) = MAX( AEROSPC( SPC )%MIN_CONC( 2 ),
      &                                TMASS - AEROSPC_CONC( SPC,1 ) )
- 
- 
+
+
          ! Update Budget Variable for Second Moment
          IF ( AEROSPC_MAP( SPC,1 ) .NE. 0 ) 
      &      COAG_BUDGET( AEROSPC_MAP( SPC,1 ),1 ) = 
@@ -599,7 +601,7 @@ C     intermodal coagulation.
          IF ( AEROSPC_MAP( SPC,2 ) .NE. 0 ) 
      &      COAG_BUDGET( AEROSPC_MAP( SPC,2 ),1 ) = 
      &           AEROSPC_CONC( SPC,2 ) - CBUDGET0_MASS( SPC,2 )
- 
+
       END DO
 
 C *** end of update for species mass concentrations
@@ -628,7 +630,7 @@ C     diameters, geometric standard deviations, modal mass totals, and
 C     particle densities, based on the new concentrations of M2, M0, and
 C     speciated masses calculated above. This is still the wet
 C     distribution.
-      CALL GETPAR( FIXED_sg )
+         CALL GETPAR( FIXED_sg )
 
 C *** Calculate AAA = ln( Dij / DGATK ) / ( SQRT2 * XXLSGAT ), where Dij
 C     is the diameter at which the Aitken-mode and accumulation-mode
@@ -681,11 +683,11 @@ C     using Equation 11b of Binkowski and Roselle (2003). Do this for
 C     all species, even the aerosol water.
          DO SPC = 1, N_AEROSPC
             IF ( AERO_MISSING(SPC,1) ) CYCLE
- 
+
             AEROSPC_CONC( SPC,2 ) = AEROSPC_CONC( SPC,2 ) + AEROSPC_CONC( SPC,1 ) * FM3
             AEROSPC_CONC( SPC,1 ) = AEROSPC_CONC( SPC,1 ) * PHM3
          END DO
- 
+
       END IF ! end check on necessity for merging
 
 C *** end of update for mode merging
@@ -695,7 +697,7 @@ C     standard deviations, modal mass totals, and particle densities,
 C     based on the final concentrations of M2, M0, and speciated masses
 C     after mode merging is complete. This should be done for the wet
 C     distribution.
-       CALL GETPAR( FIXED_sg )
+      CALL GETPAR( FIXED_sg )
 
 C *** Set minimum value for all concentrations in the CBLK array
 
@@ -720,7 +722,7 @@ C     END DO
  	 	GROWTH_BUDGET(AERONUM_MAP(MODE)) = MOMENT0_CONC(MODE) - CBUDGET0_NUM(MODE)
  		GROWTH_BUDGET(AEROSRF_MAP(MODE)) = MOMENT0_CONC(MODE) - CBUDGET0_NUM(MODE)
  	  ENDDO 
-	  
+   
  	  DO SPC = 1,N_AEROSPC
  		DO MODE = 1,N_MODE
  		   IF (AEROSPC_MAP(SPC, MODE) .NE. 0) THEN
@@ -1763,7 +1765,7 @@ C *** Arguments:
       REAL,            INTENT( IN ) :: Dv    ! molecular diffusivity of the
                                        ! condensing vapor  [ m**2/s ]
       TYPE(hyperdual),      INTENT( IN ) :: ALPHA ! accommodation coefficient
-      TYPE(hyperdual),      INTENT( IN ) :: CBAR  ! kinetic velocity of condensing vapor [ m/s ]
+      REAL,      INTENT( IN ) :: CBAR  ! kinetic velocity of condensing vapor [ m/s ]
 
       TYPE(hyperdual), INTENT( OUT ) :: F( 2 ) ! size-dependent term in condensational-growth
                                          ! rate: F(1) = 2nd moment [ m**2/m**3 s ]
@@ -2690,7 +2692,7 @@ C        Adjust DRH of NH4NO3 for low temperature
       END SUBROUTINE GETSC
 
 C:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-      TYPE(hyperdual) FUNCTION GETAF( NI, NJ, DGNI, DGNJ, XLSGI, XLSGJ, SQRT2 )
+      FUNCTION GETAF( NI, NJ, DGNI, DGNJ, XLSGI, XLSGJ, SQRT2) RESULT(GETAF_RESULT)
 
 C  Returns the value of "Xnum" in Equations 10a and 10c
 C  of Binkowski and Roselle (2003), given the number concentrations,
@@ -2716,8 +2718,9 @@ C      Cambridge University Press, 1992.
 	  use HDMod 
       IMPLICIT NONE
 
-      TYPE(hyperdual) NI, NJ, DGNI, DGNJ, XLSGI, XLSGJ, SQRT2
-      TYPE(hyperdual) AA, BB, CC, DISC, QQ, ALFA, L, YJI
+      TYPE(hyperdual) :: NI, NJ, DGNI, DGNJ, XLSGI, XLSGJ, SQRT2
+      TYPE(hyperdual) :: AA, BB, CC, DISC, QQ, ALFA, L, YJI
+      TYPE(hyperdual) :: GETAF_RESULT
 
 C-----------------------------------------------------------------------
 
@@ -2736,7 +2739,7 @@ C *** Calculate quadratic equation coefficients & discriminant
 C *** If roots are imaginary, return a negative GETAF value so that no
 C     mode merging takes place.
       IF ( DISC .LT. 0.0 ) THEN
-         GETAF = - 5.0D0       ! error in intersection
+         GETAF_RESULT = - 5.0D0       ! error in intersection
          RETURN
       END IF
 
@@ -2746,23 +2749,12 @@ C *** Equation 5.6.4 of Press et al.
 C *** Return solution of the quadratic equation that corresponds to a
 C     diameter of intersection lying between the median diameters of
 C     the 2 modes.
-      GETAF = CC / QQ       ! See Equation 5.6.5 of Press et al.
+      GETAF_RESULT = CC / QQ       ! See Equation 5.6.5 of Press et al.
 
       RETURN
       END FUNCTION GETAF
       
       
-      
-      TYPE(hyperdual) FUNCTION ERF_APPROX(XX)
-      	
-      	use HDMod 
-      	IMPLICIT NONE
-      	INCLUDE SUBST_CONST
-      	
-      	TYPE(hyperdual)  :: XX
-      	ERF_APPROX  = SIGN( 1.0d0, XX ) * SQRT( 1.0d0 - EXP( -4.0d0 * XX * XX / PI ) )
-      
-      END FUNCTION ERF_APPROX
       
       ! Rewrite the statement function in the original AERO_INLET code
       
@@ -2958,7 +2950,7 @@ C-----------------------------------------------------------------------
       USE AERO_DATA, ONLY : MIN_SIGMA_G, MAX_SIGMA_G
       USE AEROMET_DATA, ONLY : F6PI, PI6
 
-	  use HDMod 
+      use HDMod 
       IMPLICIT NONE
 
       INCLUDE SUBST_CONST    ! for PI
@@ -2969,7 +2961,7 @@ C    Input variables
       TYPE(hyperdual), INTENT( IN ) :: M0      ! Number of Particles in Distribution (N/m3)
       TYPE(hyperdual), INTENT( IN ) :: M_H2O   ! Mass Conc. of Water in Particles (ug/m3)
       TYPE(hyperdual), INTENT( IN ) :: RHOP    ! average particle density [ kg/m**3 ]
-      TYPE(hyperdual), INTENT( IN ) :: RHO_H2O ! Water Density [ kg/m3 ]
+      REAL, INTENT( IN ) :: RHO_H2O ! Water Density [ kg/m3 ]
 
 C    Output variable
       TYPE(hyperdual), INTENT(OUT) :: fAMS   ! fraction of particulate volume transmitted through AMS Inlet
@@ -2988,13 +2980,12 @@ C    Internal variables
       TYPE(hyperdual) DBlo_st, DBhi_st, LOG_HI, LOG_LO
       REAL            LOG_HILO, LOG_LOHI
       TYPE(hyperdual) SQRT2LSG, TERM1, TERM2, TERM3, TERM4, TERM5
-      TYPE(hyperdual) ERF_APPROX
 
 C *** Error function approximation, from Meng & Seinfeld (1994)
 C *** Commented out, rewrite the statement function as ERF_APPROX
-      ! TYPE(hyperdual) ERF        ! Error function
-      ! TYPE(hyperdual) XX         ! dummy argument for ERF
-      ! ERF( XX )  = SIGN( 1.0, XX ) * SQRT( 1.0 - EXP( -4.0 * XX * XX / PI ) )
+C     TYPE(hyperdual) ERF        ! Error function
+C     TYPE(hyperdual) XX         ! dummy argument for ERF
+C     ERF( XX )  = SIGN( 1.0, XX ) * SQRT( 1.0 - EXP( -4.0 * XX * XX / PI ) )
 
 C ----------------------- Begin solution -------------------------------
 
