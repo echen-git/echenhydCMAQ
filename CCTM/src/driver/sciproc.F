@@ -150,12 +150,14 @@ c      INTEGER         :: DX1_WRITE_TIME, DX2_WRITE_TIME, DX1X2_WRITE_TIME
             INTEGER, INTENT( IN )     :: TSTEP( 3 )
          END SUBROUTINE ZADV
          SUBROUTINE COUPLE ( CGRID, JDATE, JTIME, TSTEP )
-            REAL, POINTER             :: CGRID( :,:,:,: )
+            USE HDMod
+            TYPE(hyperdual), POINTER             :: CGRID( :,:,:,: )
             INTEGER, INTENT( IN )     :: JDATE, JTIME
             INTEGER, INTENT( IN )     :: TSTEP( 3 )
          END SUBROUTINE COUPLE
          SUBROUTINE DECOUPLE ( CGRID, JDATE, JTIME, TSTEP )
-            REAL, POINTER             :: CGRID( :,:,:,: )
+            USE HDMod
+            TYPE(hyperdual), POINTER             :: CGRID( :,:,:,: )
             INTEGER, INTENT( IN )     :: JDATE, JTIME
             INTEGER, INTENT( IN )     :: TSTEP( 3 )
          END SUBROUTINE DECOUPLE
@@ -275,9 +277,9 @@ C couple CGRID for advection and horizontal diffusion
 C The COUPLE routine converts aerosol mass from ug/m3 to kg/m3. The 
 C DECOUPLE routine converts it back to ug/m3.
 
-C        CALL COUPLE ( CGRID, JDATE, JTIME, TSTEP )
-C        IF ( CKSUM ) CALL CKSUMMER ( 'COUPLE', CGRID, JDATE, JTIME )
-C        IF ( PRINT_PROC_TIME ) CALL TIMING_SPLIT ( CPU_TIME_START, 1, 'COUPLE' )
+         CALL COUPLE ( CGRID, JDATE, JTIME, TSTEP )
+         IF ( CKSUM ) CALL CKSUMMER ( 'COUPLE', CGRID, JDATE, JTIME )
+         IF ( PRINT_PROC_TIME ) CALL TIMING_SPLIT ( CPU_TIME_START, 1, 'COUPLE' )
 C        
 C        CALL SUBST_BARRIER()
 C        CALL HADV ( CGRID, JDATE, JTIME, TSTEP, ASTEP )
@@ -301,9 +303,9 @@ C decouple CGRID for cloud and chemistry
          STIME = JTIME
          CALL NEXTIME ( SDATE, STIME, TSTEP( 2 ) )
 C        
-C        CALL DECOUPLE ( CGRID, SDATE, STIME, TSTEP )
-C        IF ( CKSUM ) CALL CKSUMMER ( 'DECOUPLE', CGRID, JDATE, JTIME )
-C        IF ( PRINT_PROC_TIME ) CALL TIMING_SPLIT ( CPU_TIME_START, 1, 'DECOUPLE' )
+         CALL DECOUPLE ( CGRID, SDATE, STIME, TSTEP )
+         IF ( CKSUM ) CALL CKSUMMER ( 'DECOUPLE', CGRID, JDATE, JTIME )
+         IF ( PRINT_PROC_TIME ) CALL TIMING_SPLIT ( CPU_TIME_START, 1, 'DECOUPLE' )
 C
       END IF
 C     

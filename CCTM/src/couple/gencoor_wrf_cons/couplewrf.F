@@ -54,6 +54,7 @@ C-----------------------------------------------------------------------
       USE CGRID_SPCS            ! CGRID mechanism species
       USE UTILIO_DEFN
       use CENTRALIZED_IO_MODULE, only : interpolate_var
+      USE HDMod
 #ifdef isam
       USE SA_DEFN, ONLY: ISAM, NSPC_SA, NTAG_SA, SPC_INDEX, TRANSPORT_SPC, ITAG
 #endif
@@ -70,7 +71,7 @@ C Include files:
 
 C Arguments:
 !     REAL      :: CGRID( :,:,:,: )  ! concentrations
-      REAL, POINTER :: CGRID( :,:,:,: )   ! concentrations
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )   ! concentrations
       INTEGER, INTENT( IN ) :: JDATE      ! current model date, coded YYYYDDD
       INTEGER, INTENT( IN ) :: JTIME      ! current model time, coded HHMMSS
       INTEGER, INTENT( IN ) :: TSTEP( 3 ) ! time step vector (HHMMSS)
@@ -187,7 +188,7 @@ C initialize RhoJ from MCIP - done once per sync step
       DO L = 1, NLAYS
          DO R = 1, NROWS
             DO C = 1, NCOLS
-               CGRID( C,R,L,RHOJ_LOC ) = RHOJ( C,R,L )
+               CGRID( C,R,L,RHOJ_LOC )%x = RHOJ( C,R,L )
 #ifdef sens
                   DO NP = 1, NPMAX
                      SENGRID( C,R,L,NP,RHOJ_LOC ) = 0.0
@@ -338,7 +339,7 @@ C retrieve transported RhoJ
       DO L = 1, NLAYS
          DO R = 1, NROWS
             DO C = 1, NCOLS
-               RHOJ( C,R,L ) = CGRID( C,R,L,RHOJ_LOC )
+               RHOJ( C,R,L ) = REAL ( CGRID( C,R,L,RHOJ_LOC )%x , 4 )
             END DO
          END DO
       END DO
