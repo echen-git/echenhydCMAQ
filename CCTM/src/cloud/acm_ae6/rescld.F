@@ -79,7 +79,7 @@ C  Called by:  CLDPROC
  
 C  Calls the following subroutines:  SCAVWDEP and AQ_MAP
 C-----------------------------------------------------------------------
-
+	  USE HDMod
       USE RUNTIME_VARS, ONLY: STM
       USE GRID_CONF           ! horizontal & vertical domain specifications
       USE CGRID_SPCS          ! CGRID mechanism species
@@ -113,7 +113,7 @@ C...........Includes:
       INCLUDE SUBST_FILES_ID             ! file name parameters
 
 C...........Arguments:
-      REAL, POINTER            :: CGRID( :,:,:,: ) ! concentrations
+      Type(hyperdual), POINTER            :: CGRID( :,:,:,: ) ! concentrations
       INTEGER, INTENT( IN )    :: JDATE            ! current model date, coded YYYYDDD
       INTEGER, INTENT( IN )    :: JTIME            ! current model time, coded HHMMSS
       INTEGER, INTENT( IN )    :: TSTEP( 3 )       ! model time steps, coded HHMMSS
@@ -181,8 +181,8 @@ C...........Local Variables:
       REAL          WTBAR               ! total water content of cloud (kg/m3)
       REAL          LWP, CLOD
 
-      REAL, ALLOCATABLE, SAVE :: POLC ( : )   ! incloud conc (mol/mol)
-      REAL, ALLOCATABLE, SAVE :: CEND ( : )   ! ending conc (mol/mol)
+      TYPE (hyperdual), ALLOCATABLE, SAVE :: POLC ( : )   ! incloud conc (mol/mol)
+      TYPE (hyperdual), ALLOCATABLE, SAVE :: CEND ( : )   ! ending conc (mol/mol)
       REAL, ALLOCATABLE, SAVE :: REMOV( : )   ! moles/m2 or mm*mol/lit scavenged
 
       REAL          RN   ( NCOLS, NROWS ) ! non-convective rainfall (cm)
@@ -212,7 +212,7 @@ C Latitude and longitude for zenith angle calculation: Golam Sarwar * July 1, 20
       INTEGER                 :: CSPC
       REAL, ALLOCATABLE, SAVE :: SA_DS4    ( : )
       REAL                    :: SA_SUM
-      REAL, ALLOCATABLE, SAVE :: SA_REMOV  ( :,: )
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: SA_REMOV  ( :,: )
 #endif
 
 C...........External Functions:
@@ -221,23 +221,27 @@ C...........External Functions:
         SUBROUTINE SCAVWDEP ( JDATE, JTIME, WTBAR, WCBAR, TBARC, PBARC,
      &                        CTHK1, AIRM, PRATE1, TAUCLD, POLC, CEND,
      &                        REMOV, REMOVAC, ALFA0, ALFA2, ALFA3 )
+     	   USE HDMod
            INTEGER, INTENT( IN )  :: JDATE, JTIME
            REAL,    INTENT( IN )  :: WTBAR, WCBAR, TBARC, PBARC,
      &                               CTHK1, AIRM, PRATE1, TAUCLD
-           REAL,    INTENT( IN )  :: POLC ( : )
+           Type (hyperdual),    INTENT( IN )  :: POLC ( : )
            REAL,    INTENT( OUT ) :: REMOVAC
-           REAL,    INTENT( OUT ) :: CEND( : ), REMOV( : )
+           TYPE (hyperdual), INTENT( OUT ) :: CEND( : )
+           REAL,    INTENT( OUT ) ::  REMOV( : )
            REAL,    INTENT( OUT ) :: ALFA0, ALFA2, ALFA3
         END SUBROUTINE SCAVWDEP
         SUBROUTINE AQ_MAP( JDATE, JTIME, WTBAR, WCBAR, TBARC, PBARC,
      &                     CTHK1, AIRM, PRATE1, TAUCLD, POLC, CEND,
      &                     REMOV, REMOVAC, ALFA0, ALFA2, ALFA3, DARK )
+     	   USE HDMod
            INTEGER, INTENT( IN )    :: JDATE, JTIME
            REAL,    INTENT( IN )    :: WTBAR, WCBAR, TBARC, PBARC,
      &                                 CTHK1, AIRM, PRATE1, TAUCLD
-           REAL,    INTENT( IN )    :: POLC ( : )
+           Type (hyperdual),    INTENT( IN )    :: POLC ( : )
            REAL,    INTENT( INOUT ) :: REMOVAC
-           REAL,    INTENT( INOUT ) :: CEND( : ), REMOV( : )
+           Type (hyperdual),    INTENT( INOUT )    :: CEND ( : )
+           REAL,    INTENT( INOUT ) :: REMOV( : )
            REAL,    INTENT( IN )    :: ALFA0, ALFA2, ALFA3
            LOGICAL, INTENT( IN )    :: DARK                  !Golam Sarwar, July 1, 2011
         END SUBROUTINE AQ_MAP
@@ -585,7 +589,7 @@ C...  per mole air
                   DO ITAG = 1, NTAG_SA
                     SA_POLC( SPC, ITAG ) = ISAM( COL,ROW,LAY,SPC,ITAG )
                     SA_CEND( SPC, ITAG ) = SA_POLC( SPC, ITAG )
-                    SA_REMOV( SPC, ITAG ) = 0.0
+                    SA_REMOV( SPC, ITAG ) = 0.0D0
                   END DO
                 END DO
 #endif 
@@ -603,13 +607,14 @@ C...  per mole air
 C...perform scavenging and aqueous chemistry within the cloud
 C...  and re-adjust the ending and removed amounts for those species
 C...  that were scavenged or that participated in cloud chemistry
-
+			
                 CALL SCAVWDEP ( JDATE, JTIME, WTBAR, WCBAR, TBARC,
      &                          PBARC, CTHK1, AIRM, PRATE1, TAUCLD,
      &                          POLC, CEND, REMOV, REMOVAC, ALFA0,
      &                          ALFA2, ALFA3 )
 
 #ifdef isam
+				
                 DO SPC = 1, NSPC_SA
                   CSPC = SPC_INDEX(SPC,2)
 c                 IF ( POLC( CSPC ) .GT. 1.0E-30 .AND. CEND( CSPC ) .GT. 1.0E-09 ) THEN
@@ -625,7 +630,7 @@ c                 IF ( POLC( CSPC ) .GT. 1.0E-30 .AND. CEND( CSPC ) .GT. 1.0E-09
                   ELSE ! no update
                     DO ITAG = 1, NTAG_SA
                       SA_CEND( SPC, ITAG )  = 0.0
-                      SA_REMOV( SPC, ITAG ) = 0.0
+                      SA_REMOV( SPC, ITAG ) = 0.0D0
                     END DO
                   END IF
                 END DO
@@ -661,12 +666,14 @@ C...  mimic this for the ASO4GASJ tracking species
                     CEND( AEROSPC_MAP( ASO4GAS_IDX, 2 ) ) = POLC( AEROSPC_MAP( ASO4GAS_IDX, 2 ) )
                   END IF
 
+				 
                   CALL AQ_MAP ( JDATE, JTIME, WTBAR, WCBAR, TBARC,
      &                          PBARC, CTHK1, AIRM, PRATE1, TAUCLD,
      &                          POLC, CEND, REMOV, REMOVAC, ALFA0,
      &                          ALFA2, ALFA3, DARK )
-
+				
 #ifdef isam
+				  
                   DO SPC = 1, NSPC_SA ! general case
                     CSPC = SPC_INDEX(SPC,2)
                     DO ITAG = 1, NTAG_SA
@@ -680,7 +687,7 @@ c                     IF ( POLC( CSPC ) .GT. 1.0E-30 .AND. CEND( CSPC ) .GT. 1.0
      &                                          / POLC( CSPC ) )
                       ELSE !
                         SA_CEND( SPC, ITAG )  = 0.0
-                        SA_REMOV( SPC, ITAG ) = 0.0
+                        SA_REMOV( SPC, ITAG ) = 0.0D0
                       END IF
                     END DO
                   END DO
@@ -869,6 +876,7 @@ C...set cgrid to the ending concentrations
                   DO VAR = 1, N_SPC_WDEP
                     S_TOTDEP( COL, ROW, NP, VAR ) = S_TOTDEP( COL, ROW, NP, VAR )
      &                                            + S_REMOV( NP, WDEP_MAP( VAR ) )
+                 
                   END DO
 
                   S_TOTDEP( COL, ROW, NP, N_SPC_WDEP+1 ) =
@@ -879,7 +887,7 @@ C...set cgrid to the ending concentrations
                       SENGRID( COL, ROW, LAY, NP, SPC ) = S_CEND( NP, SPC )
                     END IF
                   END DO
-
+	
                 END DO
 #endif
 
