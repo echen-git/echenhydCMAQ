@@ -59,6 +59,7 @@ C             S.Roselle:      Fixed bug relating to incorrect unit conversions
 C                             in GC, NR and TR. 
 C    Dec 2019 S.Napelenok     DDM-3D implementation for v 5.3.1
 C-----------------------------------------------------------------------
+	  USE HDMod
       USE RUNTIME_VARS
       USE GRID_CONF           ! horizontal & vertical domain specifications
       USE CGRID_SPCS          ! CGRID mechanism species
@@ -103,7 +104,7 @@ C...........ARGUMENTS
 
 !     REAL          CGRID( NCOLS, NROWS, NLAYS, * )  ! concentrations
 !     REAL       :: CGRID( :,:,:,: )                 ! concentrations
-      REAL, POINTER :: CGRID( :,:,:,: )                 ! concentrations
+      TYPE(hyperdual), POINTER :: CGRID( :,:,:,: )                 ! concentrations
       INTEGER       JDATE            ! current model date, coded YYYYDDD
       INTEGER       JTIME            ! current model time, coded HHMMSS
       INTEGER       TSTEP( 3 )       ! model time step, coded HHMMSS
@@ -147,7 +148,7 @@ C...........Local Variables
       REAL, ALLOCATABLE, SAVE :: SUBTRANS( :,:,: ) ! subgrid cloud transmissivity
 
       REAL FAC                       ! temp conversion factor
-      REAL CCMIN
+      TYPE(hyperdual) CCMIN
 
 #ifdef isam
       REAL, ALLOCATABLE, SAVE :: BUFF2 ( :,: )
@@ -165,7 +166,7 @@ C...........EXTERNAL FUNCTIONS
      &                       N_SPC_WDEP, WDEP_MAP, DEP, RESTRANS )
 #endif
             IMPLICIT NONE
-            REAL, POINTER            :: CGRID( :,:,:,: )
+            TYPE(hyperdual), POINTER            :: CGRID( :,:,:,: )
             INTEGER, INTENT( IN )    :: JDATE, JTIME, TSTEP( 3 )
             INTEGER, INTENT( IN )    :: N_SPC_WDEP
             INTEGER, INTENT( IN )    :: WDEP_MAP( : )
@@ -185,7 +186,7 @@ C...........EXTERNAL FUNCTIONS
      &                            N_SPC_WDEP, WDEP_MAP, DEP, SUBTRANS )
 #endif
             IMPLICIT NONE
-            REAL, POINTER            :: CGRID( :,:,:,: )
+            TYPE(hyperdual), POINTER            :: CGRID( :,:,:,: )
             INTEGER, INTENT( IN )    :: JDATE, JTIME, TSTEP( 3 )
             INTEGER, INTENT( IN )    :: N_SPC_WDEP
             INTEGER, INTENT( IN )    :: WDEP_MAP( : )
@@ -494,7 +495,7 @@ C...    convert to m2 per mole of air by volume
             DO COL = 1, NCOLS
               FAC = CNV2 / DENS( COL, ROW, LAY )
               CCMIN = MAX( CGRID( COL, ROW, LAY, SPC ), 1.0E-30/FAC )
-              CGRID( COL, ROW, LAY, SPC ) = FAC * CCMIN
+              CGRID( COL, ROW, LAY, SPC ) = FAC * 	
 #ifdef sens
               DO NP = 1, NPMAX
                 IF ( CGRID( COL, ROW, LAY, SPC ) .LE. 1.0E-30 ) THEN
