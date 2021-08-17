@@ -162,9 +162,11 @@ C...........EXTERNAL FUNCTIONS
      &                       N_SPC_WDEP, WDEP_MAP, DEP, RESTRANS,
      &                       SA_DEP )
 #else
+		 
          SUBROUTINE RESCLD ( CGRID, JDATE, JTIME, TSTEP,
      &                       N_SPC_WDEP, WDEP_MAP, DEP, RESTRANS )
 #endif
+			USE HDMod
             IMPLICIT NONE
             TYPE(hyperdual), POINTER            :: CGRID( :,:,:,: )
             INTEGER, INTENT( IN )    :: JDATE, JTIME, TSTEP( 3 )
@@ -182,9 +184,11 @@ C...........EXTERNAL FUNCTIONS
      &                            N_SPC_WDEP, WDEP_MAP, DEP, SUBTRANS,
      &                            CONV_SADEP )
 #else
+		 
          SUBROUTINE CONVCLD_ACM ( CGRID, JDATE, JTIME, TSTEP,
      &                            N_SPC_WDEP, WDEP_MAP, DEP, SUBTRANS )
 #endif
+		    USE HDMod
             IMPLICIT NONE
             TYPE(hyperdual), POINTER            :: CGRID( :,:,:,: )
             INTEGER, INTENT( IN )    :: JDATE, JTIME, TSTEP( 3 )
@@ -495,7 +499,7 @@ C...    convert to m2 per mole of air by volume
             DO COL = 1, NCOLS
               FAC = CNV2 / DENS( COL, ROW, LAY )
               CCMIN = MAX( CGRID( COL, ROW, LAY, SPC ), 1.0E-30/FAC )
-              CGRID( COL, ROW, LAY, SPC ) = FAC * 	
+              CGRID( COL, ROW, LAY, SPC ) = FAC * CCMIN
 #ifdef sens
               DO NP = 1, NPMAX
                 IF ( CGRID( COL, ROW, LAY, SPC ) .LE. 1.0E-30 ) THEN
