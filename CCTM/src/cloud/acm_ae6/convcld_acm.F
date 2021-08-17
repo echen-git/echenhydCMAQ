@@ -130,7 +130,7 @@ C       11 Nov 19 F. Sidi: Changed MSTEP to accomdate Centralized I/O changes
 C       30 Dec 19 S.L.Napelenok:  ddm-3d implementaiton for version 5.3.1
 
 C-----------------------------------------------------------------------
-
+	  USE HDMod
       USE RUNTIME_VARS, ONLY: STM, CONVECTIVE_SCHEME
       USE GRID_CONF           ! horizontal & vertical domain specifications
       USE CGRID_SPCS          ! CGRID mechanism species
@@ -173,7 +173,7 @@ C...........INCLUDES
 
 C...........Arguments
 
-      REAL, POINTER            :: CGRID( :,:,:,: )
+      Type(hyperdual), POINTER            :: CGRID( :,:,:,: )
       INTEGER, INTENT( IN )    :: JDATE
       INTEGER, INTENT( IN )    :: JTIME
       INTEGER, INTENT( IN )    :: TSTEP( 3 )
@@ -182,7 +182,7 @@ C...........Arguments
       REAL,    INTENT( INOUT ) :: CONV_DEP( :,:,: )
       REAL,    INTENT( OUT )   :: SUBTRANS( :,:,: )
 #ifdef isam
-      REAL,    INTENT( INOUT ) :: CONV_SADEP( :,:,:,: )
+      !REAL,    INTENT( INOUT ) :: CONV_SADEP( :,:,:,: )
 #endif
 
 C...........Parameters
@@ -264,9 +264,9 @@ C...........Local Variables
 
 C-------for ACM version - jp 2/05        REAL DPB
       REAL, ALLOCATABLE, SAVE :: DZH( : )
-      REAL, ALLOCATABLE, SAVE :: CCR ( :,: )
-      REAL, ALLOCATABLE, SAVE :: CONC( :,: )
-      REAL, ALLOCATABLE, SAVE :: CBELOW( : )
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: CCR ( :,: )
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: CONC( :,: )
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: CBELOW( : )
 C-------------------------------------------
 
       LOGICAL, SAVE :: FIRSTIME = .TRUE. ! flag for first pass thru
@@ -310,7 +310,7 @@ C-------------------------------------------
       REAL             ALFA2            ! aitken mode sfc area scavenging coef
       REAL             ALFA3            ! aitken mode mass scavenging coef
       REAL             ARPRES           ! ave cloud pres in atm
-      REAL             CONDIS           !
+      TYPE(hyperdual)             CONDIS           !
       REAL             CTHK             ! cloud thickness (m)
       REAL             CTHK1            ! aq chem calc cloud thickness
       REAL             DAMDP            ! dry adiabatic minus dew point lapse rate
@@ -375,11 +375,11 @@ C-------------------------------------------
       REAL             LWP
       REAL             STRNS            ! intermediate to set subgrid cld transmissivity
       REAL, ALLOCATABLE, SAVE :: AECONCMIN( : ) ! array of minimum concentrations
-      REAL, ALLOCATABLE, SAVE :: BMOL   ( : )   ! mol/m2 species below cloud
-      REAL, ALLOCATABLE, SAVE :: CBASE0 ( : )   ! initial ave trace gas mix rat below cld
-      REAL, ALLOCATABLE, SAVE :: CBASEF ( : )   ! final ave trac gas mix rat blw cld (mol/mol)
-      REAL, ALLOCATABLE, SAVE :: CEND   ( : )   ! ending equiv gas phase conc (mol/mol)
-      REAL, ALLOCATABLE, SAVE :: POLC   ( : )   ! ave vert conc incloud mol sp/m2 and mol sp/ mol air
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: BMOL   ( : )   ! mol/m2 species below cloud
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: CBASE0 ( : )   ! initial ave trace gas mix rat below cld
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: CBASEF ( : )   ! final ave trac gas mix rat blw cld (mol/mol)
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: CEND   ( : )   ! ending equiv gas phase conc (mol/mol)
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: POLC   ( : )   ! ave vert conc incloud mol sp/m2 and mol sp/ mol air
       REAL, ALLOCATABLE, SAVE :: REMOV  ( : )   ! mol/m2 or mm*mol/lit scavenged
       REAL          :: DENSL( NLAYS )           ! air density (kg/m3)
       REAL, ALLOCATABLE, SAVE :: F      ( : )   ! cloud entrainment fraction to be solved for
@@ -396,11 +396,11 @@ C-------------------------------------------
       REAL             PLCL                ! pressure at LCL
       REAL             QMAX                ! pertbd w.. mix rat of parcel
       REAL          :: RAIN( NCOLS,NROWS ) ! this timestep rainfall (mm/hr)
-      REAL             BCLDWT              ! below cloud weighting function
+      TYPE(hyperdual)             BCLDWT              ! below cloud weighting function
       REAL, ALLOCATABLE, SAVE :: CONCMINL( :,: ) ! minimum concentrations for each species and layer
-      REAL             INCLOUD        ! final conc in cloud after mix and chem [mol/mol]
-      REAL             OUTCLOUD       ! final conc outside    "    "   "   "     "
-      REAL, ALLOCATABLE, SAVE :: PCLD    ( :,: ) ! mol sp/mol air in cloud
+      TYPE(hyperdual)             INCLOUD        ! final conc in cloud after mix and chem [mol/mol]
+      TYPE(hyperdual)             OUTCLOUD       ! final conc outside    "    "   "   "     "
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: PCLD    ( :,: ) ! mol sp/mol air in cloud
 
       REAL          :: RC   ( NCOLS,NROWS )        ! hourly convective rainfall (cm)
       REAL          :: PBL  ( NCOLS,NROWS )        ! PBL height (m)
@@ -445,23 +445,23 @@ C...........Statement Functions
 #ifdef isam
       REAL, ALLOCATABLE, SAVE :: SA_BASE0  ( :,: )
       REAL, ALLOCATABLE, SAVE :: SA_POLC   ( :,: )
-      REAL, ALLOCATABLE, SAVE :: SA_CEND   ( :,: )
+      Type(hyperdual), ALLOCATABLE, SAVE :: SA_CEND   ( :,: )
       REAL, ALLOCATABLE, SAVE :: SA_PCLD   ( :,:,: )
       REAL, ALLOCATABLE, SAVE :: SA_BASEF  ( :,: )
-      REAL, ALLOCATABLE, SAVE :: SA_CCR    ( :,:,: )
+      Type(hyperdual), ALLOCATABLE, SAVE :: SA_CCR    ( :,:,: )
       REAL, ALLOCATABLE, SAVE :: SA_CBELOW ( :,: )
       REAL, ALLOCATABLE, SAVE :: SA_REMOV  ( :,: )
       REAL, ALLOCATABLE, SAVE :: SA_BMOL   ( :,: )
-      REAL, ALLOCATABLE, SAVE :: SA_CONC   ( :,:,: )
+      Type(hyperdual), ALLOCATABLE, SAVE :: SA_CONC   ( :,:,: )
       REAL, ALLOCATABLE, SAVE :: SA_DS4    ( : )
-      REAL, ALLOCATABLE, SAVE :: SA_INCLOUD( : )
+      TYPE(hyperdual), ALLOCATABLE, SAVE :: SA_INCLOUD( : )
 
       INTEGER, SAVE           :: S_SO2, S_SO4J, S_SULF, S_N2O5
       INTEGER, SAVE           :: C_SO2, C_SO4J, C_SULF
       INTEGER CSPC
 
-      REAL BLNC
-      REAL                    :: SA_SUM
+      TYPE(hyperdual) BLNC
+      TYPE(hyperdual)                   :: SA_SUM
 
 
 #endif
@@ -470,12 +470,13 @@ C...........Statement Functions
       INTERFACE
         SUBROUTINE ACMCLD ( NSP, NLAYS, F, C, DZH, CBELOW, CLBASE, CLTOP,
      &                      FRAC, TCLIFE, DTCLD )
+     	  USE HDMod
           INTEGER, INTENT( IN ) :: NSP
           INTEGER, INTENT( IN ) :: NLAYS
           REAL, INTENT( IN )    :: F( : )
-          REAL, INTENT( INOUT ) :: C( :, : )
+          TYPE(hyperdual), INTENT( INOUT ) :: C( :, : )
           REAL, INTENT( IN )    :: DZH( : )
-          REAL, INTENT( INOUT ) :: CBELOW( : )
+          TYPE(hyperdual), INTENT( INOUT ) :: CBELOW( : )
           INTEGER, INTENT( IN ) :: CLBASE
           INTEGER, INTENT( IN ) :: CLTOP
           REAL, INTENT( IN )    :: FRAC
@@ -486,11 +487,13 @@ C...........Statement Functions
         SUBROUTINE SCAVWDEP ( JDATE, JTIME, WTBAR, WCBAR, TBARC, PBARC,
      &                        CTHK1, AIRM, PRATE1, TAUCLD, POLC, CEND,
      &                        REMOV, REMOVAC, ALFA0, ALFA2, ALFA3 )
+     	  USE HDMod
           INTEGER, INTENT( IN )  :: JDATE, JTIME
           REAL,    INTENT( IN )  :: WTBAR, WCBAR, TBARC, PBARC,
      &                              CTHK1, AIRM, PRATE1, TAUCLD
-          REAL,    INTENT( IN )  :: POLC ( : )
-          REAL,    INTENT( OUT ) :: CEND( : ), REMOV( : )
+          TYPE(hyperdual),    INTENT( IN )  :: POLC ( : )
+          TYPE(hyperdual),    INTENT( OUT ) :: CEND( : )
+          REAL,    INTENT( OUT ) :: REMOV( : )
           REAL,    INTENT( OUT ) :: REMOVAC
           REAL,    INTENT( OUT ) :: ALFA0, ALFA2, ALFA3
         END SUBROUTINE SCAVWDEP
@@ -498,11 +501,13 @@ C...........Statement Functions
         SUBROUTINE AQ_MAP( JDATE, JTIME, WTBAR, WCBAR, TBARC, PBARC,
      &                     CTHK1, AIRM, PRATE1, TAUCLD, POLC, CEND,
      &                     REMOV, REMOVAC, ALFA0, ALFA2, ALFA3, DARK )
+     	  USE HDMod
           INTEGER, INTENT( IN )    :: JDATE, JTIME
           REAL,    INTENT( IN )    :: WTBAR, WCBAR, TBARC, PBARC,
      &                                CTHK1, AIRM, PRATE1, TAUCLD
-          REAL,    INTENT( IN )    :: POLC ( : )
-          REAL,    INTENT( INOUT ) :: CEND( : ), REMOV( : )
+          TYPE(hyperdual),    INTENT( IN )    :: POLC ( : )
+          TYPE(hyperdual),    INTENT( INOUT ) :: CEND ( : )
+          REAL,    INTENT( INOUT ) :: REMOV( : )
           REAL,    INTENT( INOUT ) :: REMOVAC
           REAL,    INTENT( IN )    :: ALFA0, ALFA2, ALFA3
           LOGICAL, INTENT( IN )    :: DARK            
@@ -1244,12 +1249,12 @@ C...First, get mol air/m2 at each layer, initialize FSIDE
 
           DO SPC = 1, NSPCSD
             REMOV( SPC ) = 0.0  ! mol/m2 or mm*mol/lit scavenged
-            CEND ( SPC ) = 0.0  ! ending equiv gas phase conc (mol/mol)
-            BMOL ( SPC ) = 0.0  ! mol/m2 species below cloud
-            POLC ( SPC ) = 0.0  ! mol/m2 species in cloud
+            CEND ( SPC ) = 0.0D0  ! ending equiv gas phase conc (mol/mol)
+            BMOL ( SPC ) = 0.0D0  ! mol/m2 species below cloud
+            POLC ( SPC ) = 0.0D0  ! mol/m2 species in cloud
 
             DO LAY = 1, NLAYS
-              PCLD( SPC,LAY ) = 0.0  ! mol sp/mol air in cloud
+              PCLD( SPC,LAY ) = 0.0D0  ! mol sp/mol air in cloud
             END DO
 
           END DO
@@ -1308,7 +1313,7 @@ C...determine average trace gas mixing ratio below cloud level
 #ifdef isam
           SA_BMOL  = 0.0
           SA_REMOV = 0.0
-          SA_CEND  = 0.0
+          SA_CEND  = 0.0D0
           SA_PCLD  = 0.0
           SA_POLC  = 0.0
 
@@ -1769,7 +1774,7 @@ c                       S_BCLDWT( NP, SPC, LAY ) = 1.0D0
                   END DO
 #endif          
                 ELSE
-                  BCLDWT = 1.0
+                  BCLDWT = 1.0D0
 #ifdef sens
                   DO NP = 1, NPMAX
                      S_BCLDWT( NP, SPC, LAY ) =  1.0
@@ -1782,7 +1787,7 @@ c                       S_BCLDWT( NP, SPC, LAY ) = 1.0D0
                     IF ( CBASE0( SURCLDMX( SPC ) ) .GT. 0.0 ) THEN
                       BCLDWT = CONC( SURCLDMX( SPC ),LAY ) / MAX( CBASE0( SURCLDMX( SPC ) ), 1.0E-30 )
                     ELSE
-                      BCLDWT = 1.0
+                      BCLDWT = 1.0D0
                     END IF
                   END IF
                 END IF ! stm
@@ -1814,7 +1819,7 @@ C...  below cloud concentrations in mol sp/mol air
                 IF ( CSPC .NE. 0) THEN
                   DO ITAG = 1, NTAG_SA
 
-                     BCLDWT = SA_CONC( CSPC,LAY,ITAG ) / MAX( SA_BASE0( CSPC, ITAG ),1.0E-30 )
+                     BCLDWT = SA_CONC( CSPC,LAY,ITAG ) / MAX( SA_BASE0( CSPC, ITAG ),1.0D0-30 )
                      SA_PCLD( CSPC,LAY, ITAG ) = BCLDWT * SA_BASEF( CSPC,ITAG )
 
                      IF ( ICLDTYPE .EQ. 1 ) THEN
@@ -1931,7 +1936,7 @@ c            IF ( POLC( CSPC ) .GT. 1.0E-30 .AND. CEND( CSPC ) .GT. 1.0E-09 ) TH
                 END DO
              ELSE 
                 DO ITAG = 1, NTAG_SA
-                   SA_CEND( SPC, ITAG )  = 0.0
+                   SA_CEND( SPC, ITAG )  = 0.0D0
                    SA_REMOV( SPC, ITAG ) = 0.0
                 END DO
              END IF
@@ -1989,7 +1994,7 @@ c               IF ( POLC( CSPC ) .GT. 1.0E-30 .AND. CEND( CSPC ) .GT. 1.0E-09) 
      &                                 * ( REMOV( CSPC )
      &                                   / POLC( CSPC ) )
                 ELSE
-                  SA_CEND( SPC,ITAG )  = 0.0
+                  SA_CEND( SPC,ITAG )  = 0.0D0
                   SA_REMOV( SPC,ITAG ) = 0.0
                 END IF
               END DO
@@ -1998,7 +2003,7 @@ c               IF ( POLC( CSPC ) .GT. 1.0E-30 .AND. CEND( CSPC ) .GT. 1.0E-09) 
 
             IF ( S_N2O5 .NE. 0 ) THEN
               DO ITAG = 1, NTAG_SA
-                SA_CEND( S_N2O5,ITAG )  = 0.0
+                SA_CEND( S_N2O5,ITAG )  = 0.0D0
               END DO
             END IF
 
@@ -2006,7 +2011,7 @@ c               IF ( POLC( CSPC ) .GT. 1.0E-30 .AND. CEND( CSPC ) .GT. 1.0E-09) 
 
               DO ITAG = 1, NTAG_SA  ! sulfate from H2SO4
                 SA_DS4( ITAG ) = SA_POLC( S_SULF,ITAG )
-                SA_CEND( S_SULF,ITAG )  = 1.0E-30
+                SA_CEND( S_SULF,ITAG )  = 1.0D-30
               END DO
 
 c             DS4_SAVE = MAX( ( DS4_SAVE - SUM( SA_DS4 ) ), 0.0 ) ! sulfate produced from SO2
@@ -2220,8 +2225,8 @@ C...   include raining region below cld base
                   END IF ! stm
 
                   OUTCLOUD = PCLD( SPC,LAY )
-                  CGRID( COL,ROW,LAY,SPC ) = FRAC * INCLOUD
-     &                                     + ( 1.0 - FRAC ) * OUTCLOUD
+                  CGRID( COL,ROW,LAY,SPC ) = REAL(FRAC, 8) * INCLOUD
+     &                                     + (1.0D0 - REAL(FRAC, 8)) * OUTCLOUD
 #ifdef sens
                   DO NP = 1, NPMAX
                     IF( ABS( S_POLC( NP, SPC ) ) .LT. DDM3D_CONCMINL ) THEN
@@ -2256,7 +2261,7 @@ C...   include raining region below cld base
 
               IF (S_SO4J .NE. 0 ) THEN ! sulfate case
 
-                CONDIS = 0.0
+                CONDIS = 0.0D0
                 DO ITAG = 1, NTAG_SA
                   SA_INCLOUD( ITAG ) = PCLD( C_SO4J,LAY ) * ( SA_CEND( S_SO4J,ITAG ) 
      &                    / MAX( POLC( C_SO4J ), CONCMINL( C_SO4J,LAY ) ) )
@@ -2265,11 +2270,11 @@ C...   include raining region below cld base
      &                    + SA_PCLD( S_SO4J,LAY,ITAG ) * CEND( C_SO4J ) / MAX( POLC( C_SO4J ), CONCMINL( C_SO4J,LAY ) )
                   IF ( SA_INCLOUD( ITAG ) .LT. 0.0 ) THEN
                     CONDIS = CONDIS + SA_INCLOUD( ITAG )
-                    SA_INCLOUD( ITAG )  = 0.0
+                    SA_INCLOUD( ITAG )  = 0.0D0
                   END IF
                 END DO
 
-                IF ( CONDIS .NE. 0.0 ) THEN
+                IF ( CONDIS .NE. 0.0D0 ) THEN
                  BLNC = ( CONDIS + SUM( SA_INCLOUD( : ) ) ) / MAX( SUM( SA_INCLOUD( : ) ), CONCMINL( C_SO4J,LAY ) )
                   DO ITAG = 1, NTAG_SA
                     IF ( SA_INCLOUD( ITAG ) .GT. 0.0 ) THEN
@@ -2336,8 +2341,8 @@ C...Now do changes in cloudy layers:
                 OUTCLOUD = ( CCR( SPC,LAY ) - FRAC * PCLD( SPC,LAY ) )
      &                   / ( 1.0 - FRAC )
                 OUTCLOUD = MAX( OUTCLOUD, CONCMINL( SPC,LAY ) )
-                CGRID( COL,ROW,LAY,SPC ) = FRAC * INCLOUD 
-     &                                   + ( 1.0 - FRAC ) * OUTCLOUD
+                CGRID( COL,ROW,LAY,SPC ) = REAL(FRAC, 8) * INCLOUD
+     &                                   + ( 1.0D0 - REAL(FRAC, 8) ) * OUTCLOUD
 #ifdef sens
                 DO NP = 1, NPMAX
                   IF( ABS( S_POLC( NP, SPC ) ) .LT. DDM3D_CONCMINL ) THEN
